@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "skills": "^1.4.9"
+  },
+  "_npx": {
+    "packages": [
+      "skills"
+    ]
+  }
+}
