@@ -1,47 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { ReadTool } from "./tools/ReadTool";
+import { EditTool } from "./tools/EditTool";
+import { WriteTool } from "./tools/WriteTool";
+import { BashTool } from "./tools/BashTool";
+import { GrepTool } from "./tools/GrepTool";
+import { GenericTool } from "./tools/GenericTool";
 
 type ToolBlock = {
   name: string;
   input?: any;
+  output?: any;
+  duration?: number;
 };
 
-export function ToolUseBlock({ tools }: { tools: ToolBlock[] }) {
-  const [expanded, setExpanded] = useState(false);
+function ToolRenderer({ tool }: { tool: ToolBlock }) {
+  const name = tool.name?.toLowerCase() || "";
 
+  if (name === "read") return <ReadTool input={tool.input || {}} output={tool.output} duration={tool.duration} />;
+  if (name === "edit") return <EditTool input={tool.input || {}} duration={tool.duration} />;
+  if (name === "write") return <WriteTool input={tool.input || {}} duration={tool.duration} />;
+  if (name === "bash") return <BashTool input={tool.input || {}} output={tool.output} duration={tool.duration} />;
+  if (name === "grep" || name === "glob") return <GrepTool input={tool.input || {}} output={tool.output} duration={tool.duration} />;
+
+  return <GenericTool toolName={tool.name} input={tool.input || {}} output={tool.output} duration={tool.duration} />;
+}
+
+export function ToolUseBlock({ tools }: { tools: ToolBlock[] }) {
   if (tools.length === 0) return null;
 
   return (
-    <div className="bg-[var(--bg)] border border-[var(--border)] rounded-md mt-1.5 overflow-hidden max-w-[80%]">
-      <button
-        onClick={() => setExpanded(!expanded)}
-        className="w-full px-3 py-2 text-xs text-[var(--text-muted)] text-left hover:text-[var(--text-secondary)] flex justify-between items-center"
-      >
-        <span>{tools.length} tool call{tools.length !== 1 ? "s" : ""}</span>
-        <span>{expanded ? "\u25b2" : "\u25bc"}</span>
-      </button>
-      {expanded &&
-        tools.map((tool, i) => (
-          <div
-            key={i}
-            className="px-3 py-2 border-t border-[var(--border)] text-xs flex justify-between items-center"
-          >
-            <span className="text-[var(--text-secondary)]">
-              {tool.name}{" "}
-              {tool.input?.file_path && (
-                <span className="text-[var(--text-muted)] font-mono">
-                  {tool.input.file_path}
-                </span>
-              )}
-              {tool.input?.command && (
-                <span className="text-[var(--text-muted)] font-mono">
-                  {tool.input.command}
-                </span>
-              )}
-            </span>
-          </div>
-        ))}
+    <div className="mt-1.5 max-w-[80%] space-y-1.5">
+      {tools.map((tool, i) => (
+        <ToolRenderer key={i} tool={tool} />
+      ))}
     </div>
   );
 }
