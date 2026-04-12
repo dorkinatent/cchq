@@ -11,8 +11,13 @@ This is the manual checklist for verifying CCUI works from a phone (LAN + Tailsc
    ./scripts/install-launchagent.sh
    ```
    Expected output includes the plist path and log dir.
-4. **Tailscale:** install on the Mac and on your iPhone. Note the Mac's MagicDNS hostname (e.g. `studio.tail1234.ts.net`). No per-app config needed.
-5. **macOS Firewall:** if it pops a prompt asking whether `node` can accept incoming connections, click **Allow**.
+4. **Set a memorable hostname** so CCUI is reachable at `ccui.local` on the LAN and `ccui.<tailnet>.ts.net` over Tailscale:
+   ```bash
+   ./scripts/setup-hostname.sh
+   ```
+   (Pass a different name as the first arg if `ccui` isn't what you want. The script sets the Mac's `LocalHostName`/`HostName` and the Tailscale node name.)
+5. **Tailscale:** install on the Mac and on your iPhone. After step 4 the Tailscale hostname is already `ccui`. No per-app config needed.
+6. **macOS Firewall:** if it pops a prompt asking whether `node` can accept incoming connections, click **Allow**.
 
 ## Verification checklist
 
