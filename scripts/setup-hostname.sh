@@ -1,15 +1,14 @@
 #!/usr/bin/env bash
-# scripts/setup-hostname.sh — set the Mac's Bonjour / Tailscale hostnames to
-# a memorable name so CCUI is reachable at `<name>.local` on the LAN and
-# `<name>.<tailnet>.ts.net` over Tailscale.
+# scripts/setup-hostname.sh — set the Tailscale node name so CCUI is reachable
+# at `<name>.<tailnet>.ts.net` from any device on your tailnet (including
+# cellular). Does NOT touch the Mac's LocalHostName/HostName.
 #
 # Usage:
 #   ./scripts/setup-hostname.sh [name]
 #
 # If `name` is omitted, defaults to "ccui".
 #
-# Safe to re-run — overwrites existing values. Reboots are not required,
-# though LAN peers' DNS caches may take ~60s to pick up the new .local name.
+# Safe to re-run — overwrites the existing Tailscale hostname.
 
 set -eu
 
@@ -20,42 +19,19 @@ if [[ "$NAME" =~ [^a-z0-9-] ]]; then
   exit 1
 fi
 
-echo "Setting hostnames to: $NAME"
-echo
-
-# macOS has three hostname slots. For Bonjour (the thing that makes .local work)
-# only LocalHostName matters. Set HostName too so `hostname` in shells matches.
-echo "==> sudo scutil --set LocalHostName $NAME"
-sudo scutil --set LocalHostName "$NAME"
-echo "==> sudo scutil --set HostName $NAME"
-sudo scutil --set HostName "$NAME"
-
-# ComputerName is what Finder shows. Leave it alone by default — user may have
-# it set to something personal. Uncomment to override:
-# sudo scutil --set ComputerName "$NAME"
-
-# Tailscale: rename the node so MagicDNS resolves <name>.<tailnet>.ts.net.
-# Requires `tailscale` CLI to be installed AND the machine already authenticated.
-if command -v tailscale >/dev/null 2>&1; then
-  # `tailscale up --hostname` reconfigures without re-authing if already up.
-  echo "==> sudo tailscale up --hostname=$NAME"
-  sudo tailscale up --hostname="$NAME" >/dev/null
-  echo "    tailscale node renamed. MagicDNS may take ~60s to propagate."
-else
-  echo "    (tailscale CLI not found — skipping tailnet rename)"
+if ! command -v tailscale >/dev/null 2>&1; then
+  echo "tailscale CLI not found. Install Tailscale first, then re-run." >&2
+  exit 1
 fi
 
+echo "==> sudo tailscale up --hostname=$NAME"
+sudo tailscale up --hostname="$NAME" >/dev/null
+echo "Tailscale node renamed to: $NAME"
+echo "MagicDNS may take ~60s to propagate."
 echo
 cat <<EOF
-Done.
-
-Try these from your phone (same Wi-Fi as the Mac):
-  http://$NAME.local:3000/
-
-And via Tailscale (cellular OK):
+Try from your phone (Tailscale on, Wi-Fi or cellular both fine):
   http://$NAME.<your-tailnet>.ts.net:3000/
 
-If Bonjour resolution is slow, flush the phone's mDNS:
-  - iPhone: toggle Wi-Fi off and on
-  - macOS:  sudo killall -HUP mDNSResponder
+Find your tailnet name with:  tailscale status
 EOF
