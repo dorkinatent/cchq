@@ -187,13 +187,13 @@ export function PermissionCard({
             <div className="flex gap-2 pt-1">
               <button
                 onClick={handleDeny}
-                className="px-3 py-1.5 bg-[var(--errored-bg)] text-[var(--errored-text)] text-xs rounded hover:opacity-90"
+                className="min-h-11 min-w-11 touch-manipulation px-3 py-1.5 bg-[var(--errored-bg)] text-[var(--errored-text)] text-xs rounded hover:opacity-90"
               >
                 Deny
               </button>
               <button
                 onClick={() => setShowDenyForm(false)}
-                className="px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                className="min-h-11 min-w-11 touch-manipulation px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
               >
                 Cancel
               </button>
@@ -206,19 +206,19 @@ export function PermissionCard({
           <div className="flex flex-wrap gap-2 mt-3">
             <button
               onClick={handleAllow}
-              className="px-3 py-1.5 bg-[var(--accent)] text-[var(--bg)] text-xs rounded hover:bg-[var(--accent-hover)]"
+              className="min-h-11 min-w-11 touch-manipulation px-3 py-1.5 bg-[var(--accent)] text-[var(--bg)] text-xs rounded hover:bg-[var(--accent-hover)]"
             >
               {isBatch ? "Allow All" : "Allow"}
             </button>
             <button
               onClick={handleAllowAll}
-              className="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-secondary)] rounded hover:text-[var(--text-primary)]"
+              className="min-h-11 min-w-11 touch-manipulation px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-secondary)] rounded hover:text-[var(--text-primary)]"
             >
               Allow all like this
             </button>
             <button
               onClick={() => setShowDenyForm(true)}
-              className="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-secondary)] rounded hover:text-[var(--errored-text)]"
+              className="min-h-11 min-w-11 touch-manipulation px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] text-xs text-[var(--text-secondary)] rounded hover:text-[var(--errored-text)]"
             >
               Deny
             </button>

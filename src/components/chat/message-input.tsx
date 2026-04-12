@@ -204,7 +204,7 @@ export function MessageInput({
   return (
     <form
       onSubmit={handleSubmit}
-      className="px-5 py-4 border-t border-[var(--border)]"
+      className="px-5 py-4 pb-[max(env(safe-area-inset-bottom),1rem)] border-t border-[var(--border)]"
       onDragOver={(e) => {
         e.preventDefault();
         setDragOver(true);
@@ -292,7 +292,7 @@ export function MessageInput({
           disabled={disabled}
           rows={1}
           aria-label="Message input"
-          className="flex-1 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg px-4 py-3 text-sm leading-[1.5] text-[var(--text-primary)] resize-none placeholder-[var(--text-muted)] disabled:opacity-50"
+          className="flex-1 min-h-11 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg px-4 py-3 text-sm leading-[1.5] text-[var(--text-primary)] resize-none placeholder-[var(--text-muted)] disabled:opacity-50"
         />
         {sessionId && (
           <button
@@ -336,7 +336,7 @@ export function MessageInput({
             type="button"
             onClick={onInterrupt}
             title="Stop the current turn (Esc)"
-            className="bg-[var(--errored-bg)] border border-[var(--errored-text)] text-[var(--errored-text)] px-4 py-3 rounded-lg text-sm font-medium hover:bg-[var(--errored-text)] hover:text-[var(--bg)] shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            className="min-h-11 min-w-11 bg-[var(--errored-bg)] border border-[var(--errored-text)] text-[var(--errored-text)] px-4 py-3 rounded-lg text-sm font-medium hover:bg-[var(--errored-text)] hover:text-[var(--bg)] shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
             Stop
           </button>
@@ -344,7 +344,7 @@ export function MessageInput({
           <button
             type="submit"
             disabled={disabled || (!value.trim() && attachments.length === 0)}
-            className="bg-[var(--accent)] text-[var(--bg)] px-4 py-3 rounded-lg text-sm font-medium hover:bg-[var(--accent-hover)] disabled:opacity-50 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            className="min-h-11 min-w-11 bg-[var(--accent)] text-[var(--bg)] px-4 py-3 rounded-lg text-sm font-medium hover:bg-[var(--accent-hover)] disabled:opacity-50 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
             Send
           </button>
