@@ -201,17 +201,17 @@ export default function SessionPage({
 
   return (
     <div className="flex flex-col h-[100svh] md:h-full">
-      <header className="flex items-center gap-3 md:gap-6 px-3 md:px-7 py-3 md:py-5 border-b border-[var(--border)] shrink-0">
+      <header className="sticky top-0 z-20 bg-[var(--bg)] flex items-center gap-3 md:gap-6 px-4 md:px-7 py-2 md:py-5 border-b border-[var(--border)] shrink-0">
         {/* Identity group: back, title, state */}
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <Link
             href="/"
-            className="flex items-center justify-center min-h-11 min-w-11 md:min-h-0 md:min-w-0 text-[var(--text-muted)] hover:text-[var(--text-primary)] text-[14px] shrink-0"
+            className="flex items-center justify-center min-h-11 min-w-11 md:min-h-0 md:min-w-0 md:block text-[var(--text-muted)] hover:text-[var(--text-primary)] text-[14px] shrink-0"
             aria-label="Back to dashboard"
           >
             &larr;
           </Link>
-          <h1 className="font-display text-xl font-semibold tracking-tight text-[var(--text-primary)] leading-tight truncate">
+          <h1 className="font-display text-xl font-semibold tracking-tight text-[var(--text-primary)] leading-tight truncate max-w-[60vw] md:max-w-none">
             {session?.name || "Loading…"}
           </h1>
           {session && (
@@ -248,8 +248,8 @@ export default function SessionPage({
           </div>
         )}
 
-        {/* Actions group */}
-        <div className="flex items-center gap-2 shrink-0">
+        {/* Actions group — desktop only */}
+        <div className="hidden md:flex items-center gap-2 shrink-0">
           <SessionSearch
             sessionId={id}
             onJumpToMessage={(messageId) =>
@@ -257,7 +257,7 @@ export default function SessionPage({
             }
           />
           {isActive && (
-            <div className="hidden md:flex items-center gap-2">
+            <div className="flex items-center gap-2">
               <span className="w-px h-5 bg-[var(--border)] mx-1" aria-hidden />
               <button
                 onClick={handlePause}
@@ -274,11 +274,6 @@ export default function SessionPage({
               </button>
             </div>
           )}
-          <MobileOverflowMenu
-            isActive={isActive}
-            onPause={handlePause}
-            onComplete={handleComplete}
-          />
           <span className="hidden lg:inline-block w-px h-5 bg-[var(--border)] mx-1" aria-hidden />
           <button
             onClick={togglePanel}
@@ -288,6 +283,15 @@ export default function SessionPage({
           >
             {panelOpen ? "›│" : "│‹"}
           </button>
+        </div>
+
+        {/* Mobile overflow menu — mobile only */}
+        <div className="md:hidden flex items-center gap-1">
+          <MobileOverflowMenu
+            isActive={isActive}
+            onPause={handlePause}
+            onComplete={handleComplete}
+          />
         </div>
       </header>
 
