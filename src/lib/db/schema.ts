@@ -34,10 +34,13 @@ export const permissionDecisionEnum = pgEnum("permission_decision", [
   "ask",
 ]);
 
+export const engineEnum = pgEnum("engine", ["sdk", "gastown"]);
+
 export const projects = pgTable("projects", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
   path: text("path").notNull().unique(),
+  engine: engineEnum("engine").notNull().default("sdk"),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
 });
@@ -92,4 +95,28 @@ export const permissionRules = pgTable("permission_rules", {
   priority: integer("priority").notNull().default(0), // higher = evaluated first
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+});
+
+export const rigs = pgTable("rigs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id")
+    .notNull()
+    .unique()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  townPath: text("town_path"),
+  rigName: text("rig_name"),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+});
+
+export const rigEvents = pgTable("rig_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  rigId: uuid("rig_id")
+    .notNull()
+    .references(() => rigs.id, { onDelete: "cascade" }),
+  eventType: text("event_type"),
+  actor: text("actor"),
+  payload: jsonb("payload"),
+  timestamp: timestamp("timestamp", { withTimezone: true, mode: "string" }),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
 });
