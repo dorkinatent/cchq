@@ -94,7 +94,7 @@ function buildCanUseTool(sessionId: string, projectId: string, trustLevel: Trust
       // For auto_log mode, emit a log event
       if (trustLevel === "auto_log" || (result.matchedRuleId && trustLevel !== "full_auto")) {
         sessionEventBus.emit(sessionId, {
-          type: "auto_approval_log" as any,
+          type: "auto_approval_log",
           toolName,
           input,
           decision: "allow",
@@ -113,7 +113,7 @@ function buildCanUseTool(sessionId: string, projectId: string, trustLevel: Trust
     const requestId = crypto.randomUUID();
 
     sessionEventBus.emit(sessionId, {
-      type: "permission_request" as any,
+      type: "permission_request",
       requestId,
       toolName,
       input,
@@ -126,7 +126,7 @@ function buildCanUseTool(sessionId: string, projectId: string, trustLevel: Trust
       const timeout = setTimeout(() => {
         pendingPermissions.delete(requestId);
         sessionEventBus.emit(sessionId, {
-          type: "permission_timeout" as any,
+          type: "permission_timeout",
           requestId,
           timestamp: Date.now(),
         });

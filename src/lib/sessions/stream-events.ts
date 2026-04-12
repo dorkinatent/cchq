@@ -13,7 +13,10 @@ export type StreamEvent =
   | { type: "message_complete"; messageId: string; content: string; toolUse: unknown[] | null; timestamp: number }
   | { type: "result"; success: boolean; totalCostUsd: number; totalTokens: number; numTurns: number; timestamp: number }
   | { type: "error"; error: string; timestamp: number }
-  | { type: "ping"; timestamp: number };
+  | { type: "ping"; timestamp: number }
+  | { type: "auto_approval_log"; toolName: string; input: Record<string, unknown>; decision: string; reason?: string; timestamp: number }
+  | { type: "permission_request"; requestId: string; toolName: string; input: Record<string, unknown>; title: string; timestamp: number }
+  | { type: "permission_timeout"; requestId: string; timestamp: number };
 
 export type StreamEventHandler = (event: StreamEvent) => void;
 

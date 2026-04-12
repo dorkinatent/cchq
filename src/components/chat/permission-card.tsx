@@ -33,19 +33,19 @@ const TOOL_ICONS: Record<string, string> = {
 function ToolPreview({ toolName, input }: { toolName: string; input: Record<string, unknown> }) {
   return (
     <div className="bg-[var(--bg)] rounded-md p-3 text-xs font-mono">
-      {input.file_path && (
+      {input.file_path ? (
         <div className="text-[var(--text-secondary)]">{String(input.file_path)}</div>
-      )}
-      {input.command && (
+      ) : null}
+      {input.command ? (
         <div className="text-[var(--text-secondary)]">
           <span className="text-[var(--text-muted)]">$ </span>
           {String(input.command)}
         </div>
-      )}
-      {input.pattern && (
+      ) : null}
+      {input.pattern ? (
         <div className="text-[var(--text-secondary)]">/{String(input.pattern)}/</div>
-      )}
-      {input.old_string && input.new_string && (
+      ) : null}
+      {input.old_string && input.new_string ? (
         <div className="space-y-1 mt-1">
           <div className="text-red-400 line-through opacity-70 truncate">
             {String(input.old_string).slice(0, 120)}
@@ -54,12 +54,12 @@ function ToolPreview({ toolName, input }: { toolName: string; input: Record<stri
             {String(input.new_string).slice(0, 120)}
           </div>
         </div>
-      )}
-      {input.content && !input.old_string && (
+      ) : null}
+      {input.content && !input.old_string ? (
         <div className="text-[var(--text-muted)] truncate">
           {String(input.content).slice(0, 200)}
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
@@ -107,16 +107,16 @@ export function PermissionCard({
           <span className="text-base">{icon}</span>
           <span className="text-sm text-[var(--text-primary)] font-medium">
             Claude wants to {request.toolName.toLowerCase()}{" "}
-            {request.input.file_path && (
+            {request.input.file_path ? (
               <span className="font-mono text-[var(--accent)]">
                 {String(request.input.file_path)}
               </span>
-            )}
-            {request.input.command && (
+            ) : null}
+            {request.input.command ? (
               <span className="font-mono text-[var(--accent)]">
                 {String(request.input.command).slice(0, 60)}
               </span>
-            )}
+            ) : null}
           </span>
         </div>
 
@@ -135,11 +135,11 @@ export function PermissionCard({
                   <div key={i} className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
                     <span>{TOOL_ICONS[item.toolName] || "🔧"}</span>
                     <span>{item.toolName}</span>
-                    {item.input.file_path && (
+                    {item.input.file_path ? (
                       <span className="font-mono text-[var(--text-muted)]">
                         {String(item.input.file_path)}
                       </span>
-                    )}
+                    ) : null}
                   </div>
                 ))}
               </div>
