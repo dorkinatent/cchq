@@ -39,6 +39,7 @@ export const sessions = pgTable("sessions", {
   model: text("model").notNull().default("claude-sonnet-4-6"),
   name: text("name").notNull(),
   sdkSessionId: text("sdk_session_id"),
+  usage: jsonb("usage").$type<{ totalTokens: number; totalCostUsd: number; numTurns: number }>(),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
 });

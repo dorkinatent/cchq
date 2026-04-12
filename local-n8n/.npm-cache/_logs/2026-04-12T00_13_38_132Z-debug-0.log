@@ -7,7 +7,7 @@
 6 silly config load:file:/opt/homebrew/etc/npmrc
 7 verbose title npm run dev
 8 verbose argv "run" "dev"
-9 verbose logfile logs-max:10 dir:/Users/charlieanderson/Code/CCUI/local-n8n/.npm-cache/_logs/2026-04-11T23_53_17_516Z-
-10 verbose logfile /Users/charlieanderson/Code/CCUI/local-n8n/.npm-cache/_logs/2026-04-11T23_53_17_516Z-debug-0.log
+9 verbose logfile logs-max:10 dir:/Users/charlieanderson/Code/CCUI/local-n8n/.npm-cache/_logs/2026-04-12T00_13_38_132Z-
+10 verbose logfile /Users/charlieanderson/Code/CCUI/local-n8n/.npm-cache/_logs/2026-04-12T00_13_38_132Z-debug-0.log
 11 silly logfile start cleaning logs, removing 1 files
 12 silly logfile done cleaning log files

@@ -49,9 +49,20 @@ function processMessages(
         }
 
         if (message.type === "result") {
+          const usage = message.subtype === "success"
+            ? {
+                totalTokens: message.usage?.input_tokens + message.usage?.output_tokens || 0,
+                totalCostUsd: message.total_cost_usd || 0,
+                numTurns: message.num_turns || 0,
+              }
+            : undefined;
+
           await db
             .update(schema.sessions)
-            .set({ updatedAt: new Date().toISOString() })
+            .set({
+              updatedAt: new Date().toISOString(),
+              ...(usage ? { usage } : {}),
+            })
             .where(eq(schema.sessions.id, sessionId));
         }
       }

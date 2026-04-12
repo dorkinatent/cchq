@@ -14,12 +14,14 @@ export function SessionContextPanel({
   projectPath,
   model,
   messageCount,
+  usage,
 }: {
   sessionId: string;
   projectId: string;
   projectPath: string;
   model: string;
   messageCount: number;
+  usage?: { totalTokens: number; totalCostUsd: number; numTurns: number } | null;
 }) {
   const [knowledge, setKnowledge] = useState<KnowledgeEntry[]>([]);
 
@@ -65,6 +67,16 @@ export function SessionContextPanel({
       <div className="text-xs text-neutral-500 leading-loose">
         Messages: {messageCount}<br />
         Model: {model}
+        {usage && (
+          <>
+            <br />
+            Tokens: {usage.totalTokens.toLocaleString()}
+            <br />
+            Cost: ${usage.totalCostUsd.toFixed(4)}
+            <br />
+            Turns: {usage.numTurns}
+          </>
+        )}
       </div>
     </div>
   );

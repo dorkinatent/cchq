@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, useRef, use } from "react";
 import Link from "next/link";
 import { useSessionMessages } from "@/hooks/use-session-messages";
 import { MessageList } from "@/components/chat/message-list";
@@ -15,6 +15,7 @@ type SessionDetail = {
   projectId: string;
   projectName?: string;
   projectPath?: string;
+  usage?: { totalTokens: number; totalCostUsd: number; numTurns: number } | null;
 };
 
 export default function SessionPage({
@@ -26,6 +27,8 @@ export default function SessionPage({
   const { messages, loading } = useSessionMessages(id);
   const [session, setSession] = useState<SessionDetail | null>(null);
   const [sending, setSending] = useState(false);
+  const [thinking, setThinking] = useState(false);
+  const prevMessageCount = useRef(0);
 
   useEffect(() => {
     fetch(`/api/sessions/${id}`)
@@ -33,8 +36,24 @@ export default function SessionPage({
       .then(setSession);
   }, [id]);
 
+  // Detect when a new assistant message arrives → stop thinking
+  useEffect(() => {
+    if (messages.length > prevMessageCount.current) {
+      const newMessages = messages.slice(prevMessageCount.current);
+      if (newMessages.some((m) => m.role === "assistant")) {
+        setThinking(false);
+        // Refresh session to get updated usage
+        fetch(`/api/sessions/${id}`)
+          .then((r) => r.json())
+          .then(setSession);
+      }
+    }
+    prevMessageCount.current = messages.length;
+  }, [messages, id]);
+
   async function handleSend(content: string) {
     setSending(true);
+    setThinking(true);
     try {
       const res = await fetch(`/api/sessions/${id}/message`, {
         method: "POST",
@@ -44,9 +63,11 @@ export default function SessionPage({
       if (!res.ok) {
         const data = await res.json();
         alert(`Failed to send: ${data.error || "Unknown error"}`);
+        setThinking(false);
       }
     } catch (err: any) {
       alert(`Failed to send: ${err.message}`);
+      setThinking(false);
     }
     setSending(false);
   }
@@ -90,8 +111,18 @@ export default function SessionPage({
               {session.status}
             </span>
           )}
+          {thinking && (
+            <span className="text-[11px] text-amber-400 animate-pulse">
+              Claude is working...
+            </span>
+          )}
         </div>
         <div className="flex gap-2 items-center text-xs text-neutral-500">
+          {session?.usage && (
+            <span className="text-neutral-600 mr-2">
+              {session.usage.totalTokens.toLocaleString()} tokens · ${session.usage.totalCostUsd.toFixed(4)}
+            </span>
+          )}
           {session?.model}
           {isActive && (
             <>
@@ -119,7 +150,7 @@ export default function SessionPage({
               Loading messages...
             </div>
           ) : (
-            <MessageList messages={messages} />
+            <MessageList messages={messages} thinking={thinking} />
           )}
           <MessageInput
             onSend={handleSend}
@@ -134,6 +165,7 @@ export default function SessionPage({
             projectPath={session.projectPath || ""}
             model={session.model}
             messageCount={messages.length}
+            usage={session.usage}
           />
         )}
       </div>
