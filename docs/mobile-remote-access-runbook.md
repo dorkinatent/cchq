@@ -17,7 +17,12 @@ This is the manual checklist for verifying CCUI works from a phone (LAN + Tailsc
    ```
    (Pass a different name as the first arg if `ccui` isn't what you want. Only touches Tailscale — leaves the Mac's own hostname alone.)
 5. **Tailscale:** install on the Mac and on your iPhone. After step 4 the Tailscale hostname is already `ccui`. No per-app config needed.
-6. **macOS Firewall:** if it pops a prompt asking whether `node` can accept incoming connections, click **Allow**.
+6. **Front CCUI with TLS on port 443** so the URL has no port number and HTTPS:
+   ```bash
+   ./scripts/setup-tailscale-serve.sh
+   ```
+   After this, CCUI is reachable at `https://ccui.<tailnet>.ts.net/` from any device on your tailnet. Stop with `./scripts/stop-tailscale-serve.sh`.
+7. **macOS Firewall:** if it pops a prompt asking whether `node` can accept incoming connections, click **Allow**.
 
 ## Verification checklist
 
@@ -59,7 +64,7 @@ Work through these one at a time. Anything failing blocks completion.
 When you want to iterate on CCUI, you have two options:
 
 1. **Quick:** unload the agent (`./scripts/uninstall-launchagent.sh`), work with `npm run dev`, reinstall when done.
-2. **Parallel:** run `npm run dev -- -p 3002` on a different port so it doesn't fight the agent.
+2. **Parallel:** run `PORT=3002 npm run dev` (or `npm run dev -- -p 3002`) on a different port so it doesn't fight the agent.
 
 ## Deferred (not in phase 1)
 
