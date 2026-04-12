@@ -5,10 +5,10 @@
 4 silly config load:file:/Users/charlieanderson/Code/CCUI/.npmrc
 5 silly config load:file:/Users/charlieanderson/.npmrc
 6 silly config load:file:/opt/homebrew/etc/npmrc
-7 verbose title npm exec supabase db query SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';
-8 verbose argv "exec" "--" "supabase" "db" "query" "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';"
-9 verbose logfile logs-max:10 dir:/Users/charlieanderson/Code/CCUI/local-n8n/.npm-cache/_logs/2026-04-11T23_57_45_537Z-
-10 verbose logfile /Users/charlieanderson/Code/CCUI/local-n8n/.npm-cache/_logs/2026-04-11T23_57_45_537Z-debug-0.log
+7 verbose title npm exec drizzle-kit push
+8 verbose argv "exec" "--" "drizzle-kit" "push"
+9 verbose logfile logs-max:10 dir:/Users/charlieanderson/Code/CCUI/local-n8n/.npm-cache/_logs/2026-04-12T01_44_08_688Z-
+10 verbose logfile /Users/charlieanderson/Code/CCUI/local-n8n/.npm-cache/_logs/2026-04-12T01_44_08_688Z-debug-0.log
 11 silly logfile start cleaning logs, removing 1 files
 12 silly logfile done cleaning log files
 13 verbose cwd /Users/charlieanderson/Code/CCUI

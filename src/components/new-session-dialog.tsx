@@ -24,6 +24,7 @@ export function NewSessionDialog({
   const [name, setName] = useState("");
   const [model, setModel] = useState("claude-sonnet-4-6");
   const [effort, setEffort] = useState("high");
+  const [trustLevel, setTrustLevel] = useState("auto_log");
   const [prompt, setPrompt] = useState("");
   const [newProjectPath, setNewProjectPath] = useState("");
   const [newProjectName, setNewProjectName] = useState("");
@@ -96,6 +97,7 @@ export function NewSessionDialog({
         name,
         model,
         effort,
+        trustLevel,
         prompt,
       }),
     });
@@ -292,6 +294,22 @@ export function NewSessionDialog({
             <option value="high">High — thorough, multi-step work</option>
             <option value="max">Max — exhaustive, no shortcuts</option>
           </select>
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-xs text-[var(--text-secondary)] mb-1">Permissions</label>
+          <select
+            value={trustLevel}
+            onChange={(e) => setTrustLevel(e.target.value)}
+            className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)]"
+          >
+            <option value="full_auto">Full Auto — accept everything, no prompts</option>
+            <option value="auto_log">Auto + Log — accept everything, log actions in chat</option>
+            <option value="ask_me">Ask Me — prompt before tool actions</option>
+          </select>
+          <p className="text-[10px] text-[var(--text-muted)] mt-1">
+            Project-level rules (if any) override this setting for specific tools.
+          </p>
         </div>
 
         <div className="mb-6">

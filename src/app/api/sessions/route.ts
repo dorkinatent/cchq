@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const { projectId, name, model, effort, prompt } = await req.json();
+  const { projectId, name, model, effort, trustLevel, prompt } = await req.json();
 
   const project = await db.query.projects.findFirst({
     where: eq(schema.projects.id, projectId),
@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
       projectId,
       name,
       model: model || "claude-sonnet-4-6",
+      trustLevel: trustLevel || "auto_log",
       status: "active",
     })
     .returning();

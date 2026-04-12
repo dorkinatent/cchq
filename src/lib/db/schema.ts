@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, jsonb, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, jsonb, pgEnum, integer } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
 export const sessionStatusEnum = pgEnum("session_status", [
@@ -22,6 +22,18 @@ export const knowledgeTypeEnum = pgEnum("knowledge_type", [
   "summary",
 ]);
 
+export const trustLevelEnum = pgEnum("trust_level", [
+  "full_auto",
+  "auto_log",
+  "ask_me",
+]);
+
+export const permissionDecisionEnum = pgEnum("permission_decision", [
+  "allow",
+  "deny",
+  "ask",
+]);
+
 export const projects = pgTable("projects", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
@@ -39,6 +51,7 @@ export const sessions = pgTable("sessions", {
   model: text("model").notNull().default("claude-sonnet-4-6"),
   name: text("name").notNull(),
   sdkSessionId: text("sdk_session_id"),
+  trustLevel: trustLevelEnum("trust_level").notNull().default("auto_log"),
   usage: jsonb("usage").$type<{ totalTokens: number; totalCostUsd: number; numTurns: number }>(),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
@@ -65,4 +78,17 @@ export const knowledge = pgTable("knowledge", {
   content: text("content").notNull(),
   tags: jsonb("tags").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+});
+
+export const permissionRules = pgTable("permission_rules", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id")
+    .notNull()
+    .references(() => projects.id),
+  toolPattern: text("tool_pattern").notNull(), // "Read", "Edit", "Bash", "Write", "*"
+  actionPattern: text("action_pattern"), // regex on action content, or null for any
+  decision: permissionDecisionEnum("decision").notNull(),
+  priority: integer("priority").notNull().default(0), // higher = evaluated first
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
 });

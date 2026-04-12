@@ -1,15 +1,148 @@
-import { query, type Query } from "@anthropic-ai/claude-agent-sdk";
+import { query, type Query, type PermissionResult } from "@anthropic-ai/claude-agent-sdk";
 import { db, schema } from "@/lib/db";
 import { eq, desc } from "drizzle-orm";
+import { evaluatePermission, type TrustLevel } from "@/lib/permissions/engine";
+import { createAllowRule } from "@/lib/permissions/rules";
+import { sessionEventBus } from "./stream-events";
 
 type ActiveSession = {
   query: Query;
   sessionId: string;
   sdkSessionId: string | null;
   abortController: AbortController;
+  projectId: string;
+  trustLevel: TrustLevel;
 };
 
 const activeSessions = new Map<string, ActiveSession>();
+
+/**
+ * Pending permission requests waiting for user response.
+ * Keyed by a unique request ID.
+ */
+type PendingPermission = {
+  resolve: (result: PermissionResult) => void;
+  toolName: string;
+  input: Record<string, unknown>;
+  sessionId: string;
+  timeout: ReturnType<typeof setTimeout>;
+};
+
+const pendingPermissions = new Map<string, PendingPermission>();
+
+/**
+ * Respond to a pending permission request from the UI.
+ */
+export function respondToPermission(
+  requestId: string,
+  decision: "allow" | "deny",
+  options?: { reason?: string; alternative?: string; createRule?: boolean }
+) {
+  const pending = pendingPermissions.get(requestId);
+  if (!pending) return;
+
+  clearTimeout(pending.timeout);
+  pendingPermissions.delete(requestId);
+
+  if (decision === "allow") {
+    // If createRule, persist an allow rule for this tool pattern
+    if (options?.createRule) {
+      const session = activeSessions.get(pending.sessionId);
+      if (session) {
+        createAllowRule(session.projectId, pending.toolName).catch(console.error);
+      }
+    }
+    pending.resolve({ behavior: "allow" });
+  } else {
+    const message = [
+      "The user denied this action.",
+      options?.reason ? `Reason: ${options.reason}` : "",
+      options?.alternative ? `Suggested alternative: ${options.alternative}` : "",
+    ]
+      .filter(Boolean)
+      .join(" ");
+    pending.resolve({ behavior: "deny", message });
+  }
+}
+
+/**
+ * Get all pending permission requests for a session.
+ */
+export function getPendingPermissions(sessionId: string) {
+  const result: { id: string; toolName: string; input: Record<string, unknown> }[] = [];
+  for (const [id, pending] of pendingPermissions) {
+    if (pending.sessionId === sessionId) {
+      result.push({ id, toolName: pending.toolName, input: pending.input });
+    }
+  }
+  return result;
+}
+
+/**
+ * Build the canUseTool callback for a session.
+ * This integrates our permission engine with the SDK.
+ */
+function buildCanUseTool(sessionId: string, projectId: string, trustLevel: TrustLevel) {
+  return async (
+    toolName: string,
+    input: Record<string, unknown>,
+    options: { signal: AbortSignal; toolUseID: string; title?: string }
+  ): Promise<PermissionResult> => {
+    const result = await evaluatePermission(projectId, trustLevel, { toolName, input });
+
+    if (result.decision === "allow") {
+      // For auto_log mode, emit a log event
+      if (trustLevel === "auto_log" || (result.matchedRuleId && trustLevel !== "full_auto")) {
+        sessionEventBus.emit(sessionId, {
+          type: "auto_approval_log" as any,
+          toolName,
+          input,
+          decision: "allow",
+          reason: result.reason,
+          timestamp: Date.now(),
+        });
+      }
+      return { behavior: "allow" };
+    }
+
+    if (result.decision === "deny") {
+      return { behavior: "deny", message: `Denied by project rule: ${result.reason}` };
+    }
+
+    // decision === "ask" — emit permission request to UI and wait
+    const requestId = crypto.randomUUID();
+
+    sessionEventBus.emit(sessionId, {
+      type: "permission_request" as any,
+      requestId,
+      toolName,
+      input,
+      title: options.title || `Claude wants to use ${toolName}`,
+      timestamp: Date.now(),
+    });
+
+    // Wait for user response with 5-minute timeout
+    return new Promise<PermissionResult>((resolve) => {
+      const timeout = setTimeout(() => {
+        pendingPermissions.delete(requestId);
+        sessionEventBus.emit(sessionId, {
+          type: "permission_timeout" as any,
+          requestId,
+          timestamp: Date.now(),
+        });
+        resolve({ behavior: "deny", message: "Permission request timed out (5 minutes). The user did not respond." });
+      }, 5 * 60 * 1000);
+
+      pendingPermissions.set(requestId, {
+        resolve,
+        toolName,
+        input,
+        sessionId,
+        timeout,
+      });
+    });
+  };
+}
 
 function processMessages(
   q: Query,
@@ -49,21 +182,32 @@ function processMessages(
         }
 
         if (message.type === "result") {
-          const usage = message.subtype === "success"
-            ? {
-                totalTokens: message.usage?.input_tokens + message.usage?.output_tokens || 0,
-                totalCostUsd: message.total_cost_usd || 0,
-                numTurns: message.num_turns || 0,
-              }
-            : undefined;
+          if (message.subtype === "success") {
+            // Fetch current usage to accumulate
+            const current = await db.query.sessions.findFirst({
+              where: eq(schema.sessions.id, sessionId),
+              columns: { usage: true },
+            });
+            const prev = (current?.usage as any) || { totalTokens: 0, totalCostUsd: 0, numTurns: 0 };
+            const newTokens = (message.usage?.input_tokens || 0) + (message.usage?.output_tokens || 0);
 
-          await db
-            .update(schema.sessions)
-            .set({
-              updatedAt: new Date().toISOString(),
-              ...(usage ? { usage } : {}),
-            })
-            .where(eq(schema.sessions.id, sessionId));
+            await db
+              .update(schema.sessions)
+              .set({
+                updatedAt: new Date().toISOString(),
+                usage: {
+                  totalTokens: prev.totalTokens + newTokens,
+                  totalCostUsd: prev.totalCostUsd + (message.total_cost_usd || 0),
+                  numTurns: prev.numTurns + (message.num_turns || 0),
+                },
+              })
+              .where(eq(schema.sessions.id, sessionId));
+          } else {
+            await db
+              .update(schema.sessions)
+              .set({ updatedAt: new Date().toISOString() })
+              .where(eq(schema.sessions.id, sessionId));
+          }
         }
       }
     } catch (error) {
@@ -74,6 +218,27 @@ function processMessages(
         .where(eq(schema.sessions.id, sessionId));
     }
   })();
+}
+
+/**
+ * Map trust level to SDK permission mode.
+ * - full_auto → acceptEdits (no prompts)
+ * - auto_log → default + canUseTool (auto-allow with logging)
+ * - ask_me → default + canUseTool (prompt user)
+ */
+function getPermissionConfig(
+  sessionId: string,
+  projectId: string,
+  trustLevel: TrustLevel
+): { permissionMode: string; canUseTool?: any } {
+  if (trustLevel === "full_auto") {
+    return { permissionMode: "acceptEdits" };
+  }
+  // For auto_log and ask_me, use default permission mode with our custom callback
+  return {
+    permissionMode: "default",
+    canUseTool: buildCanUseTool(sessionId, projectId, trustLevel),
+  };
 }
 
 export async function startSession(
@@ -89,6 +254,9 @@ export async function startSession(
     where: eq(schema.sessions.id, sessionId),
   });
   if (!session) throw new Error(`Session ${sessionId} not found`);
+
+  const trustLevel = (session.trustLevel as TrustLevel) || "auto_log";
+  const permConfig = getPermissionConfig(sessionId, session.projectId, trustLevel);
 
   const knowledgeEntries = await db.query.knowledge.findMany({
     where: eq(schema.knowledge.projectId, session.projectId),
@@ -116,7 +284,8 @@ export async function startSession(
         preset: "claude_code",
         append: systemAppend,
       },
-      permissionMode: "acceptEdits",
+      permissionMode: permConfig.permissionMode as any,
+      ...(permConfig.canUseTool ? { canUseTool: permConfig.canUseTool } : {}),
     },
   });
 
@@ -125,11 +294,12 @@ export async function startSession(
     sessionId,
     sdkSessionId: null,
     abortController,
+    projectId: session.projectId,
+    trustLevel,
   };
   activeSessions.set(sessionId, entry);
 
   processMessages(q, sessionId, (sdkId) => {
-    // Update the Map entry with the real SDK session ID
     entry.sdkSessionId = sdkId;
   });
 }
@@ -141,7 +311,6 @@ export async function sendMessage(
   content: string,
   attachments?: Attachment[]
 ): Promise<void> {
-  // Build the prompt — if there are images, tell Claude about the file paths
   let fullPrompt = content;
   if (attachments && attachments.length > 0) {
     const imagePaths = attachments.map((a) => a.path).join("\n");
@@ -158,30 +327,35 @@ export async function sendMessage(
 
   let active = activeSessions.get(sessionId);
 
-  // If no active session in memory (e.g. after server restart),
-  // look up the SDK session ID from the database and resume
   let sdkSessionId: string | null = null;
+  let projectId: string | null = null;
+  let trustLevel: TrustLevel = "auto_log";
 
   if (active) {
     sdkSessionId = active.sdkSessionId;
+    projectId = active.projectId;
+    trustLevel = active.trustLevel;
     try {
       active.query.close();
     } catch {
-      // Already closed, that's fine
+      // Already closed
     }
   }
 
-  // If we still don't have an SDK session ID, check the database
-  if (!sdkSessionId) {
+  if (!sdkSessionId || !projectId) {
     const session = await db.query.sessions.findFirst({
       where: eq(schema.sessions.id, sessionId),
     });
-    sdkSessionId = session?.sdkSessionId ?? null;
+    sdkSessionId = sdkSessionId ?? session?.sdkSessionId ?? null;
+    projectId = projectId ?? session?.projectId ?? null;
+    trustLevel = (session?.trustLevel as TrustLevel) ?? "auto_log";
   }
 
   if (!sdkSessionId) {
     throw new Error(`No SDK session found for ${sessionId}. The initial session may not have started properly.`);
   }
+
+  const permConfig = getPermissionConfig(sessionId, projectId!, trustLevel);
 
   const abortController = new AbortController();
   const q = query({
@@ -189,7 +363,8 @@ export async function sendMessage(
     options: {
       resume: sdkSessionId,
       abortController,
-      permissionMode: "acceptEdits",
+      permissionMode: permConfig.permissionMode as any,
+      ...(permConfig.canUseTool ? { canUseTool: permConfig.canUseTool } : {}),
     },
   });
 
@@ -198,6 +373,8 @@ export async function sendMessage(
     sessionId,
     sdkSessionId,
     abortController,
+    projectId: projectId!,
+    trustLevel,
   };
   activeSessions.set(sessionId, entry);
 
@@ -217,6 +394,14 @@ export async function completeSession(sessionId: string): Promise<void> {
     activeSessions.delete(sessionId);
   }
 
+  // Clean up any pending permissions
+  for (const [id, pending] of pendingPermissions) {
+    if (pending.sessionId === sessionId) {
+      clearTimeout(pending.timeout);
+      pendingPermissions.delete(id);
+    }
+  }
+
   await db
     .update(schema.sessions)
     .set({ status: "completed", updatedAt: new Date().toISOString() })
@@ -232,6 +417,14 @@ export async function pauseSession(sessionId: string): Promise<void> {
       // Already closed
     }
     activeSessions.delete(sessionId);
+  }
+
+  // Clean up any pending permissions
+  for (const [id, pending] of pendingPermissions) {
+    if (pending.sessionId === sessionId) {
+      clearTimeout(pending.timeout);
+      pendingPermissions.delete(id);
+    }
   }
 
   await db

@@ -89,6 +89,13 @@ function ProjectItem({ project, isActive }: { project: Project; isActive: boolea
         <>
           <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
           <div className="absolute top-7 right-0 bg-[var(--surface-raised)] border border-[var(--border)] rounded-md shadow-lg z-20 py-1 min-w-[120px]">
+            <Link
+              href={`/projects/${project.id}/settings`}
+              onClick={() => setMenuOpen(false)}
+              className="block px-3 py-1.5 text-sm text-[var(--text-secondary)] hover:bg-[var(--surface)]"
+            >
+              Permissions
+            </Link>
             <button
               onClick={() => {
                 setRenaming(true);
