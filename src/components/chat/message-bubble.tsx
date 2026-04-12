@@ -40,8 +40,19 @@ export function MessageBubble({ message }: { message: Message }) {
           </div>
         )}
       </div>
-      {message.tool_use && Array.isArray(message.tool_use) && (
-        <ToolUseBlock tools={message.tool_use} />
+      {!isUser && (
+        message.tool_use && Array.isArray(message.tool_use) && message.tool_use.length > 0 ? (
+          <ToolUseBlock tools={message.tool_use} />
+        ) : (
+          <div className="mt-1.5 max-w-[80%]">
+            <div className="bg-[var(--bg)] border border-[var(--border)] rounded-md overflow-hidden">
+              <div className="flex items-center gap-2 px-3 py-2">
+                <span className="text-[var(--text-muted)] text-xs">·</span>
+                <span className="text-xs text-[var(--text-muted)]">No tool calls · text-only response</span>
+              </div>
+            </div>
+          </div>
+        )
       )}
     </div>
   );

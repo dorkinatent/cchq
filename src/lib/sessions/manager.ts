@@ -79,6 +79,26 @@ export function getPendingPermissions(sessionId: string) {
 }
 
 /**
+ * Get a map of session IDs to the tool name of their oldest pending permission.
+ * Used by the session rail + quick switcher to surface "blocked" sessions.
+ */
+export function getBlockedSessionsSummary(): Record<string, { toolName: string; preview: string }> {
+  const summary: Record<string, { toolName: string; preview: string }> = {};
+  for (const pending of pendingPermissions.values()) {
+    if (summary[pending.sessionId]) continue; // first-wins (oldest)
+    const input = pending.input as Record<string, unknown>;
+    const preview =
+      (typeof input.command === "string" && input.command) ||
+      (typeof input.file_path === "string" && input.file_path) ||
+      (typeof input.path === "string" && input.path) ||
+      (typeof input.url === "string" && input.url) ||
+      "";
+    summary[pending.sessionId] = { toolName: pending.toolName, preview: String(preview).slice(0, 120) };
+  }
+  return summary;
+}
+
+/**
  * Build the canUseTool callback for a session.
  * This integrates our permission engine with the SDK.
  */
@@ -283,24 +303,49 @@ function processMessages(
         }
 
         if (message.type === "result") {
-          // End any active thinking phase
           if (isThinking) {
             sessionEventBus.emit(sessionId, { type: "thinking_end", timestamp: Date.now() });
             isThinking = false;
           }
+
           if (message.subtype === "success") {
-            // Fetch current usage to accumulate
+            // Extract tokens from either the primary usage or modelUsage
+            let newTokens = 0;
+            const u = (message as any).usage;
+            if (u) {
+              newTokens = (u.input_tokens || 0) + (u.output_tokens || 0);
+              // Include cache tokens too
+              newTokens += (u.cache_creation_input_tokens || 0) + (u.cache_read_input_tokens || 0);
+            }
+
+            // Fall back to modelUsage if primary usage is empty
+            if (newTokens === 0) {
+              const modelUsage = (message as any).modelUsage;
+              if (modelUsage && typeof modelUsage === "object") {
+                for (const mu of Object.values(modelUsage) as any[]) {
+                  if (mu) {
+                    newTokens += (mu.inputTokens || 0) + (mu.outputTokens || 0);
+                    newTokens += (mu.cacheCreationInputTokens || 0) + (mu.cacheReadInputTokens || 0);
+                  }
+                }
+              }
+            }
+
+            const newCost = (message as any).total_cost_usd || 0;
+            const newTurns = (message as any).num_turns || 0;
+
+            console.log(`[session ${sessionId}] result: tokens=${newTokens}, cost=${newCost}, turns=${newTurns}`);
+
             const current = await db.query.sessions.findFirst({
               where: eq(schema.sessions.id, sessionId),
               columns: { usage: true },
             });
             const prev = (current?.usage as any) || { totalTokens: 0, totalCostUsd: 0, numTurns: 0 };
-            const newTokens = (message.usage?.input_tokens || 0) + (message.usage?.output_tokens || 0);
 
             const updatedUsage = {
               totalTokens: prev.totalTokens + newTokens,
-              totalCostUsd: prev.totalCostUsd + (message.total_cost_usd || 0),
-              numTurns: prev.numTurns + (message.num_turns || 0),
+              totalCostUsd: prev.totalCostUsd + newCost,
+              numTurns: prev.numTurns + newTurns,
             };
 
             await db
@@ -320,6 +365,7 @@ function processMessages(
               timestamp: Date.now(),
             });
           } else {
+            // error case — unchanged
             await db
               .update(schema.sessions)
               .set({ updatedAt: new Date().toISOString() })
