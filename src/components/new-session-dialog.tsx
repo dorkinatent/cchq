@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { IngestionPrompt } from "@/components/project/ingestion-prompt";
 
 type Project = { id: string; name: string; path: string };
 type BrowseResult = {
@@ -33,6 +34,11 @@ export function NewSessionDialog({
   const [engine, setEngine] = useState<"sdk" | "gastown">("sdk");
   const [townPath, setTownPath] = useState("~/gt");
   const [rigName, setRigName] = useState("");
+  const [ingestionPromptProject, setIngestionPromptProject] = useState<{
+    id: string;
+    fileCount: number;
+  } | null>(null);
+  const [pendingSessionRedirect, setPendingSessionRedirect] = useState<string | null>(null);
 
   // Folder browser state
   const [showBrowser, setShowBrowser] = useState(false);
@@ -104,6 +110,23 @@ export function NewSessionDialog({
         alert(`Failed to configure rig: ${rigData.error || "unknown"}`);
         return;
       }
+
+      if (showNewProject && finalProjectId) {
+        try {
+          const docsRes = await fetch(`/api/projects/${finalProjectId}/docs`);
+          if (docsRes.ok) {
+            const files = await docsRes.json();
+            if (Array.isArray(files) && files.length > 0) {
+              setIngestionPromptProject({ id: finalProjectId, fileCount: files.length });
+              setPendingSessionRedirect(`/projects/${finalProjectId}/rig`);
+              return;
+            }
+          }
+        } catch {
+          // silent fail — don't block project creation
+        }
+      }
+
       onClose();
       router.push(`/projects/${finalProjectId}/rig`);
       return;
@@ -123,6 +146,23 @@ export function NewSessionDialog({
     });
     const session = await res.json();
     setSubmitting(false);
+
+    if (showNewProject && finalProjectId) {
+      try {
+        const docsRes = await fetch(`/api/projects/${finalProjectId}/docs`);
+        if (docsRes.ok) {
+          const files = await docsRes.json();
+          if (Array.isArray(files) && files.length > 0) {
+            setIngestionPromptProject({ id: finalProjectId, fileCount: files.length });
+            setPendingSessionRedirect(`/sessions/${session.id}`);
+            return;
+          }
+        }
+      } catch {
+        // silent fail — don't block session creation
+      }
+    }
+
     onClose();
     router.push(`/sessions/${session.id}`);
   }
@@ -371,13 +411,14 @@ export function NewSessionDialog({
             </div>
 
             <div className="mb-6">
-              <label className="block text-xs text-[var(--text-secondary)] mb-1">Initial Prompt</label>
+              <label className="block text-xs text-[var(--text-secondary)] mb-1">
+                Initial prompt <span className="text-[var(--text-muted)] font-normal">· optional</span>
+              </label>
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)] h-24 resize-none"
-                placeholder="What should Claude work on?"
-                required
+                placeholder="What should Claude work on? Leave blank to start an empty session."
               />
             </div>
           </>
@@ -396,10 +437,23 @@ export function NewSessionDialog({
             disabled={submitting}
             className="px-4 py-2 bg-[var(--accent)] text-[var(--bg)] text-sm rounded hover:bg-[var(--accent-hover)] disabled:opacity-50"
           >
-            {submitting ? "Starting..." : "Start Session"}
+            {submitting ? "Starting..." : "Start session"}
           </button>
         </div>
       </form>
+      {ingestionPromptProject && (
+        <IngestionPrompt
+          projectId={ingestionPromptProject.id}
+          fileCount={ingestionPromptProject.fileCount}
+          onClose={() => {
+            setIngestionPromptProject(null);
+            onClose();
+            if (pendingSessionRedirect) {
+              router.push(pendingSessionRedirect);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }
