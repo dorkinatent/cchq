@@ -18,6 +18,7 @@ type SessionDetail = {
   name: string;
   status: string;
   model: string;
+  effort?: string;
   projectId: string;
   projectName?: string;
   projectPath?: string;
@@ -205,6 +206,7 @@ export default function SessionPage({
             <MessageInput
               onSend={handleSend}
               enqueue={queue.enqueue}
+              sessionId={id}
               disabled={!isActive || streamState.phase !== "idle"}
             />
           )}
@@ -216,6 +218,7 @@ export default function SessionPage({
             projectId={session.projectId}
             projectPath={session.projectPath || ""}
             model={session.model}
+            effort={session.effort}
             messageCount={messages.length}
             usage={session.usage}
           />

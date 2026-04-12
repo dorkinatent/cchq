@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { SlashAutocomplete } from "./slash-autocomplete";
 
 export type Attachment = {
   path: string;
@@ -8,20 +9,41 @@ export type Attachment = {
   preview: string; // data URL for display
 };
 
+type Command = { name: string; description: string; argumentHint: string };
+
 export function MessageInput({
   onSend,
   disabled,
   enqueue,
+  sessionId,
 }: {
   onSend: (content: string, attachments?: Attachment[]) => void;
   disabled?: boolean;
   enqueue?: (content: string, attachments?: { path: string; name: string }[]) => void;
+  sessionId?: string;
 }) {
   const [value, setValue] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Slash command autocomplete
+  const [commands, setCommands] = useState<Command[]>([]);
+  const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [slashFilter, setSlashFilter] = useState("");
+
+  // Fetch commands when session becomes available
+  useEffect(() => {
+    if (!sessionId) return;
+    fetch(`/api/sessions/${sessionId}/commands`)
+      .then((r) => r.json())
+      .then((cmds) => {
+        if (Array.isArray(cmds)) setCommands(cmds);
+      })
+      .catch(() => {});
+  }, [sessionId]);
 
   async function uploadFile(file: File): Promise<Attachment | null> {
     // Create preview
@@ -55,9 +77,33 @@ export function MessageInput({
     setUploading(false);
   }, []);
 
+  function handleValueChange(newValue: string) {
+    setValue(newValue);
+
+    // Check for slash command trigger
+    if (newValue.startsWith("/") && commands.length > 0) {
+      const filter = newValue.slice(1).split(" ")[0]; // text after / before space
+      if (!newValue.includes(" ")) {
+        setSlashFilter(filter);
+        setShowAutocomplete(true);
+        setSelectedIndex(0);
+      } else {
+        setShowAutocomplete(false);
+      }
+    } else {
+      setShowAutocomplete(false);
+    }
+  }
+
+  function handleSelectCommand(cmd: Command) {
+    setValue(`/${cmd.name} `);
+    setShowAutocomplete(false);
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if ((!value.trim() && attachments.length === 0) || disabled) return;
+    setShowAutocomplete(false);
     const trimmed = value.trim();
     const atts = attachments.length > 0 ? attachments : undefined;
     if (enqueue) {
@@ -73,6 +119,35 @@ export function MessageInput({
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
+    // Handle autocomplete navigation
+    if (showAutocomplete) {
+      const filtered = slashFilter
+        ? commands.filter((c) => c.name.toLowerCase().startsWith(slashFilter.toLowerCase()))
+        : commands;
+
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setSelectedIndex((i) => Math.min(i + 1, filtered.length - 1));
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setSelectedIndex((i) => Math.max(i - 1, 0));
+        return;
+      }
+      if (e.key === "Tab" || (e.key === "Enter" && filtered.length > 0)) {
+        e.preventDefault();
+        if (filtered[selectedIndex]) {
+          handleSelectCommand(filtered[selectedIndex]);
+        }
+        return;
+      }
+      if (e.key === "Escape") {
+        setShowAutocomplete(false);
+        return;
+      }
+    }
+
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
@@ -149,10 +224,18 @@ export function MessageInput({
       )}
 
       <div
-        className={`flex gap-3 items-end rounded-lg transition-colors ${
+        className={`relative flex gap-3 items-end rounded-lg transition-colors ${
           dragOver ? "ring-2 ring-[var(--accent)] ring-offset-2 ring-offset-[var(--bg)]" : ""
         }`}
       >
+        {/* Slash command autocomplete */}
+        <SlashAutocomplete
+          commands={commands}
+          filter={slashFilter}
+          selectedIndex={selectedIndex}
+          onSelect={handleSelectCommand}
+          visible={showAutocomplete}
+        />
         <input
           ref={fileInputRef}
           type="file"
@@ -179,7 +262,7 @@ export function MessageInput({
         </button>
         <textarea
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={(e) => handleValueChange(e.target.value)}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
           placeholder={dragOver ? "Drop image here..." : "Type a message or paste/drop an image..."}

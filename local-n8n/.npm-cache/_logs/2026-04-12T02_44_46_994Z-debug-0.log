@@ -7,13 +7,13 @@
 6 silly config load:file:/opt/homebrew/etc/npmrc
 7 verbose title npm run build
 8 verbose argv "run" "build"
-9 verbose logfile logs-max:10 dir:/Users/charlieanderson/Code/CCUI/local-n8n/.npm-cache/_logs/2026-04-12T01_57_16_757Z-
-10 verbose logfile /Users/charlieanderson/Code/CCUI/local-n8n/.npm-cache/_logs/2026-04-12T01_57_16_757Z-debug-0.log
+9 verbose logfile logs-max:10 dir:/Users/charlieanderson/Code/CCUI/local-n8n/.npm-cache/_logs/2026-04-12T02_44_46_994Z-
+10 verbose logfile /Users/charlieanderson/Code/CCUI/local-n8n/.npm-cache/_logs/2026-04-12T02_44_46_994Z-debug-0.log
 11 silly logfile start cleaning logs, removing 1 files
 12 silly logfile done cleaning log files
 13 verbose cwd /Users/charlieanderson/Code/CCUI
 14 verbose os Darwin 25.2.0
 15 verbose node v25.6.1
 16 verbose npm  v11.9.0
-17 verbose exit 1
-18 verbose code 1
+17 verbose exit 0
+18 info ok

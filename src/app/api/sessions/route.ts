@@ -30,6 +30,7 @@ export async function POST(req: NextRequest) {
       name,
       model: model || "claude-sonnet-4-6",
       trustLevel: trustLevel || "auto_log",
+      effort: effort || "high",
       status: "active",
     })
     .returning();

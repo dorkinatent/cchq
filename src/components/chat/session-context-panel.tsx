@@ -13,6 +13,7 @@ export function SessionContextPanel({
   projectId,
   projectPath,
   model,
+  effort,
   messageCount,
   usage,
 }: {
@@ -20,6 +21,7 @@ export function SessionContextPanel({
   projectId: string;
   projectPath: string;
   model: string;
+  effort?: string;
   messageCount: number;
   usage?: { totalTokens: number; totalCostUsd: number; numTurns: number } | null;
 }) {
@@ -66,7 +68,8 @@ export function SessionContextPanel({
       </div>
       <div className="text-xs text-[var(--text-muted)] leading-loose">
         Messages: {messageCount}<br />
-        Model: {model}
+        Model: {model}<br />
+        Effort: {effort || "high"}
         {usage && (
           <>
             <br />

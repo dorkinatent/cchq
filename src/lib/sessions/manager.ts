@@ -649,3 +649,15 @@ export function getActiveSession(sessionId: string): ActiveSession | undefined {
 export function getActiveSessions(): Map<string, ActiveSession> {
   return activeSessions;
 }
+
+export async function getSessionCommands(sessionId: string): Promise<{ name: string; description: string; argumentHint: string }[]> {
+  const active = activeSessions.get(sessionId);
+  if (!active) return [];
+
+  try {
+    const commands = await active.query.supportedCommands();
+    return commands;
+  } catch {
+    return [];
+  }
+}
