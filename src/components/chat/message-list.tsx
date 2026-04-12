@@ -88,6 +88,7 @@ export const MessageList = forwardRef<
   const bottomRef = useRef<HTMLDivElement>(null);
   const prevScrollHeightRef = useRef<number>(0);
   const isLoadingMoreRef = useRef(false);
+  const hasDoneInitialScrollRef = useRef(false);
 
   // Expose scrollToMessage
   useImperativeHandle(ref, () => ({
@@ -103,11 +104,20 @@ export const MessageList = forwardRef<
     },
   }));
 
-  // Auto-scroll to bottom on new messages (only if already near bottom)
+  // On initial load, jump to bottom (most recent message). Subsequent renders
+  // only auto-scroll if the user is already near the bottom.
   useEffect(() => {
     if (isLoadingMoreRef.current) return;
     const container = containerRef.current;
-    if (!container) return;
+    if (!container || messages.length === 0) return;
+
+    if (!hasDoneInitialScrollRef.current) {
+      // First time we have messages — jump straight to the bottom (no smooth).
+      bottomRef.current?.scrollIntoView({ behavior: "auto" });
+      hasDoneInitialScrollRef.current = true;
+      return;
+    }
+
     const isNearBottom =
       container.scrollHeight - container.scrollTop - container.clientHeight < 150;
     if (isNearBottom) {
@@ -137,7 +147,14 @@ export const MessageList = forwardRef<
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
-          if (entry.isIntersecting && !loadingMore && !isLoadingMoreRef.current) {
+          // Don't fire until we've done the initial scroll-to-bottom — otherwise
+          // the sentinel is visible on mount and would immediately trigger.
+          if (
+            entry.isIntersecting &&
+            hasDoneInitialScrollRef.current &&
+            !loadingMore &&
+            !isLoadingMoreRef.current
+          ) {
             const container = containerRef.current;
             if (container) {
               prevScrollHeightRef.current = container.scrollHeight;
@@ -147,7 +164,13 @@ export const MessageList = forwardRef<
           }
         }
       },
-      { threshold: 0 }
+      {
+        root: containerRef.current,
+        // Trigger a bit before the sentinel is actually in view so the
+        // load feels snappy.
+        rootMargin: "200px 0px 0px 0px",
+        threshold: 0,
+      }
     );
 
     observer.observe(sentinel);
