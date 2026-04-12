@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSessions } from "@/hooks/use-sessions";
 import { SessionCard } from "@/components/session-card";
 import { NewSessionDialog } from "@/components/new-session-dialog";
 
-export default function DashboardPage() {
+function DashboardContent() {
   const searchParams = useSearchParams();
   const projectId = searchParams.get("project") || undefined;
   const { sessions, loading } = useSessions(projectId);
@@ -65,5 +65,13 @@ export default function DashboardPage() {
 
       <NewSessionDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
     </div>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={<div className="text-neutral-500 text-sm p-6">Loading...</div>}>
+      <DashboardContent />
+    </Suspense>
   );
 }
