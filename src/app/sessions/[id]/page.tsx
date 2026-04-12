@@ -42,7 +42,10 @@ export default function SessionPage({
   const messageListRef = useRef<MessageListHandle>(null);
 
   const isActive = session?.status === "active";
-  const streamState = useSessionStream(id, !!isActive);
+  // Connect SSE eagerly — don't wait for session metadata to arrive, or we'll
+  // miss the initial thinking_start event on freshly-created sessions.
+  // We still only show controls / enable input based on isActive.
+  const streamState = useSessionStream(id, true);
   const queue = useMessageQueue(id);
   const { open: panelOpen, toggle: togglePanel } = useContextPanel(true);
 
