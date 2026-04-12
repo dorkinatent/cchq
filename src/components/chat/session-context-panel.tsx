@@ -8,6 +8,12 @@ type KnowledgeEntry = {
   content: string;
 };
 
+function formatTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return n.toLocaleString();
+}
+
 function DefRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-baseline justify-between gap-3 py-1">
@@ -70,15 +76,8 @@ export function SessionContextPanel({
             {usage && (
               <>
                 <DefRow label="Turns" value={usage.numTurns.toLocaleString()} />
-                <DefRow
-                  label="Tokens"
-                  value={
-                    usage.totalTokens >= 1000
-                      ? `${(usage.totalTokens / 1000).toFixed(1)}k`
-                      : usage.totalTokens.toLocaleString()
-                  }
-                />
-                <DefRow label="Cost" value={`$${usage.totalCostUsd.toFixed(4)}`} />
+                <DefRow label="Tokens" value={formatTokens(usage.totalTokens)} />
+                <DefRow label="Cost" value={`$${usage.totalCostUsd.toFixed(2)}`} />
               </>
             )}
           </div>

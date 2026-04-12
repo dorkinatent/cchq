@@ -6,6 +6,12 @@ import { useRouter } from "next/navigation";
 import type { Session } from "@/hooks/use-sessions";
 import { relativeTime } from "@/lib/relative-time";
 
+function formatTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
+  return n.toLocaleString();
+}
+
 const statusStyles = {
   active: { bg: "bg-[var(--active-bg)]", text: "text-[var(--active-text)]", dot: "\u25cf" },
   paused: { bg: "bg-[var(--paused-bg)]", text: "text-[var(--paused-text)]", dot: "\u25d0" },
@@ -93,9 +99,9 @@ export function SessionCard({ session }: { session: Session }) {
             {session.usage && session.usage.totalTokens > 0 && (
               <>
                 {" · "}
-                {session.usage.totalTokens.toLocaleString()} tokens
+                {formatTokens(session.usage.totalTokens)} tokens
                 {" · $"}
-                {session.usage.totalCostUsd.toFixed(4)}
+                {session.usage.totalCostUsd.toFixed(2)}
               </>
             )}
           </span>
