@@ -270,6 +270,30 @@ export function MessageInput({
           rows={1}
           className="flex-1 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg px-4 py-3 text-sm text-[var(--text-primary)] resize-none placeholder-[var(--text-muted)] disabled:opacity-50"
         />
+        {sessionId && (
+          <button
+            type="button"
+            onClick={async () => {
+              const res = await fetch(`/api/sessions/${sessionId}/remember`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ count: 6 }),
+              });
+              if (res.ok) {
+                const data = await res.json();
+                alert(`Extracted ${data.count} new ${data.count === 1 ? "memory" : "memories"}`);
+              } else {
+                const data = await res.json().catch(() => ({}));
+                alert(`Remember failed: ${data.error || "unknown"}`);
+              }
+            }}
+            disabled={disabled}
+            className="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-50 shrink-0"
+            title="Extract memories from the last few messages"
+          >
+            🧠 Remember
+          </button>
+        )}
         <button
           type="submit"
           disabled={disabled || (!value.trim() && attachments.length === 0)}
