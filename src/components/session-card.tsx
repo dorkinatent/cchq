@@ -93,7 +93,7 @@ export function SessionCard({ session }: { session: Session }) {
             {session.last_message}
           </div>
         )}
-        <div className="flex justify-between items-center text-[11px] text-[var(--text-muted)]">
+        <div className="flex flex-wrap justify-between items-center gap-x-2 gap-y-1 text-[11px] text-[var(--text-muted)]">
           <span>
             {session.message_count || 0} messages
             {session.usage && session.usage.totalTokens > 0 && (
@@ -134,7 +134,7 @@ export function SessionCard({ session }: { session: Session }) {
           e.stopPropagation();
           setMenuOpen(!menuOpen);
         }}
-        className="absolute top-2.5 right-2.5 z-10 text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-base font-bold leading-none px-2 py-1 rounded hover:bg-[var(--surface)] bg-[var(--surface-raised)]/60 border border-transparent hover:border-[var(--border)]"
+        className="absolute top-1.5 right-1.5 z-10 flex items-center justify-center min-h-11 min-w-11 text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-base font-bold leading-none rounded hover:bg-[var(--surface)] bg-[var(--surface-raised)]/60 border border-transparent hover:border-[var(--border)]"
         aria-label="Session actions"
         title="Rename or delete"
       >

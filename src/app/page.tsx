@@ -25,7 +25,7 @@ function DashboardContent() {
 
   return (
     <div>
-      <div className="flex justify-between items-center px-6 py-4 border-b border-[var(--border)]">
+      <div className="flex flex-col gap-3 md:flex-row md:justify-between md:items-center px-4 md:px-6 py-3 md:py-4 border-b border-[var(--border)]">
         <div className="flex items-center gap-4">
           <span className="text-[var(--text-secondary)] text-sm">
             {activeSessions.length} active session{activeSessions.length !== 1 ? "s" : ""}
@@ -36,29 +36,35 @@ function DashboardContent() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search sessions..."
-            className="bg-[var(--input-bg)] border border-[var(--input-border)] rounded-md px-3 py-1.5 text-sm text-[var(--text-primary)] w-52 placeholder-[var(--text-muted)]"
+            className="bg-[var(--input-bg)] border border-[var(--input-border)] rounded-md px-3 py-2 text-sm text-[var(--text-primary)] flex-1 md:w-52 md:flex-none placeholder-[var(--text-muted)]"
           />
           <button
             onClick={openNewSession}
-            className="bg-[var(--accent)] text-[var(--bg)] px-3.5 py-1.5 rounded-md text-sm font-semibold hover:bg-[var(--accent-hover)] transition-colors"
+            aria-label="New session"
+            className="bg-[var(--accent)] text-[var(--bg)] px-3.5 py-2 rounded-md text-sm font-semibold hover:bg-[var(--accent-hover)] transition-colors min-h-11 min-w-11 shrink-0"
           >
-            + New session
+            + New
           </button>
         </div>
       </div>
 
-      <div className="p-5">
+      <div className="p-3 md:p-5">
         {loading ? (
           <div className="text-[var(--text-secondary)] text-sm">Loading sessions...</div>
         ) : filtered.length === 0 ? (
           <div className="py-24 max-w-sm mx-auto text-center">
             <div className="eyebrow text-[var(--text-muted)] mb-3">Nothing in flight</div>
             <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
-              Press{" "}
-              <kbd className="font-mono text-[11px] border border-[var(--border)] rounded px-1.5 py-0.5 text-[var(--text-muted)]">⌥⇧N</kbd>{" "}
-              to start one, or{" "}
-              <kbd className="font-mono text-[11px] border border-[var(--border)] rounded px-1.5 py-0.5 text-[var(--text-muted)]">⌘K</kbd>{" "}
-              to jump to a recent one.
+              <span className="hidden md:inline">
+                Press{" "}
+                <kbd className="font-mono text-[11px] border border-[var(--border)] rounded px-1.5 py-0.5 text-[var(--text-muted)]">⌥⇧N</kbd>
+                {" "}
+                to start one, or{" "}
+                <kbd className="font-mono text-[11px] border border-[var(--border)] rounded px-1.5 py-0.5 text-[var(--text-muted)]">⌘K</kbd>
+                {" "}
+                to jump to a recent one.
+              </span>
+              <span className="md:hidden">Tap + New to start a session.</span>
             </p>
           </div>
         ) : (
