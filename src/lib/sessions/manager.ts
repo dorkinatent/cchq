@@ -420,23 +420,45 @@ function processMessages(
  * but the SDK's Zod validation on PermissionResult caused errors.
  * Using acceptEdits for auto_log avoids the issue entirely.
  */
+/**
+ * Build a PreToolUse hook that forces every tool through the ask flow.
+ *
+ * The SDK's `permissionMode: "default"` has a built-in classification of
+ * "safe" vs "dangerous" tools — safe ones (Read/Glob/Grep/Edit/Write)
+ * auto-execute without invoking canUseTool. To force confirmation on
+ * every tool, we register a PreToolUse hook that returns
+ * `permissionDecision: 'ask'`. The SDK then routes the call through
+ * canUseTool, where our permission engine decides.
+ */
+function buildPreToolUseAskHook() {
+  return async () => ({
+    hookSpecificOutput: {
+      hookEventName: "PreToolUse" as const,
+      permissionDecision: "ask" as const,
+    },
+  });
+}
+
 function getPermissionConfig(
   sessionId: string,
   projectId: string,
   trustLevel: TrustLevel
-): { permissionMode: string; canUseTool?: any } {
+): { permissionMode: string; canUseTool?: any; hooks?: any } {
   if (trustLevel === "full_auto" || trustLevel === "auto_log") {
     return { permissionMode: "acceptEdits" };
   }
-  // ask_me: force every tool through canUseTool.
-  //
-  // Using permissionMode: "default" with a canUseTool callback. The SDK
-  // invokes canUseTool for tool calls that would otherwise prompt. The
-  // "default" mode's internal ask list should cover most tools when we
-  // also provide the callback — observed behavior may require tuning.
+  // ask_me: use PreToolUse hook to force ALL tools through the ask flow,
+  // then canUseTool gets invoked and our engine decides.
   return {
     permissionMode: "default",
     canUseTool: buildCanUseTool(sessionId, projectId, trustLevel),
+    hooks: {
+      PreToolUse: [
+        {
+          hooks: [buildPreToolUseAskHook()],
+        },
+      ],
+    },
   };
 }
 
@@ -487,6 +509,7 @@ export async function startSession(
       },
       permissionMode: permConfig.permissionMode as any,
       ...(permConfig.canUseTool ? { canUseTool: permConfig.canUseTool } : {}),
+      ...(permConfig.hooks ? { hooks: permConfig.hooks } : {}),
     },
   });
 
@@ -568,6 +591,7 @@ export async function sendMessage(
       thinking: { type: "enabled", budgetTokens: 10000 },
       permissionMode: permConfig.permissionMode as any,
       ...(permConfig.canUseTool ? { canUseTool: permConfig.canUseTool } : {}),
+      ...(permConfig.hooks ? { hooks: permConfig.hooks } : {}),
     },
   });
 
@@ -684,6 +708,7 @@ export async function resumeSession(sessionId: string, resumeNote?: string): Pro
       includePartialMessages: true,
       permissionMode: permConfig.permissionMode as any,
       ...(permConfig.canUseTool ? { canUseTool: permConfig.canUseTool } : {}),
+      ...(permConfig.hooks ? { hooks: permConfig.hooks } : {}),
     },
   });
 
