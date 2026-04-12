@@ -75,11 +75,18 @@ export default function SessionPage({
   }
 
   async function handlePermissionRespond(response: PermissionResponse) {
-    await fetch(`/api/sessions/${id}/permission`, {
+    // Fire-and-forget the API call — we don't need to block on the response
+    // since the server-side promise resolution continues the SDK turn.
+    fetch(`/api/sessions/${id}/permission`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(response),
-    });
+    }).catch(() => {});
+
+    // Give the user a brief moment to see the checkmark, then remove the card.
+    setTimeout(() => {
+      streamState.dismissPermission(response.requestId);
+    }, 700);
   }
 
   async function handleComplete() {

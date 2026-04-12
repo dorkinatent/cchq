@@ -77,18 +77,22 @@ export function PermissionCard({
   const [reason, setReason] = useState("");
   const [alternative, setAlternative] = useState("");
   const [showBatchDetail, setShowBatchDetail] = useState(false);
+  const [decided, setDecided] = useState<null | "allow" | "allowAll" | "deny">(null);
 
   const isBatch = request.batch && request.batch.length > 1;
 
   function handleAllow() {
+    setDecided("allow");
     onRespond({ requestId: request.id, decision: "allow" });
   }
 
   function handleAllowAll() {
+    setDecided("allowAll");
     onRespond({ requestId: request.id, decision: "allow", createRule: true });
   }
 
   function handleDeny() {
+    setDecided("deny");
     onRespond({
       requestId: request.id,
       decision: "deny",
@@ -198,7 +202,7 @@ export function PermissionCard({
         )}
 
         {/* Action buttons */}
-        {!showDenyForm && (
+        {!showDenyForm && !decided && (
           <div className="flex flex-wrap gap-2 mt-3">
             <button
               onClick={handleAllow}
@@ -218,6 +222,28 @@ export function PermissionCard({
             >
               Deny
             </button>
+          </div>
+        )}
+
+        {/* Decided state — brief confirmation before card is removed */}
+        {decided && (
+          <div
+            className={`mt-3 flex items-center gap-2 text-xs ${
+              decided === "deny"
+                ? "text-[var(--errored-text)]"
+                : "text-[var(--active-text)]"
+            }`}
+          >
+            <span className="text-base leading-none">
+              {decided === "deny" ? "✕" : "✓"}
+            </span>
+            <span>
+              {decided === "allow"
+                ? "Allowed"
+                : decided === "allowAll"
+                ? "Allowed (rule created)"
+                : "Denied"}
+            </span>
           </div>
         )}
       </div>

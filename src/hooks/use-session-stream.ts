@@ -43,10 +43,19 @@ const initialState: StreamState = {
   pendingPermissions: [],
 };
 
-type Action = { type: "EVENT"; event: StreamEvent } | { type: "RESET" };
+type Action =
+  | { type: "EVENT"; event: StreamEvent }
+  | { type: "RESET" }
+  | { type: "DISMISS_PERMISSION"; id: string };
 
 export function streamReducer(state: StreamState, action: Action): StreamState {
   if (action.type === "RESET") return initialState;
+  if (action.type === "DISMISS_PERMISSION") {
+    return {
+      ...state,
+      pendingPermissions: state.pendingPermissions.filter((p) => p.id !== action.id),
+    };
+  }
 
   const event = action.event;
 
@@ -241,5 +250,7 @@ export function useSessionStream(sessionId: string, isActive: boolean) {
     };
   }, [connect]);
 
-  return { ...state, connectionStatus };
+  const dismissPermission = (id: string) => dispatch({ type: "DISMISS_PERMISSION", id });
+
+  return { ...state, connectionStatus, dismissPermission };
 }
