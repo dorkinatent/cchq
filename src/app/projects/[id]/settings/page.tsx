@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, use, useCallback } from "react";
 import Link from "next/link";
 
 type PermissionRule = {
@@ -16,6 +16,8 @@ type Project = {
   id: string;
   name: string;
   path: string;
+  docGlobs?: string[];
+  autoInjectDocs?: boolean;
 };
 
 const TOOL_OPTIONS = ["Read", "Edit", "Write", "Bash", "Grep", "Glob", "*"];
@@ -36,6 +38,16 @@ export default function ProjectSettingsPage({
   const [rules, setRules] = useState<PermissionRule[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Doc patterns & ingestion state
+  const [docGlobs, setDocGlobs] = useState<string[]>([]);
+  const [autoInjectDocs, setAutoInjectDocs] = useState(true);
+  const [matchCount, setMatchCount] = useState<number | null>(null);
+  const [newPattern, setNewPattern] = useState("");
+  const [ingestModalOpen, setIngestModalOpen] = useState(false);
+  const [availableDocs, setAvailableDocs] = useState<{ relativePath: string; name: string }[]>([]);
+  const [ingestSelected, setIngestSelected] = useState<Set<string>>(new Set());
+  const [ingesting, setIngesting] = useState(false);
+
   // New rule form
   const [showForm, setShowForm] = useState(false);
   const [newTool, setNewTool] = useState("*");
@@ -50,10 +62,42 @@ export default function ProjectSettingsPage({
       fetch(`/api/projects/${projectId}/rules`).then((r) => r.json()),
     ]).then(([proj, rls]) => {
       setProject(proj);
+      setDocGlobs(proj.docGlobs || []);
+      setAutoInjectDocs(proj.autoInjectDocs ?? true);
       setRules(rls);
       setLoading(false);
     });
   }, [projectId]);
+
+  async function savePatch(patch: Record<string, unknown>) {
+    await fetch(`/api/projects/${projectId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+  }
+
+  const refreshMatchCount = useCallback(async () => {
+    const res = await fetch(`/api/projects/${projectId}/docs`);
+    if (res.ok) {
+      const data = await res.json();
+      setMatchCount(Array.isArray(data) ? data.length : 0);
+    }
+  }, [projectId]);
+
+  useEffect(() => {
+    refreshMatchCount();
+  }, [refreshMatchCount, docGlobs]);
+
+  useEffect(() => {
+    if (!ingestModalOpen) return;
+    fetch(`/api/projects/${projectId}/docs`)
+      .then((r) => r.json())
+      .then((data) => {
+        setAvailableDocs(Array.isArray(data) ? data : []);
+        setIngestSelected(new Set((data || []).map((f: { relativePath: string }) => f.relativePath)));
+      });
+  }, [ingestModalOpen, projectId]);
 
   async function handleAddRule(e: React.FormEvent) {
     e.preventDefault();
@@ -244,6 +288,85 @@ export default function ProjectSettingsPage({
         </button>
       )}
 
+      {/* Doc Patterns */}
+      <section className="mb-8 mt-8 border-t border-[var(--border)] pt-6">
+        <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-2">Doc Patterns</h2>
+        <p className="text-xs text-[var(--text-muted)] mb-3">
+          Glob patterns for markdown files to surface in the Docs tab.
+          {matchCount !== null && ` Matches ${matchCount} file${matchCount === 1 ? "" : "s"}.`}
+        </p>
+        <div className="space-y-1 mb-3">
+          {docGlobs.map((g, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <span className="flex-1 font-mono text-xs bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-2 py-1 text-[var(--text-primary)]">
+                {g}
+              </span>
+              <button
+                onClick={async () => {
+                  const next = docGlobs.filter((_, idx) => idx !== i);
+                  setDocGlobs(next);
+                  await savePatch({ docGlobs: next });
+                }}
+                className="text-xs text-[var(--errored-text)] hover:text-[var(--errored-text)]"
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+        </div>
+        <div className="flex items-center gap-2">
+          <input
+            value={newPattern}
+            onChange={(e) => setNewPattern(e.target.value)}
+            placeholder="docs/**/*.md"
+            className="flex-1 font-mono text-xs bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-2 py-1.5 text-[var(--text-primary)]"
+          />
+          <button
+            onClick={async () => {
+              const trimmed = newPattern.trim();
+              if (!trimmed) return;
+              const next = [...docGlobs, trimmed];
+              setDocGlobs(next);
+              setNewPattern("");
+              await savePatch({ docGlobs: next });
+            }}
+            className="text-xs px-3 py-1.5 bg-[var(--accent)] text-[var(--bg)] rounded hover:bg-[var(--accent-hover)]"
+          >
+            Add
+          </button>
+        </div>
+      </section>
+
+      {/* Auto-Inject Docs */}
+      <section className="mb-8">
+        <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-2">Auto-Inject Docs</h2>
+        <label className="flex items-center gap-3 text-sm text-[var(--text-secondary)]">
+          <input
+            type="checkbox"
+            checked={autoInjectDocs}
+            onChange={async (e) => {
+              setAutoInjectDocs(e.target.checked);
+              await savePatch({ autoInjectDocs: e.target.checked });
+            }}
+          />
+          <span>Inject matched doc file contents into every new session&apos;s system prompt.</span>
+        </label>
+      </section>
+
+      {/* Doc Ingestion */}
+      <section className="mb-8">
+        <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-2">Doc Ingestion</h2>
+        <p className="text-xs text-[var(--text-muted)] mb-3">
+          Extract stable facts from matched docs and add them to the knowledge base.
+        </p>
+        <button
+          onClick={() => setIngestModalOpen(true)}
+          className="text-xs px-3 py-1.5 bg-[var(--surface-raised)] border border-[var(--border)] rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+        >
+          Scan &amp; Ingest Docs
+        </button>
+      </section>
+
       {/* Common presets */}
       <div className="mt-8 border-t border-[var(--border)] pt-6">
         <h3 className="text-sm font-medium text-[var(--text-primary)] mb-3">Quick Presets</h3>
@@ -282,6 +405,64 @@ export default function ProjectSettingsPage({
           </button>
         </div>
       </div>
+
+      {/* Ingestion modal */}
+      {ingestModalOpen && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-[var(--surface-raised)] border border-[var(--border)] rounded-lg p-6 w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col">
+            <h3 className="text-base font-semibold text-[var(--text-primary)] mb-3">
+              Ingest Docs
+            </h3>
+            <div className="flex-1 overflow-y-auto mb-4 space-y-1.5">
+              {availableDocs.map((d) => (
+                <label key={d.relativePath} className="flex items-center gap-2 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={ingestSelected.has(d.relativePath)}
+                    onChange={(e) => {
+                      const next = new Set(ingestSelected);
+                      if (e.target.checked) next.add(d.relativePath);
+                      else next.delete(d.relativePath);
+                      setIngestSelected(next);
+                    }}
+                  />
+                  <span className="font-mono text-[var(--text-secondary)] truncate">{d.relativePath}</span>
+                </label>
+              ))}
+            </div>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setIngestModalOpen(false)}
+                className="text-xs px-3 py-1.5 text-[var(--text-secondary)]"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={ingesting || ingestSelected.size === 0}
+                onClick={async () => {
+                  setIngesting(true);
+                  const res = await fetch(`/api/projects/${projectId}/ingest`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ paths: [...ingestSelected] }),
+                  });
+                  setIngesting(false);
+                  if (res.ok) {
+                    const data = await res.json();
+                    alert(`Ingested ${data.entriesCreated} entries across ${Object.keys(data.byFile).length} files.`);
+                    setIngestModalOpen(false);
+                  } else {
+                    alert("Ingestion failed");
+                  }
+                }}
+                className="text-xs px-3 py-1.5 bg-[var(--accent)] text-[var(--bg)] rounded hover:bg-[var(--accent-hover)] disabled:opacity-50"
+              >
+                {ingesting ? "Ingesting…" : `Ingest ${ingestSelected.size}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 

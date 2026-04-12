@@ -22,10 +22,26 @@ export async function PATCH(
 ) {
   const { id } = await params;
   const body = await req.json();
+  const patch: {
+    name?: string;
+    path?: string;
+    docGlobs?: string[];
+    autoInjectDocs?: boolean;
+    hasBeenIngestionPrompted?: boolean;
+  } = {};
+  if (typeof body.name === "string") patch.name = body.name;
+  if (typeof body.path === "string") patch.path = body.path;
+  if (Array.isArray(body.docGlobs)) {
+    patch.docGlobs = body.docGlobs.filter((g: unknown) => typeof g === "string");
+  }
+  if (typeof body.autoInjectDocs === "boolean") patch.autoInjectDocs = body.autoInjectDocs;
+  if (typeof body.hasBeenIngestionPrompted === "boolean") {
+    patch.hasBeenIngestionPrompted = body.hasBeenIngestionPrompted;
+  }
 
   const [updated] = await db
     .update(schema.projects)
-    .set({ ...body, updatedAt: new Date().toISOString() })
+    .set({ ...patch, updatedAt: new Date().toISOString() })
     .where(eq(schema.projects.id, id))
     .returning();
 
