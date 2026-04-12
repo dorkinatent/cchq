@@ -23,6 +23,7 @@ export function NewSessionDialog({
   const [projectId, setProjectId] = useState("");
   const [name, setName] = useState("");
   const [model, setModel] = useState("claude-sonnet-4-6");
+  const [effort, setEffort] = useState("high");
   const [prompt, setPrompt] = useState("");
   const [newProjectPath, setNewProjectPath] = useState("");
   const [newProjectName, setNewProjectName] = useState("");
@@ -94,6 +95,7 @@ export function NewSessionDialog({
         projectId: finalProjectId,
         name,
         model,
+        effort,
         prompt,
       }),
     });
@@ -275,6 +277,20 @@ export function NewSessionDialog({
             <option value="claude-sonnet-4-6">Sonnet 4.6</option>
             <option value="claude-opus-4-6">Opus 4.6</option>
             <option value="claude-haiku-4-5-20251001">Haiku 4.5</option>
+          </select>
+        </div>
+
+        <div className="mb-4">
+          <label className="block text-xs text-neutral-400 mb-1">Effort</label>
+          <select
+            value={effort}
+            onChange={(e) => setEffort(e.target.value)}
+            className="w-full bg-neutral-800 border border-neutral-700 rounded px-3 py-2 text-sm text-white"
+          >
+            <option value="low">Low — quick answers, minimal exploration</option>
+            <option value="medium">Medium — balanced</option>
+            <option value="high">High — thorough, multi-step work</option>
+            <option value="max">Max — exhaustive, no shortcuts</option>
           </select>
         </div>
 

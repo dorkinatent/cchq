@@ -15,7 +15,8 @@ export async function startSession(
   sessionId: string,
   projectPath: string,
   model: string,
-  initialPrompt: string
+  initialPrompt: string,
+  effort?: string
 ): Promise<void> {
   const abortController = new AbortController();
 
@@ -44,6 +45,7 @@ export async function startSession(
     options: {
       cwd: projectPath,
       model,
+      effort: (effort as "low" | "medium" | "high" | "max") || "high",
       abortController,
       systemPrompt: {
         type: "preset",

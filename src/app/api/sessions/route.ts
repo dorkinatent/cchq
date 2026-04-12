@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const { projectId, name, model, prompt } = await req.json();
+  const { projectId, name, model, effort, prompt } = await req.json();
 
   const project = await db.query.projects.findFirst({
     where: eq(schema.projects.id, projectId),
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     })
     .returning();
 
-  await startSession(session.id, project.path, session.model, prompt);
+  await startSession(session.id, project.path, session.model, prompt, effort);
 
   await db.insert(schema.messages).values({
     sessionId: session.id,
