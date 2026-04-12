@@ -418,14 +418,37 @@ function getPermissionConfig(
   sessionId: string,
   projectId: string,
   trustLevel: TrustLevel
-): { permissionMode: string; canUseTool?: any } {
+): { permissionMode: string; canUseTool?: any; settings?: any } {
   if (trustLevel === "full_auto" || trustLevel === "auto_log") {
     return { permissionMode: "acceptEdits" };
   }
-  // Only ask_me uses the custom callback
+  // ask_me: force every tool through canUseTool.
+  //
+  // The SDK's "default" permissionMode only prompts for operations the SDK
+  // considers "dangerous" (Bash, network tools). Safe file tools like Read,
+  // Glob, Grep, Write, Edit are auto-allowed WITHOUT invoking canUseTool.
+  //
+  // To route every tool through our custom callback, we explicitly list the
+  // tools we want to be prompted on via settings.permissions.ask. Pattern
+  // follows the SDK example: `"Bash(*)"` means "any Bash call".
   return {
     permissionMode: "default",
     canUseTool: buildCanUseTool(sessionId, projectId, trustLevel),
+    settings: {
+      permissions: {
+        ask: [
+          "Read(*)",
+          "Write(*)",
+          "Edit(*)",
+          "Bash(*)",
+          "Glob(*)",
+          "Grep(*)",
+          "WebFetch(*)",
+          "WebSearch(*)",
+          "NotebookEdit(*)",
+        ],
+      },
+    },
   };
 }
 
@@ -476,6 +499,7 @@ export async function startSession(
       },
       permissionMode: permConfig.permissionMode as any,
       ...(permConfig.canUseTool ? { canUseTool: permConfig.canUseTool } : {}),
+      ...(permConfig.settings ? { settings: permConfig.settings } : {}),
     },
   });
 
@@ -557,6 +581,7 @@ export async function sendMessage(
       thinking: { type: "enabled", budgetTokens: 10000 },
       permissionMode: permConfig.permissionMode as any,
       ...(permConfig.canUseTool ? { canUseTool: permConfig.canUseTool } : {}),
+      ...(permConfig.settings ? { settings: permConfig.settings } : {}),
     },
   });
 
@@ -673,6 +698,7 @@ export async function resumeSession(sessionId: string, resumeNote?: string): Pro
       includePartialMessages: true,
       permissionMode: permConfig.permissionMode as any,
       ...(permConfig.canUseTool ? { canUseTool: permConfig.canUseTool } : {}),
+      ...(permConfig.settings ? { settings: permConfig.settings } : {}),
     },
   });
 
