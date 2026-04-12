@@ -13,26 +13,75 @@ function ElapsedTimer({ startedAt }: { startedAt: number }) {
     }, 1000);
     return () => clearInterval(interval);
   }, [startedAt]);
-  return <span className="text-[var(--text-muted)] tabular-nums">{elapsed}s</span>;
+  return <span className="tabular-nums">{elapsed}s</span>;
 }
 
-function ToolIndicator({ tool }: { tool: ActiveTool }) {
-  const label =
-    tool.input?.file_path?.toString() ||
-    tool.input?.command?.toString() ||
-    tool.input?.pattern?.toString() ||
-    "";
+function ToolIcon({ done }: { done: boolean }) {
+  if (!done) {
+    return (
+      <span className="inline-block w-3 h-3 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin shrink-0" />
+    );
+  }
+  return <span className="text-[var(--active-text)] text-xs shrink-0">✓</span>;
+}
 
+function ToolArgPreview({ tool }: { tool: ActiveTool }) {
+  const input = tool.input || {};
+  const name = tool.toolName.toLowerCase();
+
+  if ((name === "read" || name === "edit" || name === "write") && input.file_path) {
+    return <span className="text-[var(--text-muted)] font-mono">{String(input.file_path)}</span>;
+  }
+  if (name === "bash" && input.command) {
+    const cmd = String(input.command);
+    return (
+      <span className="text-[var(--text-muted)] font-mono truncate max-w-[400px] inline-block align-bottom">
+        {cmd.length > 80 ? cmd.slice(0, 77) + "..." : cmd}
+      </span>
+    );
+  }
+  if ((name === "grep" || name === "glob") && input.pattern) {
+    return (
+      <span className="text-[var(--text-muted)] font-mono">
+        {String(input.pattern)}
+        {input.path ? ` in ${String(input.path)}` : ""}
+      </span>
+    );
+  }
+  if (name === "agent" && input.description) {
+    return <span className="text-[var(--text-muted)]">{String(input.description)}</span>;
+  }
+
+  const firstVal = Object.values(input).find((v) => typeof v === "string");
+  if (firstVal) {
+    const s = String(firstVal);
+    return <span className="text-[var(--text-muted)] font-mono truncate max-w-[300px] inline-block align-bottom">{s.length > 60 ? s.slice(0, 57) + "..." : s}</span>;
+  }
+  return null;
+}
+
+function ActivityLine({ tool, isChild }: { tool: ActiveTool; isChild?: boolean }) {
   return (
-    <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)] py-1">
-      {!tool.done ? (
-        <span className="w-3 h-3 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
-      ) : (
-        <span className="text-[var(--active-text)]">&#10003;</span>
+    <div className={`flex items-start gap-2 py-0.5 ${isChild ? "ml-4" : ""}`}>
+      {isChild && (
+        <span className="text-[var(--border)] mt-1 shrink-0">└</span>
       )}
-      <span className="text-[var(--accent)] font-medium">{tool.toolName}</span>
-      {label && <span className="text-[var(--text-muted)] font-mono truncate max-w-[300px]">{label}</span>}
-      <ElapsedTimer startedAt={tool.startedAt} />
+      <div className="mt-0.5 shrink-0">
+        <ToolIcon done={tool.done} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 text-xs">
+          <span className="text-[var(--accent)] font-medium">{tool.toolName}</span>
+          <span className="text-[var(--text-muted)]">(</span>
+          <ToolArgPreview tool={tool} />
+          <span className="text-[var(--text-muted)]">)</span>
+        </div>
+        {!tool.done && (
+          <div className="text-[10px] text-[var(--text-muted)] mt-0.5">
+            Running... <ElapsedTimer startedAt={tool.startedAt} />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -40,51 +89,70 @@ function ToolIndicator({ tool }: { tool: ActiveTool }) {
 export function StreamingIndicator({ state }: { state: StreamState }) {
   if (state.phase === "idle") return null;
 
+  const hasTools = state.activeTools.length > 0;
+
   return (
     <div className="mb-5">
       <div className="text-[11px] text-[var(--text-muted)] mb-1">Claude</div>
-      <div className="bg-[var(--surface-raised)] border border-[var(--border)] rounded-lg px-4 py-3 text-sm max-w-[80%]">
-        {state.phase === "thinking" && (
-          <div className="flex items-center gap-2 text-[var(--text-secondary)]">
-            <span className="flex gap-1">
-              <span className="w-1.5 h-1.5 bg-[var(--text-muted)] rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-              <span className="w-1.5 h-1.5 bg-[var(--text-muted)] rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-              <span className="w-1.5 h-1.5 bg-[var(--text-muted)] rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
-            </span>
-            <span>Thinking...</span>
-            {state.thinkingStartedAt && <ElapsedTimer startedAt={state.thinkingStartedAt} />}
-          </div>
-        )}
+      <div className="bg-[var(--surface-raised)] border border-[var(--border)] rounded-lg overflow-hidden max-w-[80%]">
 
-        {state.phase === "tool_use" && (
-          <div>
+        {/* Activity tree */}
+        {hasTools && (
+          <div className="px-4 py-2.5 space-y-0.5">
             {state.activeTools.map((tool) => (
-              <ToolIndicator key={tool.toolUseId} tool={tool} />
+              <ActivityLine key={tool.toolUseId} tool={tool} />
             ))}
           </div>
         )}
 
+        {/* Status / streaming text */}
+        {state.phase === "thinking" && (
+          <div className={`px-4 py-2.5 ${hasTools ? "border-t border-[var(--border)]" : ""}`}>
+            <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+              <span className="flex gap-1">
+                <span className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                <span className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                <span className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+              </span>
+              <span>Thinking...</span>
+              {state.thinkingStartedAt && (
+                <span className="text-[var(--text-muted)]">
+                  <ElapsedTimer startedAt={state.thinkingStartedAt} />
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {state.phase === "tool_use" && !state.activeTools.some(t => !t.done) && (
+          <div className="px-4 py-2.5 border-t border-[var(--border)]">
+            <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
+              <span className="flex gap-1">
+                <span className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                <span className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                <span className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+              </span>
+              <span>Processing...</span>
+            </div>
+          </div>
+        )}
+
         {state.phase === "streaming" && (
-          <div>
-            {state.activeTools.length > 0 && (
-              <div className="mb-2 pb-2 border-b border-[var(--border)]">
-                {state.activeTools.map((tool) => (
-                  <ToolIndicator key={tool.toolUseId} tool={tool} />
-                ))}
-              </div>
-            )}
+          <div className={`px-4 py-2.5 ${hasTools ? "border-t border-[var(--border)]" : ""}`}>
             <div className="prose prose-sm max-w-none prose-p:my-2 prose-headings:my-3 prose-pre:bg-[var(--bg)] prose-pre:border prose-pre:border-[var(--border)] prose-code:text-[var(--accent)] prose-code:before:content-none prose-code:after:content-none prose-a:text-[var(--accent)] prose-strong:text-[var(--text-primary)]">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {state.streamingText}
               </ReactMarkdown>
-              <span className="inline-block w-2 h-4 bg-[var(--accent)] animate-pulse ml-0.5" />
+              <span className="inline-block w-1.5 h-4 bg-[var(--accent)] animate-pulse ml-0.5 align-text-bottom" />
             </div>
           </div>
         )}
 
         {state.phase === "error" && (
-          <div className="text-[var(--errored-text)]">
-            Error: {state.error}
+          <div className={`px-4 py-2.5 ${hasTools ? "border-t border-[var(--border)]" : ""}`}>
+            <div className="text-xs text-[var(--errored-text)]">
+              Error: {state.error}
+            </div>
           </div>
         )}
       </div>
