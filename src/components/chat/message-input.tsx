@@ -11,9 +11,11 @@ export type Attachment = {
 export function MessageInput({
   onSend,
   disabled,
+  enqueue,
 }: {
   onSend: (content: string, attachments?: Attachment[]) => void;
   disabled?: boolean;
+  enqueue?: (content: string, attachments?: { path: string; name: string }[]) => void;
 }) {
   const [value, setValue] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
@@ -56,7 +58,16 @@ export function MessageInput({
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if ((!value.trim() && attachments.length === 0) || disabled) return;
-    onSend(value.trim(), attachments.length > 0 ? attachments : undefined);
+    const trimmed = value.trim();
+    const atts = attachments.length > 0 ? attachments : undefined;
+    if (enqueue) {
+      enqueue(
+        trimmed,
+        atts?.map((a) => ({ path: a.path, name: a.name }))
+      );
+    } else {
+      onSend(trimmed, atts);
+    }
     setValue("");
     setAttachments([]);
   }

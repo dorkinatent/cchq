@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, schema } from "@/lib/db";
 import { eq } from "drizzle-orm";
-import { pauseSession, completeSession } from "@/lib/sessions/manager";
+import { pauseSession, completeSession, resumeSession } from "@/lib/sessions/manager";
 
 export async function GET(
   _req: NextRequest,
@@ -29,9 +29,27 @@ export async function PATCH(
     await pauseSession(id);
   }
 
+  if (body.status === "active") {
+    // Resuming a paused session
+    const { resumeNote, ...rest } = body;
+    const [updated] = await db
+      .update(schema.sessions)
+      .set({ ...rest, updatedAt: new Date().toISOString() })
+      .where(eq(schema.sessions.id, id))
+      .returning();
+
+    // Fire off the resume in the background
+    resumeSession(id, resumeNote).catch((err) =>
+      console.error(`Failed to resume session ${id}:`, err)
+    );
+
+    return NextResponse.json(updated);
+  }
+
+  const { resumeNote: _rn, ...setFields } = body;
   const [updated] = await db
     .update(schema.sessions)
-    .set({ ...body, updatedAt: new Date().toISOString() })
+    .set({ ...setFields, updatedAt: new Date().toISOString() })
     .where(eq(schema.sessions.id, id))
     .returning();
 

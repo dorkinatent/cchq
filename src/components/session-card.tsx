@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Session } from "@/hooks/use-sessions";
+import { relativeTime } from "@/lib/relative-time";
 
 const statusStyles = {
   active: { bg: "bg-[var(--active-bg)]", text: "text-[var(--active-text)]", dot: "\u25cf" },
@@ -88,8 +89,26 @@ export function SessionCard({ session }: { session: Session }) {
         )}
         <div className="flex justify-between items-center text-[11px] text-[var(--text-muted)]">
           <span>{session.message_count || 0} messages</span>
-          <span>{new Date(session.updated_at).toLocaleString()}</span>
+          {session.status === "paused" ? (
+            <span className="text-[var(--paused-text)]">
+              Paused {relativeTime(session.updated_at)}
+            </span>
+          ) : (
+            <span>{new Date(session.updated_at).toLocaleString()}</span>
+          )}
         </div>
+        {session.status === "paused" && (
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              router.push(`/sessions/${session.id}`);
+            }}
+            className="mt-3 w-full py-1.5 px-3 bg-[var(--accent)] text-white rounded text-xs font-medium hover:opacity-90 transition-opacity"
+          >
+            Resume
+          </button>
+        )}
       </Link>
 
       {/* Menu button */}

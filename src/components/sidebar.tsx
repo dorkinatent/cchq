@@ -12,6 +12,12 @@ type Project = {
   path: string;
 };
 
+type PausedSession = {
+  id: string;
+  name: string;
+  updated_at: string;
+};
+
 function ProjectItem({ project, isActive }: { project: Project; isActive: boolean }) {
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -121,6 +127,7 @@ function ProjectItem({ project, isActive }: { project: Project; isActive: boolea
 export function Sidebar() {
   const pathname = usePathname();
   const [projects, setProjects] = useState<Project[]>([]);
+  const [pausedSessions, setPausedSessions] = useState<PausedSession[]>([]);
 
   useEffect(() => {
     function fetchProjects() {
@@ -129,7 +136,19 @@ export function Sidebar() {
         .then(setProjects);
     }
 
+    function fetchPaused() {
+      supabase
+        .from("sessions")
+        .select("id, name, updated_at")
+        .eq("status", "paused")
+        .order("updated_at", { ascending: false })
+        .then(({ data }) => {
+          if (data) setPausedSessions(data);
+        });
+    }
+
     fetchProjects();
+    fetchPaused();
 
     const channel = supabase
       .channel("sidebar-projects")
@@ -141,7 +160,7 @@ export function Sidebar() {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "sessions" },
-        () => fetchProjects()
+        () => { fetchProjects(); fetchPaused(); }
       )
       .subscribe();
 
@@ -171,6 +190,29 @@ export function Sidebar() {
       {projects.map((p) => (
         <ProjectItem key={p.id} project={p} isActive={false} />
       ))}
+
+      {pausedSessions.length > 0 && (
+        <>
+          <div className="text-[11px] uppercase tracking-wide text-[var(--text-muted)] mt-6 mb-2">
+            Paused ({pausedSessions.length})
+          </div>
+          {pausedSessions.map((s) => (
+            <Link
+              key={s.id}
+              href={`/sessions/${s.id}`}
+              className={`block px-2.5 py-1.5 rounded text-sm truncate mb-0.5 ${
+                pathname === `/sessions/${s.id}`
+                  ? "bg-[var(--surface-raised)] text-[var(--paused-text)]"
+                  : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              }`}
+              title={s.name}
+            >
+              <span className="text-[var(--paused-text)] mr-1">◑</span>
+              {s.name}
+            </Link>
+          ))}
+        </>
+      )}
 
       <div className="text-[11px] uppercase tracking-wide text-[var(--text-muted)] mt-6 mb-2">
         Memory

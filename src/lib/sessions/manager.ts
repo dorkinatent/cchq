@@ -1,6 +1,6 @@
 import { query, type Query, type PermissionResult } from "@anthropic-ai/claude-agent-sdk";
 import { db, schema } from "@/lib/db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, gt, and } from "drizzle-orm";
 import { evaluatePermission, type TrustLevel } from "@/lib/permissions/engine";
 import { createAllowRule } from "@/lib/permissions/rules";
 import { sessionEventBus } from "./stream-events";
@@ -567,6 +567,79 @@ export async function pauseSession(sessionId: string): Promise<void> {
     .update(schema.sessions)
     .set({ status: "paused", updatedAt: new Date().toISOString() })
     .where(eq(schema.sessions.id, sessionId));
+}
+
+export async function resumeSession(sessionId: string, resumeNote?: string): Promise<void> {
+  const session = await db.query.sessions.findFirst({
+    where: eq(schema.sessions.id, sessionId),
+  });
+  if (!session) throw new Error(`Session ${sessionId} not found`);
+  if (!session.sdkSessionId) throw new Error(`Session ${sessionId} has no SDK session to resume`);
+
+  const trustLevel = (session.trustLevel as TrustLevel) || "auto_log";
+  const permConfig = getPermissionConfig(sessionId, session.projectId, trustLevel);
+
+  // Query new knowledge entries since the session was last updated (paused)
+  const knowledgeConditions = [eq(schema.knowledge.projectId, session.projectId)];
+  if (session.updatedAt) {
+    knowledgeConditions.push(gt(schema.knowledge.createdAt, session.updatedAt));
+  }
+  const newKnowledge = await db.query.knowledge.findMany({
+    where: and(...knowledgeConditions),
+    orderBy: [desc(schema.knowledge.createdAt)],
+    limit: 20,
+  });
+
+  // Build the resume prompt
+  const parts: string[] = [];
+
+  if (resumeNote) {
+    parts.push(`The user wants you to focus on: ${resumeNote}`);
+  }
+
+  if (newKnowledge.length > 0) {
+    const formatted = newKnowledge
+      .map((k) => `- [${k.type}] ${k.content}`)
+      .join("\n");
+    parts.push(`Here's what changed since you were paused:\n${formatted}`);
+  }
+
+  const resumePrompt = parts.length > 0
+    ? parts.join("\n\n")
+    : "Resume the session. Continue where you left off.";
+
+  const abortController = new AbortController();
+  const q = query({
+    prompt: resumePrompt,
+    options: {
+      resume: session.sdkSessionId,
+      abortController,
+      includePartialMessages: true,
+      permissionMode: permConfig.permissionMode as any,
+      ...(permConfig.canUseTool ? { canUseTool: permConfig.canUseTool } : {}),
+    },
+  });
+
+  const entry: ActiveSession = {
+    query: q,
+    sessionId,
+    sdkSessionId: session.sdkSessionId,
+    abortController,
+    projectId: session.projectId,
+    trustLevel,
+  };
+  activeSessions.set(sessionId, entry);
+
+  // Persist the resume prompt as a user message
+  await db.insert(schema.messages).values({
+    sessionId,
+    role: "user",
+    content: resumePrompt,
+  });
+
+  processMessages(q, sessionId, (newSdkId) => {
+    entry.sdkSessionId = newSdkId;
+  });
 }
 
 export function getActiveSession(sessionId: string): ActiveSession | undefined {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useReducer, useRef, useCallback } from "react";
+import { useEffect, useReducer, useRef, useCallback, useState } from "react";
 import type { StreamEvent } from "@/lib/sessions/stream-events";
 
 export type StreamPhase = "idle" | "thinking" | "tool_use" | "streaming" | "error";
@@ -97,20 +97,44 @@ export function streamReducer(state: StreamState, action: Action): StreamState {
   }
 }
 
+export type ConnectionStatus = "connected" | "reconnecting" | "disconnected";
+
+const HEARTBEAT_TIMEOUT = 30_000; // 30 seconds
+const MAX_RECONNECT_ATTEMPTS = 5;
+
 export function useSessionStream(sessionId: string, isActive: boolean) {
   const [state, dispatch] = useReducer(streamReducer, initialState);
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("disconnected");
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastHeartbeatRef = useRef<number>(0);
+  const heartbeatIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const reconnectAttemptsRef = useRef(0);
 
   const connect = useCallback(() => {
     if (!isActive) return;
 
+    if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
+      setConnectionStatus("disconnected");
+      return;
+    }
+
     const es = new EventSource(`/api/sessions/${sessionId}/stream`);
     eventSourceRef.current = es;
+
+    es.onopen = () => {
+      lastHeartbeatRef.current = Date.now();
+      reconnectAttemptsRef.current = 0;
+      setConnectionStatus("connected");
+    };
 
     es.onmessage = (e) => {
       try {
         const event: StreamEvent = JSON.parse(e.data);
+        if (event.type === "ping") {
+          lastHeartbeatRef.current = Date.now();
+          setConnectionStatus("connected");
+        }
         dispatch({ type: "EVENT", event });
       } catch {}
     };
@@ -118,12 +142,37 @@ export function useSessionStream(sessionId: string, isActive: boolean) {
     es.onerror = () => {
       es.close();
       eventSourceRef.current = null;
-      // Reconnect after 3s
-      reconnectTimeoutRef.current = setTimeout(() => {
-        connect();
-      }, 3000);
+      reconnectAttemptsRef.current += 1;
+
+      if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
+        setConnectionStatus("disconnected");
+      } else {
+        setConnectionStatus("reconnecting");
+        reconnectTimeoutRef.current = setTimeout(() => {
+          connect();
+        }, 3000);
+      }
     };
   }, [sessionId, isActive]);
+
+  // Heartbeat check interval
+  useEffect(() => {
+    if (!isActive) return;
+
+    heartbeatIntervalRef.current = setInterval(() => {
+      if (lastHeartbeatRef.current === 0) return;
+      const elapsed = Date.now() - lastHeartbeatRef.current;
+      if (elapsed > HEARTBEAT_TIMEOUT) {
+        if (eventSourceRef.current) {
+          setConnectionStatus("reconnecting");
+        }
+      }
+    }, 5000);
+
+    return () => {
+      if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
+    };
+  }, [isActive]);
 
   useEffect(() => {
     connect();
@@ -131,9 +180,10 @@ export function useSessionStream(sessionId: string, isActive: boolean) {
       eventSourceRef.current?.close();
       eventSourceRef.current = null;
       if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+      reconnectAttemptsRef.current = 0;
       dispatch({ type: "RESET" });
     };
   }, [connect]);
 
-  return state;
+  return { ...state, connectionStatus };
 }

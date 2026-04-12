@@ -1,12 +1,17 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, useRef, use } from "react";
 import Link from "next/link";
-import { useSessionMessages } from "@/hooks/use-session-messages";
+import { useMessagePagination } from "@/hooks/use-message-pagination";
 import { useSessionStream } from "@/hooks/use-session-stream";
-import { MessageList } from "@/components/chat/message-list";
+import { useMessageQueue } from "@/hooks/use-message-queue";
+import { MessageList, type MessageListHandle } from "@/components/chat/message-list";
 import { MessageInput, type Attachment } from "@/components/chat/message-input";
 import { SessionContextPanel } from "@/components/chat/session-context-panel";
+import { ConnectionStatus } from "@/components/chat/connection-status";
+import { MessageStatus } from "@/components/chat/message-status";
+import { ResumePanel } from "@/components/chat/resume-panel";
+import { SessionSearch } from "@/components/chat/session-search";
 
 type SessionDetail = {
   id: string;
@@ -17,6 +22,7 @@ type SessionDetail = {
   projectName?: string;
   projectPath?: string;
   usage?: { totalTokens: number; totalCostUsd: number; numTurns: number } | null;
+  updatedAt?: string;
 };
 
 export default function SessionPage({
@@ -25,12 +31,14 @@ export default function SessionPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { messages, loading } = useSessionMessages(id);
+  const { messages, loading, loadingMore, hasMore, loadMore } =
+    useMessagePagination(id);
   const [session, setSession] = useState<SessionDetail | null>(null);
-  const [sending, setSending] = useState(false);
+  const messageListRef = useRef<MessageListHandle>(null);
 
   const isActive = session?.status === "active";
   const streamState = useSessionStream(id, !!isActive);
+  const queue = useMessageQueue(id);
 
   useEffect(() => {
     fetch(`/api/sessions/${id}`)
@@ -55,22 +63,9 @@ export default function SessionPage({
     error: "Error",
   }[streamState.phase];
 
-  async function handleSend(content: string, attachments?: Attachment[]) {
-    setSending(true);
-    try {
-      const res = await fetch(`/api/sessions/${id}/message`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content, attachments }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        alert(`Failed to send: ${data.error || "Unknown error"}`);
-      }
-    } catch (err: any) {
-      alert(`Failed to send: ${err.message}`);
-    }
-    setSending(false);
+  // Fallback onSend (not used when enqueue is provided, but kept for type compat)
+  function handleSend(content: string, _attachments?: Attachment[]) {
+    queue.enqueue(content, _attachments?.map((a) => ({ path: a.path, name: a.name })));
   }
 
   async function handleComplete() {
@@ -85,6 +80,18 @@ export default function SessionPage({
       body: JSON.stringify({ status: "paused" }),
     });
     setSession((s) => (s ? { ...s, status: "paused" } : s));
+  }
+
+  async function handleResume(note?: string) {
+    const res = await fetch(`/api/sessions/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "active", resumeNote: note }),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setSession((s) => (s ? { ...s, ...updated, status: "active" } : s));
+    }
   }
 
   return (
@@ -110,6 +117,9 @@ export default function SessionPage({
               {session.status}
             </span>
           )}
+          {isActive && (
+            <ConnectionStatus status={streamState.connectionStatus} />
+          )}
           {phaseLabel && (
             <span className="text-[11px] text-[var(--accent)] animate-pulse">
               {phaseLabel}
@@ -117,6 +127,12 @@ export default function SessionPage({
           )}
         </div>
         <div className="flex gap-2 items-center text-xs text-[var(--text-secondary)]">
+          <SessionSearch
+            sessionId={id}
+            onJumpToMessage={(messageId) =>
+              messageListRef.current?.scrollToMessage(messageId)
+            }
+          />
           {session?.usage && (
             <span className="text-[var(--text-muted)] mr-2">
               {session.usage.totalTokens.toLocaleString()} tokens · ${session.usage.totalCostUsd.toFixed(4)}
@@ -149,12 +165,49 @@ export default function SessionPage({
               Loading messages...
             </div>
           ) : (
-            <MessageList messages={messages} streamState={streamState} />
+            <MessageList
+              ref={messageListRef}
+              messages={messages}
+              streamState={streamState}
+              hasMore={hasMore}
+              loadingMore={loadingMore}
+              onLoadMore={loadMore}
+            />
           )}
-          <MessageInput
-            onSend={handleSend}
-            disabled={!isActive || sending || streamState.phase !== "idle"}
-          />
+          {/* Queued / failed message status indicators */}
+          {queue.messages.filter((m) => m.status !== "sent").length > 0 && (
+            <div className="px-5 py-2 space-y-1 border-t border-[var(--border)]">
+              {queue.messages
+                .filter((m) => m.status !== "sent")
+                .map((m) => (
+                  <div key={m.id} className="flex items-start gap-2">
+                    <span className="text-xs text-[var(--text-muted)] truncate max-w-[200px]">
+                      {m.content.slice(0, 60)}
+                      {m.content.length > 60 ? "..." : ""}
+                    </span>
+                    <MessageStatus
+                      message={m}
+                      onRetry={() => queue.retry(m.id)}
+                      onRemove={() => queue.remove(m.id)}
+                    />
+                  </div>
+                ))}
+            </div>
+          )}
+          {session?.status === "paused" ? (
+            <ResumePanel
+              sessionId={id}
+              projectId={session.projectId}
+              pausedAt={session.updatedAt || new Date().toISOString()}
+              onResume={handleResume}
+            />
+          ) : (
+            <MessageInput
+              onSend={handleSend}
+              enqueue={queue.enqueue}
+              disabled={!isActive || streamState.phase !== "idle"}
+            />
+          )}
         </div>
 
         {session && (
