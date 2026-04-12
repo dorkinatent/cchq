@@ -1,14 +1,13 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { supabase } from "@/lib/supabase";
+import { useEffect, useRef, useState } from "react";
 
 export type Message = {
   id: string;
   session_id: string;
   role: "user" | "assistant" | "system" | "tool";
   content: string;
-  tool_use: any;
+  tool_use: unknown;
   thinking: string | null;
   created_at: string;
 };
@@ -19,45 +18,50 @@ export function useSessionMessages(sessionId: string) {
   const messagesRef = useRef<Message[]>([]);
 
   useEffect(() => {
-    async function fetchMessages() {
-      const { data } = await supabase
-        .from("messages")
-        .select("*")
-        .eq("session_id", sessionId)
-        .order("created_at", { ascending: true });
+    let cancelled = false;
 
-      if (data) {
-        messagesRef.current = data;
-        setMessages(data);
+    async function loadAll() {
+      try {
+        // Default limit=50 returns the most recent page. That matches the previous
+        // behavior well enough for initial render; pagination for older messages
+        // is handled separately by use-message-pagination.ts.
+        const res = await fetch(`/api/sessions/${sessionId}/messages`, {
+          cache: "no-store",
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const body = (await res.json()) as { messages: Message[]; hasMore: boolean };
+        if (cancelled) return;
+        messagesRef.current = body.messages;
+        setMessages(body.messages);
+        setLoading(false);
+      } catch (err) {
+        console.error("[useSessionMessages] fetch failed", err);
+        if (!cancelled) setLoading(false);
       }
-      setLoading(false);
     }
 
-    fetchMessages();
+    loadAll();
 
-    const channelName = `messages-${sessionId}-${Math.random().toString(36).slice(2, 8)}`;
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `session_id=eq.${sessionId}`,
-        },
-        (payload) => {
-          const newMsg = payload.new as Message;
-          // Deduplicate — skip if we already have this message
-          if (messagesRef.current.some((m) => m.id === newMsg.id)) return;
-          messagesRef.current = [...messagesRef.current, newMsg];
-          setMessages([...messagesRef.current]);
+    const es = new EventSource(`/api/sessions/${sessionId}/stream`);
+    es.onmessage = (ev) => {
+      try {
+        const evt = JSON.parse(ev.data);
+        if (evt?.type === "message_added") {
+          // Simplest correct approach: refetch the latest page.
+          // List is small; network cost is tiny.
+          loadAll();
         }
-      )
-      .subscribe();
+      } catch {
+        // Ignore malformed events.
+      }
+    };
+    es.onerror = () => {
+      // Browser auto-reconnects; no-op.
+    };
 
     return () => {
-      supabase.removeChannel(channel);
+      cancelled = true;
+      es.close();
     };
   }, [sessionId]);
 
