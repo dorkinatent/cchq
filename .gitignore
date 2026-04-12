@@ -48,3 +48,6 @@ next-env.d.ts
 
 # local n8n dev cache noise
 local-n8n/.npm-cache/
+
+# worktrees
+.worktrees/
