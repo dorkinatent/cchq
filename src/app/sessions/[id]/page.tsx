@@ -35,11 +35,19 @@ export default function SessionPage({
 
   async function handleSend(content: string) {
     setSending(true);
-    await fetch(`/api/sessions/${id}/message`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content }),
-    });
+    try {
+      const res = await fetch(`/api/sessions/${id}/message`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        alert(`Failed to send: ${data.error || "Unknown error"}`);
+      }
+    } catch (err: any) {
+      alert(`Failed to send: ${err.message}`);
+    }
     setSending(false);
   }
 
