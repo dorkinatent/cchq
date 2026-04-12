@@ -46,14 +46,14 @@ export default function SessionPage({
       .then(setSession);
   }, [id]);
 
-  // Refresh session details when a message completes (to get updated usage)
+  // Refresh session details when a message completes or result arrives (to get updated usage)
   useEffect(() => {
-    if (streamState.completedMessage) {
+    if (streamState.completedMessage || streamState.resultReceived) {
       fetch(`/api/sessions/${id}`)
         .then((r) => r.json())
         .then(setSession);
     }
-  }, [streamState.completedMessage, id]);
+  }, [streamState.completedMessage, streamState.resultReceived, id]);
 
   const phaseLabel = {
     idle: null,

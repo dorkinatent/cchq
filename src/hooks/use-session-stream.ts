@@ -22,6 +22,7 @@ export type StreamState = {
   thinkingStartedAt: number | null;
   error: string | null;
   completedMessage: { messageId: string; content: string; toolUse: unknown[] | null } | null;
+  resultReceived: boolean;
 };
 
 const initialState: StreamState = {
@@ -31,6 +32,7 @@ const initialState: StreamState = {
   thinkingStartedAt: null,
   error: null,
   completedMessage: null,
+  resultReceived: false,
 };
 
 type Action = { type: "EVENT"; event: StreamEvent } | { type: "RESET" };
@@ -87,7 +89,7 @@ export function streamReducer(state: StreamState, action: Action): StreamState {
         completedMessage: { messageId: event.messageId, content: event.content, toolUse: event.toolUse },
       };
     case "result":
-      return { ...initialState };
+      return { ...initialState, resultReceived: true };
     case "error":
       return { ...state, phase: "error", error: event.error };
     case "ping":
