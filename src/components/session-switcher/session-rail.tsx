@@ -418,7 +418,7 @@ export function SessionRail() {
               : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
           }`}
         >
-          Knowledge Base
+          Knowledge
         </Link>
         <ThemeSwitcher />
       </div>

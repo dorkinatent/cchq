@@ -20,8 +20,11 @@ export function KnowledgeList({
 }) {
   if (entries.length === 0) {
     return (
-      <div className="text-[var(--text-secondary)] text-sm text-center py-20">
-        No knowledge entries yet. They&apos;ll appear here as sessions are completed.
+      <div className="py-24 max-w-md mx-auto text-center">
+        <div className="eyebrow text-[var(--text-muted)] mb-3">Nothing remembered yet</div>
+        <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+          When you end a session, useful bits — decisions, facts, context — land here automatically.
+        </p>
       </div>
     );
   }

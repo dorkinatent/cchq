@@ -42,7 +42,7 @@ function DashboardContent() {
             onClick={() => setDialogOpen(true)}
             className="bg-[var(--accent)] text-[var(--bg)] px-3.5 py-1.5 rounded-md text-sm font-medium hover:bg-[var(--accent-hover)]"
           >
-            + New Session
+            + New session
           </button>
         </div>
       </div>
@@ -51,8 +51,13 @@ function DashboardContent() {
         {loading ? (
           <div className="text-[var(--text-secondary)] text-sm">Loading sessions...</div>
         ) : filtered.length === 0 ? (
-          <div className="text-[var(--text-secondary)] text-sm text-center py-20">
-            No sessions yet. Click &ldquo;+ New Session&rdquo; to get started.
+          <div className="py-24 max-w-sm mx-auto text-center">
+            <div className="eyebrow text-[var(--text-muted)] mb-3">Nothing in flight</div>
+            <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
+              Hit <span className="text-[var(--accent)]">+ New session</span> to start one, or press{" "}
+              <kbd className="font-mono text-[11px] border border-[var(--border)] rounded px-1.5 py-0.5 text-[var(--text-muted)]">⌘K</kbd>{" "}
+              to jump to a recent one.
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

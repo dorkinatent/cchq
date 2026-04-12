@@ -1,3 +1,7 @@
+"use client";
+
+import { useEffect, useState } from "react";
+
 type KnowledgeEntryData = {
   id: string;
   type: "decision" | "fact" | "context" | "summary";
@@ -22,22 +26,43 @@ export function KnowledgeEntry({
   onDelete: (id: string) => void;
 }) {
   const style = typeStyles[entry.type];
+  const [confirming, setConfirming] = useState(false);
+
+  // Revert pending confirm after 3s — no stuck buttons.
+  useEffect(() => {
+    if (!confirming) return;
+    const t = setTimeout(() => setConfirming(false), 3000);
+    return () => clearTimeout(t);
+  }, [confirming]);
+
+  function handleClick() {
+    if (!confirming) {
+      setConfirming(true);
+      return;
+    }
+    onDelete(entry.id);
+  }
 
   return (
     <div className="bg-[var(--surface-raised)] border border-[var(--border)] rounded-lg p-4 mb-3">
       <div className="flex justify-between items-start mb-2">
-        <span className={`text-[11px] ${style.bg} ${style.text} px-2 py-0.5 rounded-full`}>
+        <span className={`text-[11px] font-medium ${style.bg} ${style.text} px-2 py-0.5 rounded-full`}>
           {entry.type}
         </span>
-        <div className="flex gap-2 items-center">
-          <span className="text-[11px] text-[var(--text-muted)]">
+        <div className="flex gap-3 items-center">
+          <span className="text-[11px] text-[var(--text-muted)] tabular-nums">
             {new Date(entry.createdAt).toLocaleDateString()}
           </span>
           <button
-            onClick={() => onDelete(entry.id)}
-            className="text-[var(--text-muted)] hover:text-[var(--errored-text)] text-xs"
+            onClick={handleClick}
+            className={`text-[11px] transition-colors ${
+              confirming
+                ? "text-[var(--errored-text)] font-medium"
+                : "text-[var(--text-muted)] hover:text-[var(--errored-text)]"
+            }`}
+            aria-label={confirming ? "Confirm delete" : "Delete this entry"}
           >
-            Delete
+            {confirming ? "Click again to delete" : "Delete"}
           </button>
         </div>
       </div>

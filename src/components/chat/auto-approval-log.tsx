@@ -69,7 +69,7 @@ export function AutoApprovalLogGroup({ entries }: { entries: ApprovalLogEntry[] 
   if (entries.length === 0) return null;
 
   return (
-    <div className="my-2 border-l-2 border-[var(--border)] ml-4">
+    <div className="my-2 ml-4 bg-[color-mix(in_oklch,var(--surface)_55%,transparent)] rounded-md py-1">
       {entries.map((entry) => (
         <AutoApprovalLog key={entry.id} entry={entry} />
       ))}

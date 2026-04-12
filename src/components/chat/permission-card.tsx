@@ -21,16 +21,17 @@ export type PermissionResponse = {
   alternative?: string;
 };
 
-const TOOL_ICONS: Record<string, string> = {
-  Read: "📄",
-  Edit: "✏️",
-  Write: "📝",
-  Bash: "💻",
-  Grep: "🔍",
-  Glob: "📂",
-};
+// Tool chips are the visual accent — a small mono pill bearing the tool
+// name. No emoji (they read as chat-app cheer, wrong for this brand).
+function ToolChip({ name }: { name: string }) {
+  return (
+    <span className="font-mono text-[10.5px] uppercase tracking-[0.08em] text-[var(--accent)] border border-[var(--accent)]/40 bg-[var(--bg)] rounded px-1.5 py-[1px] leading-none">
+      {name}
+    </span>
+  );
+}
 
-function ToolPreview({ toolName, input }: { toolName: string; input: Record<string, unknown> }) {
+function ToolPreview({ toolName: _toolName, input }: { toolName: string; input: Record<string, unknown> }) {
   return (
     <div className="bg-[var(--bg)] rounded-md p-3 text-xs font-mono">
       {input.file_path ? (
@@ -47,10 +48,10 @@ function ToolPreview({ toolName, input }: { toolName: string; input: Record<stri
       ) : null}
       {input.old_string && input.new_string ? (
         <div className="space-y-1 mt-1">
-          <div className="text-red-400 line-through opacity-70 truncate">
+          <div className="text-[var(--errored-text)] line-through opacity-70 truncate">
             {String(input.old_string).slice(0, 120)}
           </div>
-          <div className="text-green-400 truncate">
+          <div className="text-[var(--active-text)] truncate">
             {String(input.new_string).slice(0, 120)}
           </div>
         </div>
@@ -78,7 +79,6 @@ export function PermissionCard({
   const [showBatchDetail, setShowBatchDetail] = useState(false);
 
   const isBatch = request.batch && request.batch.length > 1;
-  const icon = TOOL_ICONS[request.toolName] || "🔧";
 
   function handleAllow() {
     onRespond({ requestId: request.id, decision: "allow" });
@@ -100,13 +100,14 @@ export function PermissionCard({
 
   return (
     <div className="mb-5">
-      <div className="text-[11px] text-[var(--text-muted)] mb-1">Permission Request</div>
+      <div className="eyebrow mb-1.5">Permission request</div>
       <div className="bg-[var(--surface-raised)] border-2 border-[var(--paused-bg)] rounded-lg px-4 py-3 max-w-[80%]">
         {/* Header */}
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-base">{icon}</span>
-          <span className="text-sm text-[var(--text-primary)] font-medium">
-            Claude wants to {request.toolName.toLowerCase()}{" "}
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
+          <ToolChip name={request.toolName} />
+          <span className="text-sm text-[var(--text-primary)]">
+            Claude wants to {request.toolName.toLowerCase()}
+            {(request.input.file_path || request.input.command) ? " " : null}
             {request.input.file_path ? (
               <span className="font-mono text-[var(--accent)]">
                 {String(request.input.file_path)}
@@ -130,13 +131,12 @@ export function PermissionCard({
               {request.batch!.length} tool calls — {showBatchDetail ? "Hide details" : "Review individually"}
             </button>
             {showBatchDetail && (
-              <div className="mt-2 space-y-2">
+              <div className="mt-2 space-y-1.5">
                 {request.batch!.map((item, i) => (
                   <div key={i} className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
-                    <span>{TOOL_ICONS[item.toolName] || "🔧"}</span>
-                    <span>{item.toolName}</span>
+                    <ToolChip name={item.toolName} />
                     {item.input.file_path ? (
-                      <span className="font-mono text-[var(--text-muted)]">
+                      <span className="font-mono text-[var(--text-muted)] truncate">
                         {String(item.input.file_path)}
                       </span>
                     ) : null}

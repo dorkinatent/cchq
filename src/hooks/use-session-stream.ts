@@ -46,7 +46,10 @@ export function streamReducer(state: StreamState, action: Action): StreamState {
     case "thinking_start":
       return { ...state, phase: "thinking", thinkingStartedAt: event.timestamp, completedMessage: null, error: null };
     case "thinking_end":
-      return { ...state, phase: "idle", thinkingStartedAt: null };
+      // Don't drop to idle — keep phase and let the next event (tool_start,
+      // text_delta, message_complete, etc.) pick the correct phase. Just clear
+      // the thinking timer so the 'Thinking Xs' label doesn't keep ticking.
+      return { ...state, thinkingStartedAt: null };
     case "tool_start":
       return {
         ...state,
@@ -83,8 +86,12 @@ export function streamReducer(state: StreamState, action: Action): StreamState {
     case "text_delta":
       return { ...state, phase: "streaming", streamingText: state.streamingText + event.text };
     case "message_complete":
+      // Don't go to idle — more assistant messages or a final result may
+      // follow. Keep phase active (thinking) and clear per-turn state so
+      // the next turn starts clean. Only `result` and `error` should go idle.
       return {
         ...initialState,
+        phase: "thinking",
         completedMessage: { messageId: event.messageId, content: event.content, toolUse: event.toolUse },
       };
     case "result":

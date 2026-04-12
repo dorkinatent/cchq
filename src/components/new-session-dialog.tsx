@@ -355,18 +355,18 @@ export function NewSessionDialog({
             </div>
 
             <div className="mb-4">
-              <label className="block text-xs text-[var(--text-secondary)] mb-1">Permissions</label>
+              <label className="block text-xs text-[var(--text-secondary)] mb-1">Permission mode</label>
               <select
                 value={trustLevel}
                 onChange={(e) => setTrustLevel(e.target.value)}
                 className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)]"
               >
-                <option value="full_auto">Full Auto — accept everything, no prompts</option>
-                <option value="auto_log">Auto + Log — accept everything, log actions in chat</option>
-                <option value="ask_me">Ask Me — prompt before tool actions</option>
+                <option value="full_auto">Full auto — never ask, never log</option>
+                <option value="auto_log">Auto + log — never ask, log each action in chat</option>
+                <option value="ask_me">Ask first — prompt before every tool action</option>
               </select>
               <p className="text-[10px] text-[var(--text-muted)] mt-1">
-                Project-level rules (if any) override this setting for specific tools.
+                Project permission rules override this for specific tools.
               </p>
             </div>
 

@@ -8,8 +8,16 @@ type KnowledgeEntry = {
   content: string;
 };
 
+function DefRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 py-1">
+      <span className="text-[11px] text-[var(--text-muted)]">{label}</span>
+      <span className="text-[12px] text-[var(--text-secondary)] tabular-nums text-right truncate">{value}</span>
+    </div>
+  );
+}
+
 export function SessionContextPanel({
-  sessionId,
   projectId,
   projectPath,
   model,
@@ -35,52 +43,75 @@ export function SessionContextPanel({
     }
   }, [projectId]);
 
+  // Shorten long paths by replacing leading homedir / keeping tail.
+  const shortPath = projectPath.replace(/^\/Users\/[^/]+/, "~").replace(/^\/home\/[^/]+/, "~");
+
   return (
-    <div className="w-64 border-l border-[var(--border)] p-4 overflow-y-auto shrink-0">
-      <div className="text-[11px] uppercase tracking-wide text-[var(--text-muted)] mb-3">
-        Session Context
-      </div>
-
-      <div className="bg-[var(--surface-raised)] rounded-md p-2.5 mb-2.5">
-        <div className="text-[11px] text-[var(--text-muted)] mb-1">Working Directory</div>
-        <div className="text-xs text-[var(--text-secondary)] font-mono truncate">{projectPath}</div>
-      </div>
-
-      <div className="text-[11px] uppercase tracking-wide text-[var(--text-muted)] mt-4 mb-2">
-        Injected Knowledge
-      </div>
-      {knowledge.length === 0 ? (
-        <div className="text-xs text-[var(--text-muted)]">No knowledge entries for this project.</div>
-      ) : (
-        knowledge.map((k) => (
+    <aside className="w-72 shrink-0 border-l border-[var(--border)] bg-[color-mix(in_oklch,var(--surface)_50%,transparent)] flex flex-col overflow-hidden">
+      <div className="px-5 pt-5 pb-4 overflow-y-auto rail-scroll flex-1">
+        {/* Directory */}
+        <div className="mb-6">
+          <div className="eyebrow mb-1.5">Working directory</div>
           <div
-            key={k.id}
-            className="bg-[var(--active-bg)] border border-[var(--active-bg)] rounded-md p-2.5 mb-2"
+            className="font-mono text-[12px] text-[var(--text-primary)] break-all leading-snug"
+            title={projectPath}
           >
-            <div className="text-[11px] text-[var(--active-text)] mb-1">{k.type}</div>
-            <div className="text-xs text-[var(--text-secondary)] leading-relaxed">{k.content}</div>
+            {shortPath}
           </div>
-        ))
-      )}
+        </div>
 
-      <div className="text-[11px] uppercase tracking-wide text-[var(--text-muted)] mt-4 mb-2">
-        Session Stats
+        {/* Stats as a compact key/value list — no boxed surface, hierarchy via type alone */}
+        <div className="mb-6">
+          <div className="eyebrow mb-2">Session</div>
+          <div className="divide-y divide-[var(--border)]/40">
+            <DefRow label="Model" value={<span className="font-mono">{model}</span>} />
+            <DefRow label="Effort" value={effort || "high"} />
+            <DefRow label="Messages" value={messageCount.toLocaleString()} />
+            {usage && (
+              <>
+                <DefRow label="Turns" value={usage.numTurns.toLocaleString()} />
+                <DefRow
+                  label="Tokens"
+                  value={
+                    usage.totalTokens >= 1000
+                      ? `${(usage.totalTokens / 1000).toFixed(1)}k`
+                      : usage.totalTokens.toLocaleString()
+                  }
+                />
+                <DefRow label="Cost" value={`$${usage.totalCostUsd.toFixed(4)}`} />
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Knowledge */}
+        <div>
+          <div className="eyebrow mb-2 flex items-center justify-between">
+            <span>Injected knowledge</span>
+            {knowledge.length > 0 && (
+              <span className="text-[var(--text-muted)] tabular-nums normal-case tracking-normal">
+                {knowledge.length}
+              </span>
+            )}
+          </div>
+          {knowledge.length === 0 ? (
+            <div className="text-[12px] text-[var(--text-muted)] leading-relaxed">
+              Nothing injected for this project yet.
+            </div>
+          ) : (
+            <ul className="space-y-3">
+              {knowledge.map((k) => (
+                <li key={k.id} className="text-[12px] leading-relaxed">
+                  <div className="text-[10px] uppercase tracking-[0.1em] text-[var(--accent)] mb-0.5">
+                    {k.type}
+                  </div>
+                  <div className="text-[var(--text-secondary)]">{k.content}</div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
-      <div className="text-xs text-[var(--text-muted)] leading-loose">
-        Messages: {messageCount}<br />
-        Model: {model}<br />
-        Effort: {effort || "high"}
-        {usage && (
-          <>
-            <br />
-            Tokens: {usage.totalTokens.toLocaleString()}
-            <br />
-            Cost: ${usage.totalCostUsd.toFixed(4)}
-            <br />
-            Turns: {usage.numTurns}
-          </>
-        )}
-      </div>
-    </div>
+    </aside>
   );
 }

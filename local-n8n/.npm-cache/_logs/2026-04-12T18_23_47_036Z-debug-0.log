@@ -5,15 +5,15 @@
 4 silly config load:file:/Users/charlieanderson/Code/CCUI/.npmrc
 5 silly config load:file:/Users/charlieanderson/.npmrc
 6 silly config load:file:/opt/homebrew/etc/npmrc
-7 verbose title npm exec drizzle-kit push
-8 verbose argv "exec" "--" "drizzle-kit" "push"
-9 verbose logfile logs-max:10 dir:/Users/charlieanderson/Code/CCUI/local-n8n/.npm-cache/_logs/2026-04-12T15_58_27_917Z-
-10 verbose logfile /Users/charlieanderson/Code/CCUI/local-n8n/.npm-cache/_logs/2026-04-12T15_58_27_917Z-debug-0.log
+7 verbose title npm exec tsc --noEmit
+8 verbose argv "exec" "--" "tsc" "--noEmit"
+9 verbose logfile logs-max:10 dir:/Users/charlieanderson/Code/CCUI/local-n8n/.npm-cache/_logs/2026-04-12T18_23_47_036Z-
+10 verbose logfile /Users/charlieanderson/Code/CCUI/local-n8n/.npm-cache/_logs/2026-04-12T18_23_47_036Z-debug-0.log
 11 silly logfile start cleaning logs, removing 1 files
 12 silly logfile done cleaning log files
 13 verbose cwd /Users/charlieanderson/Code/CCUI
 14 verbose os Darwin 25.2.0
 15 verbose node v25.6.1
 16 verbose npm  v11.9.0
-17 verbose exit 0
-18 info ok
+17 verbose exit 2
+18 verbose code 2

@@ -126,15 +126,21 @@ export const MessageList = forwardRef<
   }, [messages]);
 
   // Infinite scroll: detect scroll to top
+  // Use refs to avoid stale-closure issues in rapid scroll events
+  const hasMoreRef = useRef(hasMore);
+  const loadingMoreRef = useRef(loadingMore);
+  useEffect(() => { hasMoreRef.current = hasMore; }, [hasMore]);
+  useEffect(() => { loadingMoreRef.current = loadingMore; }, [loadingMore]);
+
   const handleScroll = useCallback(() => {
     const container = containerRef.current;
-    if (!container || !hasMore || loadingMore) return;
+    if (!container || !hasMoreRef.current || loadingMoreRef.current || isLoadingMoreRef.current) return;
     if (container.scrollTop < 100 && onLoadMore) {
       prevScrollHeightRef.current = container.scrollHeight;
       isLoadingMoreRef.current = true;
       onLoadMore();
     }
-  }, [hasMore, loadingMore, onLoadMore]);
+  }, [onLoadMore]);
 
   const turns = groupIntoTurns(messages);
 

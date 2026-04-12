@@ -38,7 +38,7 @@ export function CollapsedToolGroup({
         </span>
       </button>
       {expanded && (
-        <div className="mt-2 ml-3 border-l-2 border-[var(--border)] pl-3">
+        <div className="mt-2 ml-3 pl-3 py-2 bg-[color-mix(in_oklch,var(--surface-raised)_40%,transparent)] rounded-md">
           {messages.map((message) => (
             <MessageBubble key={message.id} message={message} />
           ))}

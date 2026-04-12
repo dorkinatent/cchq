@@ -55,7 +55,7 @@ export default function KnowledgePage() {
     <div>
       <div className="flex justify-between items-center px-6 py-4 border-b border-[var(--border)]">
         <div className="flex items-center gap-3">
-          <h1 className="text-base font-semibold text-[var(--text-primary)]">Knowledge Base</h1>
+          <h1 className="text-[19px] font-semibold tracking-tight leading-tight text-[var(--text-primary)]">Knowledge</h1>
           <span className="text-xs text-[var(--text-secondary)]">{entries.length} entries</span>
         </div>
         <div className="flex gap-3 items-center">

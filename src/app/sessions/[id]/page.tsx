@@ -13,6 +13,7 @@ import { MessageStatus } from "@/components/chat/message-status";
 import { ResumePanel } from "@/components/chat/resume-panel";
 import { SessionSummary } from "@/components/chat/session-summary";
 import { SessionSearch } from "@/components/chat/session-search";
+import { useContextPanel } from "@/hooks/use-context-panel";
 
 type SessionDetail = {
   id: string;
@@ -42,6 +43,7 @@ export default function SessionPage({
   const isActive = session?.status === "active";
   const streamState = useSessionStream(id, !!isActive);
   const queue = useMessageQueue(id);
+  const { open: panelOpen, toggle: togglePanel } = useContextPanel(true);
 
   useEffect(() => {
     fetch(`/api/sessions/${id}`)
@@ -99,11 +101,12 @@ export default function SessionPage({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex justify-between items-center px-6 py-4 border-b border-[var(--border)] shrink-0">
-        <div className="flex items-center gap-4 min-w-0">
+      <header className="flex items-center gap-6 px-7 py-5 border-b border-[var(--border)] shrink-0">
+        {/* Identity group: back, title, state */}
+        <div className="flex items-center gap-3 min-w-0 flex-1">
           <Link
             href="/"
-            className="text-[var(--text-muted)] hover:text-[var(--text-primary)] text-[12px] shrink-0"
+            className="text-[var(--text-muted)] hover:text-[var(--text-primary)] text-[14px] shrink-0"
             aria-label="Back to dashboard"
           >
             &larr;
@@ -113,57 +116,75 @@ export default function SessionPage({
           </h1>
           {session && (
             <span
-              className={`text-[11px] px-2 py-0.5 rounded-full ${
+              className={`text-[11px] font-medium px-2 py-0.5 rounded-full shrink-0 ${
                 isActive
                   ? "bg-[var(--active-bg)] text-[var(--active-text)]"
                   : session.status === "paused"
                   ? "bg-[var(--paused-bg)] text-[var(--paused-text)]"
+                  : session.status === "errored"
+                  ? "bg-[var(--errored-bg)] text-[var(--errored-text)]"
                   : "bg-[var(--completed-bg)] text-[var(--completed-text)]"
               }`}
             >
               {session.status}
             </span>
           )}
-          {isActive && (
-            <ConnectionStatus status={streamState.connectionStatus} />
-          )}
-          {phaseLabel && (
-            <span className="text-[11px] text-[var(--accent)] animate-pulse">
-              {phaseLabel}
-            </span>
-          )}
         </div>
-        <div className="flex gap-2 items-center text-xs text-[var(--text-secondary)]">
+
+        {/* Live status group — only while active */}
+        {isActive && (phaseLabel || streamState.connectionStatus) && (
+          <div className="flex items-center gap-3 text-[11px] text-[var(--text-muted)] shrink-0">
+            <ConnectionStatus status={streamState.connectionStatus} />
+            {phaseLabel && (
+              <span className="flex items-center gap-1.5 text-[var(--accent)]">
+                <span className="flex gap-1" aria-hidden>
+                  <span className="w-1 h-1 bg-[var(--accent)] rounded-full thinking-dot" style={{ animationDelay: "0ms" }} />
+                  <span className="w-1 h-1 bg-[var(--accent)] rounded-full thinking-dot" style={{ animationDelay: "200ms" }} />
+                  <span className="w-1 h-1 bg-[var(--accent)] rounded-full thinking-dot" style={{ animationDelay: "400ms" }} />
+                </span>
+                {phaseLabel.replace("...", "")}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Actions group */}
+        <div className="flex items-center gap-2 shrink-0">
           <SessionSearch
             sessionId={id}
             onJumpToMessage={(messageId) =>
               messageListRef.current?.scrollToMessage(messageId)
             }
           />
-          {session?.usage && (
-            <span className="text-[var(--text-muted)] mr-2">
-              {session.usage.totalTokens.toLocaleString()} tokens · ${session.usage.totalCostUsd.toFixed(4)}
-            </span>
-          )}
-          {session?.model}
           {isActive && (
             <>
+              <span className="w-px h-5 bg-[var(--border)] mx-1" aria-hidden />
               <button
                 onClick={handlePause}
-                className="ml-3 px-2.5 py-1 bg-[var(--surface-raised)] border border-[var(--border)] rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                className="px-2.5 py-1 text-[12px] border border-[var(--border)] rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] transition-colors"
               >
                 Pause
               </button>
               <button
                 onClick={handleComplete}
-                className="px-2.5 py-1 bg-[var(--surface-raised)] border border-[var(--border)] rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                className="px-2.5 py-1 text-[12px] border border-[var(--border)] rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] transition-colors"
+                title="Mark this session done. You can still view its history, but not resume it."
               >
-                Complete
+                End session
               </button>
             </>
           )}
+          <span className="w-px h-5 bg-[var(--border)] mx-1" aria-hidden />
+          <button
+            onClick={togglePanel}
+            className="px-2 py-1 text-[12px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] rounded transition-colors"
+            aria-label={panelOpen ? "Hide context panel" : "Show context panel"}
+            title={panelOpen ? "Hide context panel" : "Show context panel"}
+          >
+            {panelOpen ? "›│" : "│‹"}
+          </button>
         </div>
-      </div>
+      </header>
 
       <div className="flex flex-1 overflow-hidden">
         <div className="flex flex-col flex-1">
@@ -226,7 +247,7 @@ export default function SessionPage({
           )}
         </div>
 
-        {session && (
+        {session && panelOpen && (
           <SessionContextPanel
             sessionId={id}
             projectId={session.projectId}

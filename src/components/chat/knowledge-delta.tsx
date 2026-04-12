@@ -40,11 +40,11 @@ export function KnowledgeDelta({ projectId, since }: { projectId: string; since:
       </button>
 
       {expanded && (
-        <ul className="mt-2 space-y-1.5 text-xs text-[var(--text-secondary)] border-l-2 border-[var(--border)] pl-3">
+        <ul className="mt-2 space-y-1.5 text-xs text-[var(--text-secondary)] bg-[color-mix(in_oklch,var(--surface-raised)_45%,transparent)] rounded-md px-3 py-2">
           {entries.map((e) => (
             <li key={e.id}>
-              <span className="text-[var(--text-muted)] mr-1">[{e.type}]</span>
-              {e.content.length > 120 ? e.content.slice(0, 120) + "..." : e.content}
+              <span className="eyebrow normal-case tracking-normal text-[var(--accent)] mr-1.5">{e.type}</span>
+              {e.content.length > 120 ? e.content.slice(0, 120) + "…" : e.content}
             </li>
           ))}
         </ul>

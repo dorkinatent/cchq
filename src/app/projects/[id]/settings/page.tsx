@@ -106,22 +106,22 @@ export default function ProjectSettingsPage({
         >
           &larr; Back
         </Link>
-        <h1 className="text-lg font-semibold text-[var(--text-primary)]">
-          {project?.name} — Permission Rules
+        <h1 className="text-[19px] font-semibold tracking-tight leading-tight text-[var(--text-primary)]">
+          {project?.name} <span className="text-[var(--text-muted)] font-normal">· Permissions</span>
         </h1>
       </div>
 
-      <p className="text-sm text-[var(--text-secondary)] mb-6">
-        Permission rules control what Claude can do in sessions for this project.
-        Rules are evaluated highest-priority first. Specific tool patterns match before wildcards.
-        When no rule matches, the session&apos;s trust level applies.
+      <p className="text-sm text-[var(--text-secondary)] mb-6 max-w-[68ch]">
+        Permission rules decide what Claude can do in this project&apos;s sessions.
+        Rules are evaluated top-down — specific tool patterns match before wildcards.
+        If no rule matches, the session&apos;s permission mode applies.
       </p>
 
       {/* Rules list */}
       <div className="space-y-2 mb-6">
         {rules.length === 0 ? (
           <div className="text-sm text-[var(--text-muted)] py-8 text-center border border-dashed border-[var(--border)] rounded-lg">
-            No rules yet. Sessions will use their trust level for all actions.
+            No rules yet. Sessions will fall back to their permission mode for every action.
           </div>
         ) : (
           rules.map((rule) => (
