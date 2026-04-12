@@ -50,12 +50,17 @@ export function streamReducer(state: StreamState, action: Action): StreamState {
       // text_delta, message_complete, etc.) pick the correct phase. Just clear
       // the thinking timer so the 'Thinking Xs' label doesn't keep ticking.
       return { ...state, thinkingStartedAt: null };
-    case "tool_start":
+    case "tool_start": {
+      // If we just completed a message and are now seeing a fresh tool,
+      // this is a new sub-turn — clear old tools so they don't pile up.
+      const isNewTurn = state.completedMessage !== null;
+      const baseTools = isNewTurn ? [] : state.activeTools;
       return {
         ...state,
         phase: "tool_use",
+        completedMessage: null,
         activeTools: [
-          ...state.activeTools,
+          ...baseTools,
           {
             toolUseId: event.toolUseId,
             toolName: event.toolName,
@@ -66,6 +71,7 @@ export function streamReducer(state: StreamState, action: Action): StreamState {
           },
         ],
       };
+    }
     case "tool_progress":
       return {
         ...state,
@@ -83,16 +89,30 @@ export function streamReducer(state: StreamState, action: Action): StreamState {
           t.toolUseId === event.toolUseId ? { ...t, done: true, output: event.output } : t
         ),
       };
-    case "text_delta":
-      return { ...state, phase: "streaming", streamingText: state.streamingText + event.text };
+    case "text_delta": {
+      // New sub-turn starting with text — clear old tools.
+      const isNewTurn = state.completedMessage !== null;
+      return {
+        ...state,
+        phase: "streaming",
+        completedMessage: null,
+        activeTools: isNewTurn ? [] : state.activeTools,
+        streamingText: state.streamingText + event.text,
+      };
+    }
     case "message_complete":
       // Don't go to idle — more assistant messages or a final result may
-      // follow. Keep phase active (thinking) and clear per-turn state so
-      // the next turn starts clean. Only `result` and `error` should go idle.
+      // follow. Keep the completed tools visible until the next turn's
+      // tool_start or text_delta actually arrives (avoids empty-thinking
+      // flicker between SDK turns).
       return {
-        ...initialState,
+        ...state,
         phase: "thinking",
+        streamingText: "",
+        thinkingStartedAt: null,
         completedMessage: { messageId: event.messageId, content: event.content, toolUse: event.toolUse },
+        // activeTools preserved — cleared when the next tool_start arrives
+        // with a toolUseId not in the current list.
       };
     case "result":
       return { ...initialState, resultReceived: true };
