@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback } from "react";
-import { supabase } from "@/lib/supabase";
 import type { Message } from "@/hooks/use-session-messages";
 
 export type { Message };
@@ -37,31 +36,48 @@ export function useMessagePagination(sessionId: string) {
 
     fetchInitial();
 
-    // Realtime subscription for new messages
-    // Unique channel name per effect run to avoid StrictMode double-mount issues.
-    const channelName = `paginated-messages-${sessionId}-${Math.random().toString(36).slice(2, 8)}`;
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `session_id=eq.${sessionId}`,
-        },
-        (payload) => {
-          const newMsg = payload.new as Message;
-          if (messagesRef.current.some((m) => m.id === newMsg.id)) return;
-          messagesRef.current = [...messagesRef.current, newMsg];
-          setMessages([...messagesRef.current]);
+    async function handleMessageAdded() {
+      try {
+        const res = await fetch(
+          `/api/sessions/${sessionId}/messages?limit=50`,
+          { cache: "no-store" }
+        );
+        if (!res.ok) return;
+        const body = (await res.json()) as {
+          messages: Message[];
+          hasMore: boolean;
+        };
+        if (cancelled) return;
+        const existing = new Set(messagesRef.current.map((m) => m.id));
+        const added = body.messages.filter((m) => !existing.has(m.id));
+        if (added.length === 0) return;
+        // body.messages is ascending; append only those we don't already have.
+        messagesRef.current = [...messagesRef.current, ...added];
+        setMessages([...messagesRef.current]);
+      } catch {
+        // ignore
+      }
+    }
+
+    // Realtime subscription via server-sent events on the session stream.
+    const es = new EventSource(`/api/sessions/${sessionId}/stream`);
+    es.onmessage = (ev) => {
+      try {
+        const evt = JSON.parse(ev.data);
+        if (evt?.type === "message_added") {
+          void handleMessageAdded();
         }
-      )
-      .subscribe();
+      } catch {
+        // ignore malformed payloads
+      }
+    };
+    es.onerror = () => {
+      // browser auto-reconnects; nothing to do
+    };
 
     return () => {
       cancelled = true;
-      supabase.removeChannel(channel);
+      es.close();
     };
   }, [sessionId]);
 

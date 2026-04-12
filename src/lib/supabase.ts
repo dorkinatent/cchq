@@ -1,6 +1,5 @@
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// src/lib/supabase.ts
+// Deprecated: import from "@/lib/supabase-server" instead.
+// This module is server-only; browser imports will throw at build/bundle time.
+import "server-only";
+export { getSupabaseServer } from "./supabase-server";

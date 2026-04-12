@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
 import { relativeTime } from "@/lib/relative-time";
 import { KnowledgeDelta } from "./knowledge-delta";
 
@@ -27,19 +26,29 @@ export function ResumePanel({
   const [resuming, setResuming] = useState(false);
 
   useEffect(() => {
-    supabase
-      .from("messages")
-      .select("id, role, content")
-      .eq("session_id", sessionId)
-      .order("created_at", { ascending: false })
-      .limit(3)
-      .then(({ data, error }) => {
-        if (error || !data) {
-          setLastMessages([]);
-        } else {
-          setLastMessages(data.reverse());
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/sessions/${sessionId}/messages?limit=3`,
+          { cache: "no-store" }
+        );
+        if (!res.ok) {
+          if (!cancelled) setLastMessages([]);
+          return;
         }
-      });
+        const body = (await res.json()) as {
+          messages: MessageSummary[];
+          hasMore: boolean;
+        };
+        if (!cancelled) setLastMessages(body.messages);
+      } catch {
+        if (!cancelled) setLastMessages([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [sessionId]);
 
   function handleResume() {
