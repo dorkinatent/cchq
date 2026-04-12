@@ -467,6 +467,7 @@ export async function startSession(
       effort: (effort as "low" | "medium" | "high" | "max") || "high",
       abortController,
       includePartialMessages: true,
+      thinking: { type: "enabled", budgetTokens: 10000 },
       systemPrompt: {
         type: "preset",
         preset: "claude_code",
@@ -552,6 +553,7 @@ export async function sendMessage(
       resume: sdkSessionId,
       abortController,
       includePartialMessages: true,
+      thinking: { type: "enabled", budgetTokens: 10000 },
       permissionMode: permConfig.permissionMode as any,
       ...(permConfig.canUseTool ? { canUseTool: permConfig.canUseTool } : {}),
     },
