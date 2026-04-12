@@ -34,6 +34,50 @@ type SessionDetail = {
   updatedAt?: string;
 };
 
+function MobileOverflowMenu({
+  isActive,
+  onPause,
+  onComplete,
+}: {
+  isActive: boolean;
+  onPause: () => void;
+  onComplete: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  if (!isActive) return null;
+  return (
+    <div className="relative md:hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-label="Session actions"
+        className="flex items-center justify-center min-h-11 min-w-11 text-[var(--text-secondary)] hover:text-[var(--text-primary)] rounded hover:bg-[var(--surface-raised)]"
+      >
+        ⋯
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute top-12 right-0 bg-[var(--surface-raised)] border border-[var(--border)] rounded-md shadow-lg z-20 py-1 min-w-[160px]">
+            <button
+              onClick={() => { setOpen(false); onPause(); }}
+              className="w-full text-left px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--surface)]"
+            >
+              Pause session
+            </button>
+            <button
+              onClick={() => { setOpen(false); onComplete(); }}
+              className="w-full text-left px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--surface)]"
+            >
+              End session
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function SessionPage({
   params,
 }: {
@@ -156,13 +200,13 @@ export default function SessionPage({
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <header className="flex items-center gap-6 px-7 py-5 border-b border-[var(--border)] shrink-0">
+    <div className="flex flex-col h-[100svh] md:h-full">
+      <header className="flex items-center gap-3 md:gap-6 px-3 md:px-7 py-3 md:py-5 border-b border-[var(--border)] shrink-0">
         {/* Identity group: back, title, state */}
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <Link
             href="/"
-            className="text-[var(--text-muted)] hover:text-[var(--text-primary)] text-[14px] shrink-0"
+            className="flex items-center justify-center min-h-11 min-w-11 md:min-h-0 md:min-w-0 text-[var(--text-muted)] hover:text-[var(--text-primary)] text-[14px] shrink-0"
             aria-label="Back to dashboard"
           >
             &larr;
@@ -189,7 +233,7 @@ export default function SessionPage({
 
         {/* Live status group — only while active */}
         {isActive && (phaseLabel || streamState.connectionStatus) && (
-          <div className="flex items-center gap-3 text-[11px] text-[var(--text-muted)] shrink-0">
+          <div className="hidden md:flex items-center gap-3 text-[11px] text-[var(--text-muted)] shrink-0">
             <ConnectionStatus status={streamState.connectionStatus} />
             {phaseLabel && (
               <span className="flex items-center gap-1.5 text-[var(--accent)]">
@@ -213,7 +257,7 @@ export default function SessionPage({
             }
           />
           {isActive && (
-            <>
+            <div className="hidden md:flex items-center gap-2">
               <span className="w-px h-5 bg-[var(--border)] mx-1" aria-hidden />
               <button
                 onClick={handlePause}
@@ -228,12 +272,17 @@ export default function SessionPage({
               >
                 End session
               </button>
-            </>
+            </div>
           )}
-          <span className="w-px h-5 bg-[var(--border)] mx-1" aria-hidden />
+          <MobileOverflowMenu
+            isActive={isActive}
+            onPause={handlePause}
+            onComplete={handleComplete}
+          />
+          <span className="hidden lg:inline-block w-px h-5 bg-[var(--border)] mx-1" aria-hidden />
           <button
             onClick={togglePanel}
-            className="px-2 py-1 text-[12px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] rounded transition-colors"
+            className="hidden lg:inline-flex px-2 py-1 text-[12px] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] rounded transition-colors"
             aria-label={panelOpen ? "Hide context panel" : "Show context panel"}
             title={panelOpen ? "Hide context panel" : "Show context panel"}
           >
