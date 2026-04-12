@@ -125,39 +125,48 @@ export const MessageList = forwardRef<
     }
   }, [messages]);
 
-  // Infinite scroll: detect scroll to top
-  // Use refs to avoid stale-closure issues in rapid scroll events
-  const hasMoreRef = useRef(hasMore);
-  const loadingMoreRef = useRef(loadingMore);
-  useEffect(() => { hasMoreRef.current = hasMore; }, [hasMore]);
-  useEffect(() => { loadingMoreRef.current = loadingMore; }, [loadingMore]);
+  // Infinite scroll: use an IntersectionObserver on a sentinel element
+  // at the top of the list. When it becomes visible (= scrolled to top),
+  // trigger loadMore. More reliable than scroll event handlers.
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!hasMore || !onLoadMore) return;
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
 
-  const handleScroll = useCallback(() => {
-    const container = containerRef.current;
-    if (!container || !hasMoreRef.current || loadingMoreRef.current || isLoadingMoreRef.current) return;
-    if (container.scrollTop < 100 && onLoadMore) {
-      prevScrollHeightRef.current = container.scrollHeight;
-      isLoadingMoreRef.current = true;
-      onLoadMore();
-    }
-  }, [onLoadMore]);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting && !loadingMore && !isLoadingMoreRef.current) {
+            const container = containerRef.current;
+            if (container) {
+              prevScrollHeightRef.current = container.scrollHeight;
+              isLoadingMoreRef.current = true;
+              onLoadMore();
+            }
+          }
+        }
+      },
+      { threshold: 0 }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [hasMore, loadingMore, onLoadMore]);
 
   const turns = groupIntoTurns(messages);
 
   return (
     <div
       ref={containerRef}
-      onScroll={handleScroll}
       className="flex-1 overflow-y-auto p-5"
     >
+      {hasMore && (
+        <div ref={sentinelRef} className="h-px" />
+      )}
       {loadingMore && (
         <div className="text-center text-xs text-[var(--text-muted)] py-2 mb-3">
           Loading older messages...
-        </div>
-      )}
-      {hasMore && !loadingMore && (
-        <div className="text-center text-xs text-[var(--text-muted)] py-2 mb-3">
-          Scroll up for older messages
         </div>
       )}
       {turns.map((msg) => (
