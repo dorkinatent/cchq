@@ -4,6 +4,56 @@ import { eq, desc, gt, and } from "drizzle-orm";
 import { evaluatePermission, type TrustLevel } from "@/lib/permissions/engine";
 import { createAllowRule } from "@/lib/permissions/rules";
 import { sessionEventBus } from "./stream-events";
+import { scanDocs } from "@/lib/docs/scanner";
+import { readFile } from "fs/promises";
+import { join } from "path";
+
+const MAX_DOC_INJECTION_CHARS = 20_000;
+
+async function buildDocInjection(
+  projectPath: string,
+  docGlobs: string[]
+): Promise<string> {
+  let files;
+  try {
+    files = await scanDocs(projectPath, docGlobs);
+  } catch {
+    return "";
+  }
+  if (files.length === 0) return "";
+
+  // Rank: shallower path first, then more recent mtime first
+  files.sort((a, b) => {
+    const depthA = a.relativePath.split("/").length;
+    const depthB = b.relativePath.split("/").length;
+    if (depthA !== depthB) return depthA - depthB;
+    return b.mtime.localeCompare(a.mtime);
+  });
+
+  const parts: string[] = [];
+  let total = 0;
+  let truncated = 0;
+  for (const f of files) {
+    try {
+      const content = await readFile(join(projectPath, f.relativePath), "utf8");
+      const block = `\n--- ${f.relativePath} ---\n${content}\n`;
+      if (total + block.length > MAX_DOC_INJECTION_CHARS) {
+        truncated = files.length - parts.length;
+        break;
+      }
+      parts.push(block);
+      total += block.length;
+    } catch {
+      // Skip files we can't read
+    }
+  }
+
+  if (parts.length === 0) return "";
+
+  const header = "\n\n--- Project Docs ---\nThe following are docs from this project, injected as context:\n";
+  const footer = truncated > 0 ? `\n[${truncated} more doc files available — ask to see them]\n` : "";
+  return header + parts.join("") + footer;
+}
 
 type ActiveSession = {
   query: Query;
@@ -513,6 +563,17 @@ export async function startSession(
       .map((k) => `- [${k.type}] ${k.content}`)
       .join("\n");
     systemAppend = `\n\nHere is context from previous sessions on this project:\n${formatted}`;
+  }
+
+  // If enabled, append matched doc content to the system prompt.
+  const project = await db.query.projects.findFirst({
+    where: eq(schema.projects.id, session.projectId),
+  });
+  if (project?.autoInjectDocs) {
+    const docInjection = await buildDocInjection(projectPath, project.docGlobs);
+    if (docInjection) {
+      systemAppend += docInjection;
+    }
   }
 
   const q = query({
