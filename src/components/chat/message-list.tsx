@@ -5,67 +5,73 @@ import type { Message } from "@/hooks/use-session-messages";
 import type { StreamState } from "@/hooks/use-session-stream";
 import { MessageBubble } from "./message-bubble";
 import { StreamingIndicator } from "./streaming-indicator";
-import { CollapsedToolGroup } from "./collapsed-tool-group";
 
 export type MessageListHandle = {
   scrollToMessage: (messageId: string) => void;
 };
 
-type ToolSummary = { name: string; count: number };
+/**
+ * Group consecutive assistant messages into a single "turn" so we render
+ * one bubble + one activity caret per Claude response, instead of separate
+ * bubbles for each tool call.
+ */
+function groupIntoTurns(messages: Message[]): Message[] {
+  const result: Message[] = [];
+  const filtered = messages.filter((m) => m.role !== "system");
 
-type MessageGroup =
-  | { type: "message"; message: Message }
-  | { type: "tool-group"; messages: Message[]; tools: ToolSummary[] };
+  let i = 0;
+  while (i < filtered.length) {
+    const msg = filtered[i];
+    if (msg.role !== "assistant") {
+      result.push(msg);
+      i++;
+      continue;
+    }
 
-function isToolHeavyMessage(message: Message): boolean {
-  if (message.role !== "assistant") return false;
-  const hasTools =
-    message.tool_use && Array.isArray(message.tool_use) && message.tool_use.length > 0;
-  if (!hasTools) return false;
-  // Consider tool-heavy if content is very short or empty
-  const textContent = (message.content || "").trim();
-  return textContent.length < 40;
-}
+    // Collect all consecutive assistant messages into one turn
+    const turn: Message[] = [msg];
+    let j = i + 1;
+    while (j < filtered.length && filtered[j].role === "assistant") {
+      turn.push(filtered[j]);
+      j++;
+    }
 
-function groupMessages(messages: Message[]): MessageGroup[] {
-  const groups: MessageGroup[] = [];
-  let currentToolRun: Message[] = [];
+    if (turn.length === 1) {
+      result.push(msg);
+    } else {
+      // Merge into a single synthetic message
+      const combinedContent = turn
+        .map((m) => (m.content || "").trim())
+        .filter(Boolean)
+        .join("\n\n");
 
-  function flushToolRun() {
-    if (currentToolRun.length >= 3) {
-      const toolCounts: Record<string, number> = {};
-      for (const msg of currentToolRun) {
-        if (msg.tool_use && Array.isArray(msg.tool_use)) {
-          for (const tool of msg.tool_use) {
-            const name = tool.name || "Unknown";
-            toolCounts[name] = (toolCounts[name] || 0) + 1;
-          }
+      const combinedTools: unknown[] = [];
+      for (const m of turn) {
+        if (m.tool_use && Array.isArray(m.tool_use)) {
+          combinedTools.push(...m.tool_use);
         }
       }
-      const tools: ToolSummary[] = Object.entries(toolCounts).map(
-        ([name, count]) => ({ name, count })
-      );
-      groups.push({ type: "tool-group", messages: currentToolRun, tools });
-    } else {
-      for (const msg of currentToolRun) {
-        groups.push({ type: "message", message: msg });
-      }
+
+      const combinedThinking = turn
+        .map((m) => (m.thinking || "").trim())
+        .filter(Boolean)
+        .join("\n\n");
+
+      result.push({
+        id: turn[0].id, // keep first message's id for scroll-to
+        session_id: turn[0].session_id,
+        role: "assistant",
+        content: combinedContent,
+        tool_use: combinedTools.length > 0 ? combinedTools : null,
+        thinking: combinedThinking || null,
+        created_at: turn[0].created_at,
+      });
     }
-    currentToolRun = [];
+
+    i = j;
   }
 
-  for (const msg of messages) {
-    if (msg.role === "system") continue;
-    if (isToolHeavyMessage(msg)) {
-      currentToolRun.push(msg);
-    } else {
-      flushToolRun();
-      groups.push({ type: "message", message: msg });
-    }
-  }
-  flushToolRun();
-
-  return groups;
+  return result;
 }
 
 export const MessageList = forwardRef<
@@ -91,7 +97,6 @@ export const MessageList = forwardRef<
       );
       if (el) {
         el.scrollIntoView({ behavior: "smooth", block: "center" });
-        // Briefly highlight
         el.classList.add("bg-[var(--accent)]/10");
         setTimeout(() => el.classList.remove("bg-[var(--accent)]/10"), 2000);
       }
@@ -131,7 +136,7 @@ export const MessageList = forwardRef<
     }
   }, [hasMore, loadingMore, onLoadMore]);
 
-  const groups = groupMessages(messages);
+  const turns = groupIntoTurns(messages);
 
   return (
     <div
@@ -149,23 +154,11 @@ export const MessageList = forwardRef<
           Scroll up for older messages
         </div>
       )}
-      {groups.map((group, i) => {
-        if (group.type === "tool-group") {
-          return (
-            <div key={`tool-group-${i}`}>
-              {group.messages.map((m) => (
-                <div key={m.id} data-message-id={m.id} className="hidden" />
-              ))}
-              <CollapsedToolGroup tools={group.tools} messages={group.messages} />
-            </div>
-          );
-        }
-        return (
-          <div key={group.message.id} data-message-id={group.message.id}>
-            <MessageBubble message={group.message} />
-          </div>
-        );
-      })}
+      {turns.map((msg) => (
+        <div key={msg.id} data-message-id={msg.id}>
+          <MessageBubble message={msg} />
+        </div>
+      ))}
       {streamState && streamState.phase !== "idle" && (
         <StreamingIndicator state={streamState} />
       )}
