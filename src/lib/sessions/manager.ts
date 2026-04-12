@@ -12,6 +12,8 @@ type ActiveSession = {
   abortController: AbortController;
   projectId: string;
   trustLevel: TrustLevel;
+  messagesSinceExtract: number;
+  lastExtractionTimestamp: string | null;
 };
 
 const activeSessions = new Map<string, ActiveSession>();
@@ -300,6 +302,26 @@ function processMessages(
             });
           }
 
+          // Incremental extraction: every 10 persisted user+assistant messages,
+          // trigger a background extraction for memories.
+          {
+            const entry = activeSessions.get(sessionId);
+            if (entry) {
+              entry.messagesSinceExtract += 1;
+              if (entry.messagesSinceExtract >= 10) {
+                const since = entry.lastExtractionTimestamp;
+                entry.messagesSinceExtract = 0;
+                entry.lastExtractionTimestamp = new Date().toISOString();
+                // Fire-and-forget
+                import("./knowledge-extractor").then(({ extractIncremental }) =>
+                  extractIncremental(sessionId, since).catch((err) =>
+                    console.error(`Incremental extract failed for ${sessionId}:`, err)
+                  )
+                );
+              }
+            }
+          }
+
           // Emit tool_end for completed tools
           for (const block of toolBlocks) {
             sessionEventBus.emit(sessionId, {
@@ -520,6 +542,8 @@ export async function startSession(
     abortController,
     projectId: session.projectId,
     trustLevel,
+    messagesSinceExtract: 0,
+    lastExtractionTimestamp: null,
   };
   activeSessions.set(sessionId, entry);
 
@@ -549,6 +573,11 @@ export async function sendMessage(
     ...(attachments ? { toolUse: attachments } : {}),
   });
 
+  {
+    const activeForCounter = activeSessions.get(sessionId);
+    if (activeForCounter) activeForCounter.messagesSinceExtract += 1;
+  }
+
   let active = activeSessions.get(sessionId);
 
   let sdkSessionId: string | null = null;
@@ -576,7 +605,27 @@ export async function sendMessage(
   }
 
   if (!sdkSessionId) {
-    throw new Error(`No SDK session found for ${sessionId}. The initial session may not have started properly.`);
+    // Cold start: session was created without an initial prompt, so no SDK
+    // session exists yet. This message IS the first prompt — delegate to
+    // startSession which owns the SDK query setup. The user message row was
+    // already inserted above, which is exactly what startSession's normal
+    // flow also produces.
+    if (!projectId) {
+      throw new Error(`Session ${sessionId} has no project assigned; cannot cold-start.`);
+    }
+    const project = await db.query.projects.findFirst({
+      where: eq(schema.projects.id, projectId),
+    });
+    if (!project) throw new Error(`Project ${projectId} not found`);
+
+    const sessionRow = await db.query.sessions.findFirst({
+      where: eq(schema.sessions.id, sessionId),
+    });
+    const coldModel = sessionRow?.model ?? "claude-sonnet-4-6";
+    const coldEffort = sessionRow?.effort ?? undefined;
+
+    await startSession(sessionId, project.path, coldModel, fullPrompt, coldEffort);
+    return;
   }
 
   const permConfig = getPermissionConfig(sessionId, projectId!, trustLevel);
@@ -602,6 +651,8 @@ export async function sendMessage(
     abortController,
     projectId: projectId!,
     trustLevel,
+    messagesSinceExtract: active?.messagesSinceExtract ?? 0,
+    lastExtractionTimestamp: active?.lastExtractionTimestamp ?? null,
   };
   activeSessions.set(sessionId, entry);
 
@@ -658,6 +709,13 @@ export async function pauseSession(sessionId: string): Promise<void> {
     .update(schema.sessions)
     .set({ status: "paused", updatedAt: new Date().toISOString() })
     .where(eq(schema.sessions.id, sessionId));
+
+  // Extract knowledge on pause (previously only on complete).
+  import("./knowledge-extractor").then(({ extractKnowledge }) =>
+    extractKnowledge(sessionId).catch((err) =>
+      console.error(`Pause-time extraction failed for ${sessionId}:`, err)
+    )
+  );
 }
 
 export async function resumeSession(sessionId: string, resumeNote?: string): Promise<void> {
@@ -712,6 +770,7 @@ export async function resumeSession(sessionId: string, resumeNote?: string): Pro
     },
   });
 
+  const existingEntry = activeSessions.get(sessionId);
   const entry: ActiveSession = {
     query: q,
     sessionId,
@@ -719,6 +778,8 @@ export async function resumeSession(sessionId: string, resumeNote?: string): Pro
     abortController,
     projectId: session.projectId,
     trustLevel,
+    messagesSinceExtract: existingEntry?.messagesSinceExtract ?? 0,
+    lastExtractionTimestamp: existingEntry?.lastExtractionTimestamp ?? null,
   };
   activeSessions.set(sessionId, entry);
 
