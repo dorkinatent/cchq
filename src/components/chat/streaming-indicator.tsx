@@ -147,7 +147,7 @@ export function StreamingIndicator({ state }: { state: StreamState }) {
           </div>
         )}
 
-        {state.phase === "tool_use" && !state.activeTools.some(t => !t.done) && (
+        {state.phase === "tool_use" && (
           <div className="px-4 py-2.5 border-t border-[var(--border)]">
             <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
               <span className="flex gap-1" aria-hidden>
