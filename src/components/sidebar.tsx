@@ -10,6 +10,7 @@ type Project = {
   id: string;
   name: string;
   path: string;
+  engine: "sdk" | "gastown";
 };
 
 type PausedSession = {
@@ -72,12 +73,15 @@ function ProjectItem({ project, isActive }: { project: Project; isActive: boolea
   return (
     <div className="relative group mb-0.5">
       <Link
-        href={`/?project=${project.id}`}
+        href={project.engine === "gastown" ? `/projects/${project.id}/rig` : `/?project=${project.id}`}
         className={`block px-2.5 py-1.5 rounded text-sm truncate pr-6 ${
           isActive ? "bg-[var(--surface-raised)] text-[var(--accent)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
         }`}
         title={project.path}
       >
+        <span className="text-[10px] uppercase tracking-wide text-[var(--text-muted)] mr-1.5">
+          {project.engine === "gastown" ? "GT" : "SDK"}
+        </span>
         {project.name}
       </Link>
 

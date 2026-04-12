@@ -30,6 +30,9 @@ export function NewSessionDialog({
   const [newProjectName, setNewProjectName] = useState("");
   const [showNewProject, setShowNewProject] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [engine, setEngine] = useState<"sdk" | "gastown">("sdk");
+  const [townPath, setTownPath] = useState("~/gt");
+  const [rigName, setRigName] = useState("");
 
   // Folder browser state
   const [showBrowser, setShowBrowser] = useState(false);
@@ -87,6 +90,23 @@ export function NewSessionDialog({
       });
       const project = await res.json();
       finalProjectId = project.id;
+    }
+
+    if (engine === "gastown") {
+      const rigRes = await fetch(`/api/rigs/${finalProjectId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ townPath, rigName }),
+      });
+      const rigData = await rigRes.json();
+      setSubmitting(false);
+      if (!rigRes.ok) {
+        alert(`Failed to configure rig: ${rigData.error || "unknown"}`);
+        return;
+      }
+      onClose();
+      router.push(`/projects/${finalProjectId}/rig`);
+      return;
     }
 
     const res = await fetch("/api/sessions", {
@@ -259,69 +279,109 @@ export function NewSessionDialog({
         )}
 
         <div className="mb-4">
-          <label className="block text-xs text-[var(--text-secondary)] mb-1">Session Name</label>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)]"
-            placeholder="Auth refactor"
-            required
-          />
-        </div>
-
-        <div className="mb-4">
-          <label className="block text-xs text-[var(--text-secondary)] mb-1">Model</label>
+          <label className="block text-xs text-[var(--text-secondary)] mb-1">Engine</label>
           <select
-            value={model}
-            onChange={(e) => setModel(e.target.value)}
+            value={engine}
+            onChange={(e) => setEngine(e.target.value as "sdk" | "gastown")}
             className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)]"
           >
-            <option value="claude-sonnet-4-6">Sonnet 4.6</option>
-            <option value="claude-opus-4-6">Opus 4.6</option>
-            <option value="claude-haiku-4-5-20251001">Haiku 4.5</option>
+            <option value="sdk">Claude Code SDK — single-agent chat</option>
+            <option value="gastown">Gas Town — multi-agent orchestration</option>
           </select>
         </div>
 
-        <div className="mb-4">
-          <label className="block text-xs text-[var(--text-secondary)] mb-1">Effort</label>
-          <select
-            value={effort}
-            onChange={(e) => setEffort(e.target.value)}
-            className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)]"
-          >
-            <option value="low">Low — quick answers, minimal exploration</option>
-            <option value="medium">Medium — balanced</option>
-            <option value="high">High — thorough, multi-step work</option>
-            <option value="max">Max — exhaustive, no shortcuts</option>
-          </select>
-        </div>
+        {engine === "gastown" && (
+          <>
+            <div className="mb-4">
+              <label className="block text-xs text-[var(--text-secondary)] mb-1">Town Path</label>
+              <input
+                value={townPath}
+                onChange={(e) => setTownPath(e.target.value)}
+                placeholder="~/gt"
+                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)] font-mono"
+              />
+            </div>
+            <div className="mb-4">
+              <label className="block text-xs text-[var(--text-secondary)] mb-1">Rig Name</label>
+              <input
+                value={rigName}
+                onChange={(e) => setRigName(e.target.value)}
+                placeholder="rig-slug"
+                required={engine === "gastown"}
+                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)] font-mono"
+              />
+            </div>
+          </>
+        )}
 
-        <div className="mb-4">
-          <label className="block text-xs text-[var(--text-secondary)] mb-1">Permissions</label>
-          <select
-            value={trustLevel}
-            onChange={(e) => setTrustLevel(e.target.value)}
-            className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)]"
-          >
-            <option value="full_auto">Full Auto — accept everything, no prompts</option>
-            <option value="auto_log">Auto + Log — accept everything, log actions in chat</option>
-            <option value="ask_me">Ask Me — prompt before tool actions</option>
-          </select>
-          <p className="text-[10px] text-[var(--text-muted)] mt-1">
-            Project-level rules (if any) override this setting for specific tools.
-          </p>
-        </div>
+        {engine === "sdk" && (
+          <>
+            <div className="mb-4">
+              <label className="block text-xs text-[var(--text-secondary)] mb-1">Session Name</label>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)]"
+                placeholder="Auth refactor"
+                required
+              />
+            </div>
 
-        <div className="mb-6">
-          <label className="block text-xs text-[var(--text-secondary)] mb-1">Initial Prompt</label>
-          <textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)] h-24 resize-none"
-            placeholder="What should Claude work on?"
-            required
-          />
-        </div>
+            <div className="mb-4">
+              <label className="block text-xs text-[var(--text-secondary)] mb-1">Model</label>
+              <select
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
+                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)]"
+              >
+                <option value="claude-sonnet-4-6">Sonnet 4.6</option>
+                <option value="claude-opus-4-6">Opus 4.6</option>
+                <option value="claude-haiku-4-5-20251001">Haiku 4.5</option>
+              </select>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-xs text-[var(--text-secondary)] mb-1">Effort</label>
+              <select
+                value={effort}
+                onChange={(e) => setEffort(e.target.value)}
+                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)]"
+              >
+                <option value="low">Low — quick answers, minimal exploration</option>
+                <option value="medium">Medium — balanced</option>
+                <option value="high">High — thorough, multi-step work</option>
+                <option value="max">Max — exhaustive, no shortcuts</option>
+              </select>
+            </div>
+
+            <div className="mb-4">
+              <label className="block text-xs text-[var(--text-secondary)] mb-1">Permissions</label>
+              <select
+                value={trustLevel}
+                onChange={(e) => setTrustLevel(e.target.value)}
+                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)]"
+              >
+                <option value="full_auto">Full Auto — accept everything, no prompts</option>
+                <option value="auto_log">Auto + Log — accept everything, log actions in chat</option>
+                <option value="ask_me">Ask Me — prompt before tool actions</option>
+              </select>
+              <p className="text-[10px] text-[var(--text-muted)] mt-1">
+                Project-level rules (if any) override this setting for specific tools.
+              </p>
+            </div>
+
+            <div className="mb-6">
+              <label className="block text-xs text-[var(--text-secondary)] mb-1">Initial Prompt</label>
+              <textarea
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)] h-24 resize-none"
+                placeholder="What should Claude work on?"
+                required
+              />
+            </div>
+          </>
+        )}
 
         <div className="flex gap-3 justify-end">
           <button
