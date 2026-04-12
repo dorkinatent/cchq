@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 type Project = {
@@ -10,6 +10,105 @@ type Project = {
   name: string;
   path: string;
 };
+
+function ProjectItem({ project, isActive }: { project: Project; isActive: boolean }) {
+  const router = useRouter();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [newName, setNewName] = useState(project.name);
+
+  async function handleRename() {
+    await fetch(`/api/projects/${project.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: newName }),
+    });
+    setRenaming(false);
+  }
+
+  async function handleDelete() {
+    if (!confirm(`Delete project "${project.name}" and all its sessions? This cannot be undone.`)) return;
+    await fetch(`/api/projects/${project.id}`, { method: "DELETE" });
+    setMenuOpen(false);
+    router.push("/");
+  }
+
+  if (renaming) {
+    return (
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          handleRename();
+        }}
+        className="mb-0.5"
+      >
+        <input
+          value={newName}
+          onChange={(e) => setNewName(e.target.value)}
+          className="w-full bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-sm text-white"
+          autoFocus
+          onBlur={() => {
+            setRenaming(false);
+            setNewName(project.name);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              setRenaming(false);
+              setNewName(project.name);
+            }
+          }}
+        />
+      </form>
+    );
+  }
+
+  return (
+    <div className="relative group mb-0.5">
+      <Link
+        href={`/?project=${project.id}`}
+        className={`block px-2.5 py-1.5 rounded text-sm truncate pr-6 ${
+          isActive ? "bg-blue-950/50 text-blue-300" : "text-neutral-400 hover:text-neutral-200"
+        }`}
+        title={project.path}
+      >
+        {project.name}
+      </Link>
+
+      <button
+        onClick={(e) => {
+          e.preventDefault();
+          setMenuOpen(!menuOpen);
+        }}
+        className="absolute right-1 top-1.5 text-neutral-600 hover:text-neutral-300 text-xs opacity-0 group-hover:opacity-100 px-1"
+      >
+        ···
+      </button>
+
+      {menuOpen && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+          <div className="absolute top-7 right-0 bg-neutral-800 border border-neutral-700 rounded-md shadow-lg z-20 py-1 min-w-[120px]">
+            <button
+              onClick={() => {
+                setRenaming(true);
+                setMenuOpen(false);
+              }}
+              className="w-full text-left px-3 py-1.5 text-sm text-neutral-300 hover:bg-neutral-700"
+            >
+              Rename
+            </button>
+            <button
+              onClick={handleDelete}
+              className="w-full text-left px-3 py-1.5 text-sm text-red-400 hover:bg-neutral-700"
+            >
+              Delete
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -24,9 +123,13 @@ export function Sidebar() {
 
     fetchProjects();
 
-    // Re-fetch when sessions change (which means a new project might have been added)
     const channel = supabase
-      .channel("sidebar-sessions")
+      .channel("sidebar-projects")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "projects" },
+        () => fetchProjects()
+      )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "sessions" },
@@ -58,14 +161,7 @@ export function Sidebar() {
         All Sessions
       </Link>
       {projects.map((p) => (
-        <Link
-          key={p.id}
-          href={`/?project=${p.id}`}
-          className="px-2.5 py-1.5 rounded text-sm text-neutral-400 hover:text-neutral-200 mb-0.5 truncate"
-          title={p.path}
-        >
-          {p.name}
-        </Link>
+        <ProjectItem key={p.id} project={p} isActive={false} />
       ))}
 
       <div className="text-[11px] uppercase tracking-wide text-neutral-500 mt-6 mb-2">

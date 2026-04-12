@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, schema } from "@/lib/db";
 import { eq } from "drizzle-orm";
-import { pauseSession } from "@/lib/sessions/manager";
+import { pauseSession, completeSession } from "@/lib/sessions/manager";
 
 export async function GET(
   _req: NextRequest,
@@ -36,4 +36,21 @@ export async function PATCH(
     .returning();
 
   return NextResponse.json(updated);
+}
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params;
+
+  // Stop the SDK session if active
+  await completeSession(id);
+
+  // Delete messages then session
+  await db.delete(schema.messages).where(eq(schema.messages.sessionId, id));
+  await db.delete(schema.knowledge).where(eq(schema.knowledge.sessionId, id));
+  await db.delete(schema.sessions).where(eq(schema.sessions.id, id));
+
+  return NextResponse.json({ ok: true });
 }
