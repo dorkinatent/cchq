@@ -35,8 +35,9 @@ export function useSessionMessages(sessionId: string) {
 
     fetchMessages();
 
+    const channelName = `messages-${sessionId}-${Math.random().toString(36).slice(2, 8)}`;
     const channel = supabase
-      .channel(`messages-${sessionId}`)
+      .channel(channelName)
       .on(
         "postgres_changes",
         {

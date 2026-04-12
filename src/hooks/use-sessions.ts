@@ -68,8 +68,11 @@ export function useSessions(projectId?: string) {
 
     fetchSessions();
 
+    // Use a unique channel name per effect run to avoid
+    // "cannot add callbacks after subscribe()" under StrictMode double-mount.
+    const channelName = `sessions-realtime-${projectId || "all"}-${Math.random().toString(36).slice(2, 8)}`;
     const channel = supabase
-      .channel("sessions-realtime")
+      .channel(channelName)
       .on(
         "postgres_changes",
         {

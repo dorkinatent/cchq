@@ -38,8 +38,10 @@ export function useMessagePagination(sessionId: string) {
     fetchInitial();
 
     // Realtime subscription for new messages
+    // Unique channel name per effect run to avoid StrictMode double-mount issues.
+    const channelName = `paginated-messages-${sessionId}-${Math.random().toString(36).slice(2, 8)}`;
     const channel = supabase
-      .channel(`paginated-messages-${sessionId}`)
+      .channel(channelName)
       .on(
         "postgres_changes",
         {
