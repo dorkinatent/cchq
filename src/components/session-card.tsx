@@ -75,7 +75,7 @@ export function SessionCard({ session }: { session: Session }) {
               {session.name}
             </span>
           )}
-          <span className={`text-[11px] ${style.bg} ${style.text} px-2 py-0.5 rounded-full shrink-0`}>
+          <span className={`text-[11px] ${style.bg} ${style.text} px-2 py-0.5 rounded-full shrink-0 mr-8`}>
             {style.dot} {session.status}
           </span>
         </div>
@@ -118,7 +118,9 @@ export function SessionCard({ session }: { session: Session }) {
           e.stopPropagation();
           setMenuOpen(!menuOpen);
         }}
-        className="absolute top-3 right-3 text-[var(--text-muted)] hover:text-[var(--text-primary)] text-sm px-1.5 py-0.5 rounded hover:bg-[var(--surface)]"
+        className="absolute top-2.5 right-2.5 z-10 text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-base font-bold leading-none px-2 py-1 rounded hover:bg-[var(--surface)] bg-[var(--surface-raised)]/60 border border-transparent hover:border-[var(--border)]"
+        aria-label="Session actions"
+        title="Rename or delete"
       >
         ···
       </button>
