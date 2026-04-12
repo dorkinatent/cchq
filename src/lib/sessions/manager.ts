@@ -352,19 +352,23 @@ function processMessages(
 
 /**
  * Map trust level to SDK permission mode.
- * - full_auto → acceptEdits (no prompts)
- * - auto_log → default + canUseTool (auto-allow with logging)
- * - ask_me → default + canUseTool (prompt user)
+ * - full_auto → acceptEdits (no prompts, no callbacks)
+ * - auto_log → acceptEdits (auto-allow, we log separately)
+ * - ask_me → default + canUseTool (prompt user via UI)
+ *
+ * Note: auto_log previously used canUseTool to auto-allow with logging,
+ * but the SDK's Zod validation on PermissionResult caused errors.
+ * Using acceptEdits for auto_log avoids the issue entirely.
  */
 function getPermissionConfig(
   sessionId: string,
   projectId: string,
   trustLevel: TrustLevel
 ): { permissionMode: string; canUseTool?: any } {
-  if (trustLevel === "full_auto") {
+  if (trustLevel === "full_auto" || trustLevel === "auto_log") {
     return { permissionMode: "acceptEdits" };
   }
-  // For auto_log and ask_me, use default permission mode with our custom callback
+  // Only ask_me uses the custom callback
   return {
     permissionMode: "default",
     canUseTool: buildCanUseTool(sessionId, projectId, trustLevel),
