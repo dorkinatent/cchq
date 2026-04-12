@@ -109,7 +109,7 @@ export function QuickSwitcher() {
       return out;
     }
 
-    const needsYou = sessions.filter((s) => s.state === "blocked" || s.state === "errored");
+    const needsYou = sessions.filter((s) => s.state === "blocked");
     if (needsYou.length) {
       out.push({ kind: "header", label: "Needs You", hint: `${needsYou.length}` });
       for (const s of needsYou) out.push({ kind: "session", session: s, pinIndex: pinIndex(s.id) });

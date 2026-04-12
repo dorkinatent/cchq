@@ -21,7 +21,7 @@ export function ConnectionStatus({
     <div className="flex items-center gap-1.5">
       <span
         className={`inline-block w-2 h-2 rounded-full ${colors[status]} ${
-          status === "reconnecting" ? "animate-pulse" : ""
+          status === "reconnecting" ? "thinking-dot" : ""
         }`}
       />
       {labels[status] && (

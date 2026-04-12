@@ -33,6 +33,11 @@ export function MessageInput({
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [remembering, setRemembering] = useState(false);
+  const [stopping, setStopping] = useState(false);
+
+  useEffect(() => {
+    if (!busy) setStopping(false);
+  }, [busy]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -288,7 +293,13 @@ export function MessageInput({
           onChange={(e) => handleValueChange(e.target.value)}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
-          placeholder={dragOver ? "Drop image here..." : "Type a message or paste/drop an image..."}
+          placeholder={
+            dragOver
+              ? "Drop image here..."
+              : busy
+              ? "Queue a message to send when Claude finishes..."
+              : "Type a message or paste/drop an image..."
+          }
           disabled={disabled}
           rows={1}
           aria-label="Message input"
@@ -334,11 +345,17 @@ export function MessageInput({
         {busy && onInterrupt ? (
           <button
             type="button"
-            onClick={onInterrupt}
+            onClick={() => {
+              if (stopping) return;
+              setStopping(true);
+              toast("Interrupting…");
+              onInterrupt();
+            }}
+            disabled={stopping}
             title="Stop the current turn (Esc)"
-            className="bg-[var(--errored-bg)] border border-[var(--errored-text)] text-[var(--errored-text)] px-4 py-3 rounded-lg text-sm font-medium hover:bg-[var(--errored-text)] hover:text-[var(--bg)] shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            className="bg-[var(--errored-bg)] border border-[var(--errored-text)] text-[var(--errored-text)] px-4 py-3 rounded-lg text-sm font-medium hover:bg-[var(--errored-text)] hover:text-[var(--bg)] disabled:opacity-50 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
-            Stop
+            {stopping ? "Stopping…" : "Stop"}
           </button>
         ) : (
           <button

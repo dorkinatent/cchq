@@ -204,7 +204,9 @@ export function SessionRail() {
       case "paused":
         return sessions.filter((s) => s.state === "paused");
       case "needs-you":
-        return sessions.filter((s) => s.state === "blocked" || s.state === "errored");
+        // Only sessions with pending permission prompts — errored sessions
+        // have no actionable UI, so they don't belong here.
+        return sessions.filter((s) => s.state === "blocked");
       case "recent":
         const order = new Map(prefs.recent.map((id, i) => [id, i]));
         return [...sessions]

@@ -64,6 +64,7 @@ type ActiveSession = {
   trustLevel: TrustLevel;
   messagesSinceExtract: number;
   lastExtractionTimestamp: string | null;
+  interrupted?: boolean;
 };
 
 const activeSessions = new Map<string, ActiveSession>();
@@ -137,6 +138,18 @@ export function getPendingPermissions(sessionId: string) {
 export function getBlockedSessionsSummary(): Record<string, { toolName: string; preview: string }> {
   const summary: Record<string, { toolName: string; preview: string }> = {};
   for (const pending of pendingPermissions.values()) {
+    // Lazy sweep: drop permissions for sessions that are no longer active.
+    // Handles leftover state from crashes, reloads, or pre-fix sessions.
+    if (!activeSessions.has(pending.sessionId)) {
+      clearTimeout(pending.timeout);
+      try {
+        pending.resolve({ behavior: "deny", message: "Session no longer active" });
+      } catch {}
+      for (const [id, p] of pendingPermissions) {
+        if (p === pending) pendingPermissions.delete(id);
+      }
+      continue;
+    }
     if (summary[pending.sessionId]) continue; // first-wins (oldest)
     const input = pending.input as Record<string, unknown>;
     const preview =
@@ -478,6 +491,7 @@ function processMessages(
             await db
               .update(schema.sessions)
               .set({
+                status: "active",
                 updatedAt: new Date().toISOString(),
                 usage: updatedUsage,
               })
@@ -491,6 +505,13 @@ function processMessages(
               numTurns: updatedUsage.numTurns,
               timestamp: Date.now(),
             });
+          } else if ((message as any).subtype === "interrupt" || activeSessions.get(sessionId)?.interrupted) {
+            // SDK may emit a terminal result with subtype "interrupt" after
+            // query.interrupt() — treat as benign, session stays active.
+            await db
+              .update(schema.sessions)
+              .set({ status: "active", updatedAt: new Date().toISOString() })
+              .where(eq(schema.sessions.id, sessionId));
           } else {
             // error case — unchanged
             await db
@@ -507,18 +528,30 @@ function processMessages(
         }
       }
     } catch (error) {
-      console.error(`Session ${sessionId} error:`, error);
+      const entry = activeSessions.get(sessionId);
+      const wasInterrupted = entry?.interrupted === true;
+      clearPendingPermissionsForSession(sessionId);
 
-      sessionEventBus.emit(sessionId, {
-        type: "error",
-        error: error instanceof Error ? error.message : "Unknown error",
-        timestamp: Date.now(),
-      });
-
-      await db
-        .update(schema.sessions)
-        .set({ status: "errored", updatedAt: new Date().toISOString() })
-        .where(eq(schema.sessions.id, sessionId));
+      if (wasInterrupted) {
+        // User interrupt — interruptSession() already emitted "interrupted"
+        // and re-asserted status=active. Swallow the abort without closing
+        // the SSE stream or touching session status.
+        if (entry) entry.interrupted = false;
+      } else {
+        console.error(`Session ${sessionId} error:`, error);
+        const raw = error instanceof Error ? error.message : "Unknown error";
+        // Strip enormous stack dumps from SDK errors — keep the first line.
+        const short = raw.split("\n")[0].slice(0, 240);
+        sessionEventBus.emit(sessionId, {
+          type: "error",
+          error: short,
+          timestamp: Date.now(),
+        });
+        await db
+          .update(schema.sessions)
+          .set({ status: "errored", updatedAt: new Date().toISOString() })
+          .where(eq(schema.sessions.id, sessionId));
+      }
     }
   })();
 }
@@ -561,12 +594,11 @@ function getPermissionConfig(
     // bypassPermissions skips the SDK's cwd guardrail too — true unattended mode.
     return { permissionMode: "bypassPermissions" };
   }
-  if (trustLevel === "auto_log") {
-    // acceptEdits auto-approves file edits inside cwd / additionalDirectories.
-    return { permissionMode: "acceptEdits" };
-  }
-  // ask_me: use PreToolUse hook to force ALL tools through the ask flow,
-  // then canUseTool gets invoked and our engine decides.
+  // auto_log + ask_me both route through canUseTool so every tool (Read,
+  // Bash, Write, etc.) passes through our engine. For auto_log the engine
+  // returns allow + logs; for ask_me it returns allow/deny/ask per rules.
+  // acceptEdits alone wasn't enough because SDK's built-in classifier only
+  // auto-accepts edits — Bash and others fell into a dead prompt path.
   return {
     permissionMode: "default",
     canUseTool: buildCanUseTool(sessionId, projectId, trustLevel),
@@ -593,6 +625,15 @@ export async function startSession(
     where: eq(schema.sessions.id, sessionId),
   });
   if (!session) throw new Error(`Session ${sessionId} not found`);
+
+  // Reset any lingering errored status — starting a turn means the session
+  // is alive again.
+  if (session.status === "errored") {
+    await db
+      .update(schema.sessions)
+      .set({ status: "active", updatedAt: new Date().toISOString() })
+      .where(eq(schema.sessions.id, sessionId));
+  }
 
   const trustLevel = (session.trustLevel as TrustLevel) || "auto_log";
   const permConfig = getPermissionConfig(sessionId, session.projectId, trustLevel);
@@ -806,23 +847,37 @@ export async function completeSession(sessionId: string): Promise<void> {
  * query.interrupt() cancels mid-turn work; the session stays active and
  * can accept the next user message. For unrecoverable states, use pause.
  */
+function clearPendingPermissionsForSession(sessionId: string) {
+  for (const [id, pending] of pendingPermissions) {
+    if (pending.sessionId === sessionId) {
+      clearTimeout(pending.timeout);
+      try {
+        pending.resolve({ behavior: "deny", message: "Session interrupted or ended" });
+      } catch {}
+      pendingPermissions.delete(id);
+    }
+  }
+}
+
 export async function interruptSession(sessionId: string): Promise<void> {
   const active = activeSessions.get(sessionId);
   if (!active) return;
+  active.interrupted = true;
+  clearPendingPermissionsForSession(sessionId);
   try {
     await active.query.interrupt();
   } catch (err) {
-    // Fall back to abort if interrupt is unsupported or already settled
     try {
       active.abortController.abort();
     } catch {}
     console.error(`[session ${sessionId}] interrupt failed:`, err);
   }
-  sessionEventBus.emit(sessionId, {
-    type: "error",
-    error: "Interrupted by user",
-    timestamp: Date.now(),
-  });
+  // Defensively re-assert active status — some SDK paths may touch it.
+  await db
+    .update(schema.sessions)
+    .set({ status: "active", updatedAt: new Date().toISOString() })
+    .where(eq(schema.sessions.id, sessionId));
+  sessionEventBus.emit(sessionId, { type: "interrupted", timestamp: Date.now() });
 }
 
 export async function pauseSession(sessionId: string): Promise<void> {

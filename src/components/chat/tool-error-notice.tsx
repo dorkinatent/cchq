@@ -30,7 +30,7 @@ export function ToolErrorNoticeList({
         return (
           <div
             key={e.id}
-            className="bg-[var(--errored-bg)] border border-[var(--errored-text)] rounded-lg px-4 py-3 text-sm"
+            className="bg-[var(--errored-bg)] border border-[var(--errored-border)] rounded-lg px-4 py-3 text-sm"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1 min-w-0">

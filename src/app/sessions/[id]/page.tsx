@@ -19,6 +19,7 @@ import { SessionSearch } from "@/components/chat/session-search";
 import { PermissionCard, type PermissionResponse } from "@/components/chat/permission-card";
 import { ToolErrorNoticeList } from "@/components/chat/tool-error-notice";
 import { useContextPanel } from "@/hooks/use-context-panel";
+import { useToast } from "@/components/ui/toast";
 
 type SessionDetail = {
   id: string;
@@ -63,6 +64,7 @@ export default function SessionPage({
   // We still only show controls / enable input based on isActive.
   const streamState = useSessionStream(id, true);
   const queue = useMessageQueue(id);
+  const { toast } = useToast();
   const { open: panelOpen, toggle: togglePanel } = useContextPanel(true);
 
   useEffect(() => {
@@ -131,7 +133,16 @@ export default function SessionPage({
   }
 
   async function handleInterrupt() {
-    await fetch(`/api/sessions/${id}/interrupt`, { method: "POST" });
+    try {
+      const res = await fetch(`/api/sessions/${id}/interrupt`, { method: "POST" });
+      if (res.ok) {
+        toast("Turn interrupted");
+      } else {
+        toast("Interrupt failed", { variant: "error" });
+      }
+    } catch {
+      toast("Interrupt failed", { variant: "error" });
+    }
   }
 
   async function handlePause() {
@@ -334,7 +345,7 @@ export default function SessionPage({
               pausedAt={session.updatedAt || new Date().toISOString()}
               onResume={handleResume}
             />
-          ) : session?.status === "completed" || session?.status === "errored" ? (
+          ) : session?.status === "completed" ? (
             <SessionSummary
               sessionId={id}
               model={session.model}
@@ -343,18 +354,30 @@ export default function SessionPage({
               endedAt={session.updatedAt || new Date().toISOString()}
             />
           ) : (
-            <MessageInput
-              onSend={handleSend}
-              enqueue={queue.enqueue}
-              sessionId={id}
-              disabled={!isActive || streamState.phase !== "idle"}
-              busy={isActive && isBusy}
-              onInterrupt={handleInterrupt}
-            />
+            <>
+              {session?.status === "errored" && (
+                <div className="mx-5 mt-3 bg-[var(--errored-bg)] border border-[var(--errored-border)] rounded-lg px-4 py-3 text-sm">
+                  <div className="text-[var(--errored-text)] font-medium mb-1">
+                    Session ended with an error.
+                  </div>
+                  <div className="text-xs text-[var(--text-secondary)]">
+                    Type a message below to retry — the session will resume from where it left off.
+                  </div>
+                </div>
+              )}
+              <MessageInput
+                onSend={handleSend}
+                enqueue={queue.enqueue}
+                sessionId={id}
+                disabled={!isActive && session?.status !== "errored"}
+                busy={isActive && isBusy}
+                onInterrupt={handleInterrupt}
+              />
+            </>
           )}
         </div>
 
-        {session && panelOpen && (
+        {session && panelOpen && !mainOverlay && (
           <div className="hidden lg:flex">
             <SessionContextPanel
               sessionId={id}

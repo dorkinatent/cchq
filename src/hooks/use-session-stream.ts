@@ -175,6 +175,14 @@ export function streamReducer(state: StreamState, action: Action): StreamState {
     case "auto_approval_log":
       // Informational only — no state change needed right now.
       return state;
+    case "interrupted":
+      return {
+        ...state,
+        phase: "idle",
+        streamingText: "",
+        activeTools: [],
+        thinkingStartedAt: null,
+      };
     case "tool_error":
       return {
         ...state,
