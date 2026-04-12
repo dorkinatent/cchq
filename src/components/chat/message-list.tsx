@@ -26,12 +26,12 @@ export function MessageList({
         ))}
       {thinking && (
         <div className="mb-5">
-          <div className="text-[11px] text-neutral-600 mb-1">Claude</div>
-          <div className="bg-neutral-900 border border-neutral-800 rounded-lg px-4 py-3 text-sm text-neutral-400 max-w-[80%] flex items-center gap-2">
+          <div className="text-[11px] text-[var(--text-muted)] mb-1">Claude</div>
+          <div className="bg-[var(--surface-raised)] border border-[var(--border)] rounded-lg px-4 py-3 text-sm text-[var(--text-secondary)] max-w-[80%] flex items-center gap-2">
             <span className="flex gap-1">
-              <span className="w-1.5 h-1.5 bg-neutral-500 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-              <span className="w-1.5 h-1.5 bg-neutral-500 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-              <span className="w-1.5 h-1.5 bg-neutral-500 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+              <span className="w-1.5 h-1.5 bg-[var(--text-muted)] rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+              <span className="w-1.5 h-1.5 bg-[var(--text-muted)] rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+              <span className="w-1.5 h-1.5 bg-[var(--text-muted)] rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
             </span>
             <span>Thinking...</span>
           </div>

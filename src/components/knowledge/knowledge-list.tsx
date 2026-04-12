@@ -20,7 +20,7 @@ export function KnowledgeList({
 }) {
   if (entries.length === 0) {
     return (
-      <div className="text-neutral-500 text-sm text-center py-20">
+      <div className="text-[var(--text-secondary)] text-sm text-center py-20">
         No knowledge entries yet. They&apos;ll appear here as sessions are completed.
       </div>
     );

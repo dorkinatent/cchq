@@ -109,17 +109,17 @@ export function NewSessionDialog({
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
       <form
         onSubmit={handleSubmit}
-        className="bg-neutral-900 border border-neutral-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto"
+        className="bg-[var(--surface-raised)] border border-[var(--border)] rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto"
       >
-        <h2 className="text-lg font-semibold text-white mb-4">New Session</h2>
+        <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">New Session</h2>
 
         {!showNewProject ? (
           <div className="mb-4">
-            <label className="block text-xs text-neutral-400 mb-1">Project</label>
+            <label className="block text-xs text-[var(--text-secondary)] mb-1">Project</label>
             <select
               value={projectId}
               onChange={(e) => setProjectId(e.target.value)}
-              className="w-full bg-neutral-800 border border-neutral-700 rounded px-3 py-2 text-sm text-white"
+              className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)]"
               required
             >
               <option value="">Select a project...</option>
@@ -132,7 +132,7 @@ export function NewSessionDialog({
             <button
               type="button"
               onClick={() => setShowNewProject(true)}
-              className="text-xs text-blue-400 mt-1 hover:underline"
+              className="text-xs text-[var(--accent)] mt-1 hover:underline"
             >
               + Add new project folder
             </button>
@@ -140,12 +140,12 @@ export function NewSessionDialog({
         ) : (
           <div className="mb-4 space-y-2">
             <div>
-              <label className="block text-xs text-neutral-400 mb-1">Directory Path</label>
+              <label className="block text-xs text-[var(--text-secondary)] mb-1">Directory Path</label>
               <div className="flex gap-2">
                 <input
                   value={newProjectPath}
                   onChange={(e) => setNewProjectPath(e.target.value)}
-                  className="flex-1 bg-neutral-800 border border-neutral-700 rounded px-3 py-2 text-sm text-white font-mono"
+                  className="flex-1 bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)] font-mono"
                   placeholder="/Users/you/Code/project"
                   required
                 />
@@ -155,7 +155,7 @@ export function NewSessionDialog({
                     setShowBrowser(true);
                     browseTo(newProjectPath || undefined);
                   }}
-                  className="px-3 py-2 bg-neutral-800 border border-neutral-700 rounded text-sm text-neutral-300 hover:text-white shrink-0"
+                  className="px-3 py-2 bg-[var(--surface)] border border-[var(--border)] rounded text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] shrink-0"
                 >
                   Browse
                 </button>
@@ -164,55 +164,55 @@ export function NewSessionDialog({
 
             {/* Folder browser */}
             {showBrowser && browseResult && (
-              <div className="bg-neutral-950 border border-neutral-700 rounded-md overflow-hidden">
-                <div className="px-3 py-2 border-b border-neutral-800 flex justify-between items-center">
-                  <span className="text-xs text-neutral-400 font-mono truncate">
+              <div className="bg-[var(--bg)] border border-[var(--border)] rounded-md overflow-hidden">
+                <div className="px-3 py-2 border-b border-[var(--border)] flex justify-between items-center">
+                  <span className="text-xs text-[var(--text-secondary)] font-mono truncate">
                     {browseResult.current}
                   </span>
                   <button
                     type="button"
                     onClick={() => setShowBrowser(false)}
-                    className="text-xs text-neutral-500 hover:text-white ml-2"
+                    className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] ml-2"
                   >
                     Close
                   </button>
                 </div>
 
-                <div className="flex gap-2 px-3 py-2 border-b border-neutral-800">
+                <div className="flex gap-2 px-3 py-2 border-b border-[var(--border)]">
                   <button
                     type="button"
                     onClick={() => browseTo(browseResult.parent)}
-                    className="text-xs text-neutral-400 hover:text-white"
+                    className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                   >
                     .. (up)
                   </button>
                   {browseResult.isGitRepo && (
-                    <span className="text-xs text-green-400 ml-auto">git repo</span>
+                    <span className="text-xs text-[var(--active-text)] ml-auto">git repo</span>
                   )}
                 </div>
 
                 <div className="max-h-48 overflow-y-auto">
                   {browsing ? (
-                    <div className="px-3 py-4 text-xs text-neutral-500">Loading...</div>
+                    <div className="px-3 py-4 text-xs text-[var(--text-muted)]">Loading...</div>
                   ) : browseResult.directories.length === 0 ? (
-                    <div className="px-3 py-4 text-xs text-neutral-500">No subdirectories</div>
+                    <div className="px-3 py-4 text-xs text-[var(--text-muted)]">No subdirectories</div>
                   ) : (
                     browseResult.directories.map((dir) => (
                       <div
                         key={dir.path}
-                        className="flex justify-between items-center px-3 py-1.5 hover:bg-neutral-800 group"
+                        className="flex justify-between items-center px-3 py-1.5 hover:bg-[var(--surface)] group"
                       >
                         <button
                           type="button"
                           onClick={() => browseTo(dir.path)}
-                          className="text-sm text-neutral-300 hover:text-white text-left flex-1 truncate"
+                          className="text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-left flex-1 truncate"
                         >
                           {dir.name}/
                         </button>
                         <button
                           type="button"
                           onClick={() => handleSelectFolder(dir.path)}
-                          className="text-xs text-blue-400 hover:text-blue-300 opacity-0 group-hover:opacity-100 shrink-0 ml-2"
+                          className="text-xs text-[var(--accent)] hover:text-[var(--accent-hover)] opacity-0 group-hover:opacity-100 shrink-0 ml-2"
                         >
                           Select
                         </button>
@@ -221,11 +221,11 @@ export function NewSessionDialog({
                   )}
                 </div>
 
-                <div className="px-3 py-2 border-t border-neutral-800">
+                <div className="px-3 py-2 border-t border-[var(--border)]">
                   <button
                     type="button"
                     onClick={() => handleSelectFolder(browseResult.current)}
-                    className="text-xs text-blue-400 hover:text-blue-300 font-medium"
+                    className="text-xs text-[var(--accent)] hover:text-[var(--accent-hover)] font-medium"
                   >
                     Select this folder
                   </button>
@@ -234,11 +234,11 @@ export function NewSessionDialog({
             )}
 
             <div>
-              <label className="block text-xs text-neutral-400 mb-1">Project Name</label>
+              <label className="block text-xs text-[var(--text-secondary)] mb-1">Project Name</label>
               <input
                 value={newProjectName}
                 onChange={(e) => setNewProjectName(e.target.value)}
-                className="w-full bg-neutral-800 border border-neutral-700 rounded px-3 py-2 text-sm text-white"
+                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)]"
                 placeholder="My Project"
                 required
               />
@@ -248,7 +248,7 @@ export function NewSessionDialog({
               <button
                 type="button"
                 onClick={() => setShowNewProject(false)}
-                className="text-xs text-neutral-400 hover:underline"
+                className="text-xs text-[var(--text-secondary)] hover:underline"
               >
                 Use existing project
               </button>
@@ -257,22 +257,22 @@ export function NewSessionDialog({
         )}
 
         <div className="mb-4">
-          <label className="block text-xs text-neutral-400 mb-1">Session Name</label>
+          <label className="block text-xs text-[var(--text-secondary)] mb-1">Session Name</label>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full bg-neutral-800 border border-neutral-700 rounded px-3 py-2 text-sm text-white"
+            className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)]"
             placeholder="Auth refactor"
             required
           />
         </div>
 
         <div className="mb-4">
-          <label className="block text-xs text-neutral-400 mb-1">Model</label>
+          <label className="block text-xs text-[var(--text-secondary)] mb-1">Model</label>
           <select
             value={model}
             onChange={(e) => setModel(e.target.value)}
-            className="w-full bg-neutral-800 border border-neutral-700 rounded px-3 py-2 text-sm text-white"
+            className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)]"
           >
             <option value="claude-sonnet-4-6">Sonnet 4.6</option>
             <option value="claude-opus-4-6">Opus 4.6</option>
@@ -281,11 +281,11 @@ export function NewSessionDialog({
         </div>
 
         <div className="mb-4">
-          <label className="block text-xs text-neutral-400 mb-1">Effort</label>
+          <label className="block text-xs text-[var(--text-secondary)] mb-1">Effort</label>
           <select
             value={effort}
             onChange={(e) => setEffort(e.target.value)}
-            className="w-full bg-neutral-800 border border-neutral-700 rounded px-3 py-2 text-sm text-white"
+            className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)]"
           >
             <option value="low">Low — quick answers, minimal exploration</option>
             <option value="medium">Medium — balanced</option>
@@ -295,11 +295,11 @@ export function NewSessionDialog({
         </div>
 
         <div className="mb-6">
-          <label className="block text-xs text-neutral-400 mb-1">Initial Prompt</label>
+          <label className="block text-xs text-[var(--text-secondary)] mb-1">Initial Prompt</label>
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            className="w-full bg-neutral-800 border border-neutral-700 rounded px-3 py-2 text-sm text-white h-24 resize-none"
+            className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)] h-24 resize-none"
             placeholder="What should Claude work on?"
             required
           />
@@ -309,14 +309,14 @@ export function NewSessionDialog({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm text-neutral-400 hover:text-white"
+            className="px-4 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={submitting}
-            className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500 disabled:opacity-50"
+            className="px-4 py-2 bg-[var(--accent)] text-[var(--bg)] text-sm rounded hover:bg-[var(--accent-hover)] disabled:opacity-50"
           >
             {submitting ? "Starting..." : "Start Session"}
           </button>

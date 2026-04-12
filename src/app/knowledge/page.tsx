@@ -53,22 +53,22 @@ export default function KnowledgePage() {
 
   return (
     <div>
-      <div className="flex justify-between items-center px-6 py-4 border-b border-neutral-800">
+      <div className="flex justify-between items-center px-6 py-4 border-b border-[var(--border)]">
         <div className="flex items-center gap-3">
-          <h1 className="text-base font-semibold text-white">Knowledge Base</h1>
-          <span className="text-xs text-neutral-500">{entries.length} entries</span>
+          <h1 className="text-base font-semibold text-[var(--text-primary)]">Knowledge Base</h1>
+          <span className="text-xs text-[var(--text-secondary)]">{entries.length} entries</span>
         </div>
         <div className="flex gap-3 items-center">
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search knowledge..."
-            className="bg-neutral-900 border border-neutral-700 rounded-md px-3 py-1.5 text-sm text-white w-52 placeholder-neutral-600"
+            className="bg-[var(--input-bg)] border border-[var(--input-border)] rounded-md px-3 py-1.5 text-sm text-[var(--text-primary)] w-52 placeholder-[var(--text-muted)]"
           />
           <select
             value={filterProject}
             onChange={(e) => setFilterProject(e.target.value)}
-            className="bg-neutral-900 border border-neutral-700 rounded-md px-3 py-1.5 text-sm text-white"
+            className="bg-[var(--input-bg)] border border-[var(--input-border)] rounded-md px-3 py-1.5 text-sm text-[var(--text-primary)]"
           >
             <option value="">All Projects</option>
             {projects.map((p) => (
@@ -78,7 +78,7 @@ export default function KnowledgePage() {
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            className="bg-neutral-900 border border-neutral-700 rounded-md px-3 py-1.5 text-sm text-white"
+            className="bg-[var(--input-bg)] border border-[var(--input-border)] rounded-md px-3 py-1.5 text-sm text-[var(--text-primary)]"
           >
             <option value="">All Types</option>
             <option value="decision">Decision</option>
@@ -88,7 +88,7 @@ export default function KnowledgePage() {
           </select>
           <button
             onClick={() => setFormOpen(true)}
-            className="bg-blue-600 text-white px-3.5 py-1.5 rounded-md text-sm font-medium hover:bg-blue-500"
+            className="bg-[var(--accent)] text-[var(--bg)] px-3.5 py-1.5 rounded-md text-sm font-medium hover:bg-[var(--accent-hover)]"
           >
             + Add Entry
           </button>
@@ -97,7 +97,7 @@ export default function KnowledgePage() {
 
       <div className="p-5">
         {loading ? (
-          <div className="text-neutral-500 text-sm">Loading...</div>
+          <div className="text-[var(--text-secondary)] text-sm">Loading...</div>
         ) : (
           <KnowledgeList entries={entries} onDelete={handleDelete} />
         )}

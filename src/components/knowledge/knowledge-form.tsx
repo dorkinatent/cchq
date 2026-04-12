@@ -59,16 +59,16 @@ export function KnowledgeForm({
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
       <form
         onSubmit={handleSubmit}
-        className="bg-neutral-900 border border-neutral-800 rounded-lg p-6 w-full max-w-md"
+        className="bg-[var(--surface-raised)] border border-[var(--border)] rounded-lg p-6 w-full max-w-md"
       >
-        <h2 className="text-lg font-semibold text-white mb-4">Add Knowledge Entry</h2>
+        <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Add Knowledge Entry</h2>
 
         <div className="mb-3">
-          <label className="block text-xs text-neutral-400 mb-1">Project</label>
+          <label className="block text-xs text-[var(--text-secondary)] mb-1">Project</label>
           <select
             value={projectId}
             onChange={(e) => setProjectId(e.target.value)}
-            className="w-full bg-neutral-800 border border-neutral-700 rounded px-3 py-2 text-sm text-white"
+            className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)]"
             required
           >
             <option value="">Select project...</option>
@@ -79,11 +79,11 @@ export function KnowledgeForm({
         </div>
 
         <div className="mb-3">
-          <label className="block text-xs text-neutral-400 mb-1">Type</label>
+          <label className="block text-xs text-[var(--text-secondary)] mb-1">Type</label>
           <select
             value={type}
             onChange={(e) => setType(e.target.value as "decision" | "fact" | "context" | "summary")}
-            className="w-full bg-neutral-800 border border-neutral-700 rounded px-3 py-2 text-sm text-white"
+            className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)]"
           >
             <option value="decision">Decision</option>
             <option value="fact">Fact</option>
@@ -93,33 +93,33 @@ export function KnowledgeForm({
         </div>
 
         <div className="mb-3">
-          <label className="block text-xs text-neutral-400 mb-1">Content</label>
+          <label className="block text-xs text-[var(--text-secondary)] mb-1">Content</label>
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            className="w-full bg-neutral-800 border border-neutral-700 rounded px-3 py-2 text-sm text-white h-24 resize-none"
+            className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)] h-24 resize-none"
             required
           />
         </div>
 
         <div className="mb-5">
-          <label className="block text-xs text-neutral-400 mb-1">Tags (comma-separated)</label>
+          <label className="block text-xs text-[var(--text-secondary)] mb-1">Tags (comma-separated)</label>
           <input
             value={tagsInput}
             onChange={(e) => setTagsInput(e.target.value)}
-            className="w-full bg-neutral-800 border border-neutral-700 rounded px-3 py-2 text-sm text-white"
+            className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)]"
             placeholder="auth, api, migration"
           />
         </div>
 
         <div className="flex gap-3 justify-end">
-          <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-neutral-400 hover:text-white">
+          <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)]">
             Cancel
           </button>
           <button
             type="submit"
             disabled={submitting}
-            className="px-4 py-2 bg-blue-600 text-white text-sm rounded hover:bg-blue-500 disabled:opacity-50"
+            className="px-4 py-2 bg-[var(--accent)] text-[var(--bg)] text-sm rounded hover:bg-[var(--accent-hover)] disabled:opacity-50"
           >
             {submitting ? "Adding..." : "Add Entry"}
           </button>

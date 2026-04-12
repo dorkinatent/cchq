@@ -25,9 +25,9 @@ function DashboardContent() {
 
   return (
     <div>
-      <div className="flex justify-between items-center px-6 py-4 border-b border-neutral-800">
+      <div className="flex justify-between items-center px-6 py-4 border-b border-[var(--border)]">
         <div className="flex items-center gap-4">
-          <span className="text-neutral-500 text-sm">
+          <span className="text-[var(--text-secondary)] text-sm">
             {activeSessions.length} active session{activeSessions.length !== 1 ? "s" : ""}
           </span>
         </div>
@@ -36,11 +36,11 @@ function DashboardContent() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search sessions..."
-            className="bg-neutral-900 border border-neutral-700 rounded-md px-3 py-1.5 text-sm text-white w-52 placeholder-neutral-600"
+            className="bg-[var(--input-bg)] border border-[var(--input-border)] rounded-md px-3 py-1.5 text-sm text-[var(--text-primary)] w-52 placeholder-[var(--text-muted)]"
           />
           <button
             onClick={() => setDialogOpen(true)}
-            className="bg-blue-600 text-white px-3.5 py-1.5 rounded-md text-sm font-medium hover:bg-blue-500"
+            className="bg-[var(--accent)] text-[var(--bg)] px-3.5 py-1.5 rounded-md text-sm font-medium hover:bg-[var(--accent-hover)]"
           >
             + New Session
           </button>
@@ -49,9 +49,9 @@ function DashboardContent() {
 
       <div className="p-5">
         {loading ? (
-          <div className="text-neutral-500 text-sm">Loading sessions...</div>
+          <div className="text-[var(--text-secondary)] text-sm">Loading sessions...</div>
         ) : filtered.length === 0 ? (
-          <div className="text-neutral-500 text-sm text-center py-20">
+          <div className="text-[var(--text-secondary)] text-sm text-center py-20">
             No sessions yet. Click &ldquo;+ New Session&rdquo; to get started.
           </div>
         ) : (
@@ -70,7 +70,7 @@ function DashboardContent() {
 
 export default function DashboardPage() {
   return (
-    <Suspense fallback={<div className="text-neutral-500 text-sm p-6">Loading...</div>}>
+    <Suspense fallback={<div className="text-[var(--text-secondary)] text-sm p-6">Loading...</div>}>
       <DashboardContent />
     </Suspense>
   );

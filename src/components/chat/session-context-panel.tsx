@@ -34,37 +34,37 @@ export function SessionContextPanel({
   }, [projectId]);
 
   return (
-    <div className="w-64 border-l border-neutral-800 p-4 overflow-y-auto shrink-0">
-      <div className="text-[11px] uppercase tracking-wide text-neutral-500 mb-3">
+    <div className="w-64 border-l border-[var(--border)] p-4 overflow-y-auto shrink-0">
+      <div className="text-[11px] uppercase tracking-wide text-[var(--text-muted)] mb-3">
         Session Context
       </div>
 
-      <div className="bg-neutral-900 rounded-md p-2.5 mb-2.5">
-        <div className="text-[11px] text-neutral-500 mb-1">Working Directory</div>
-        <div className="text-xs text-neutral-300 font-mono truncate">{projectPath}</div>
+      <div className="bg-[var(--surface-raised)] rounded-md p-2.5 mb-2.5">
+        <div className="text-[11px] text-[var(--text-muted)] mb-1">Working Directory</div>
+        <div className="text-xs text-[var(--text-secondary)] font-mono truncate">{projectPath}</div>
       </div>
 
-      <div className="text-[11px] uppercase tracking-wide text-neutral-500 mt-4 mb-2">
+      <div className="text-[11px] uppercase tracking-wide text-[var(--text-muted)] mt-4 mb-2">
         Injected Knowledge
       </div>
       {knowledge.length === 0 ? (
-        <div className="text-xs text-neutral-600">No knowledge entries for this project.</div>
+        <div className="text-xs text-[var(--text-muted)]">No knowledge entries for this project.</div>
       ) : (
         knowledge.map((k) => (
           <div
             key={k.id}
-            className="bg-green-950/20 border border-green-950/30 rounded-md p-2.5 mb-2"
+            className="bg-[var(--active-bg)] border border-[var(--active-bg)] rounded-md p-2.5 mb-2"
           >
-            <div className="text-[11px] text-green-400 mb-1">{k.type}</div>
-            <div className="text-xs text-neutral-400 leading-relaxed">{k.content}</div>
+            <div className="text-[11px] text-[var(--active-text)] mb-1">{k.type}</div>
+            <div className="text-xs text-[var(--text-secondary)] leading-relaxed">{k.content}</div>
           </div>
         ))
       )}
 
-      <div className="text-[11px] uppercase tracking-wide text-neutral-500 mt-4 mb-2">
+      <div className="text-[11px] uppercase tracking-wide text-[var(--text-muted)] mt-4 mb-2">
         Session Stats
       </div>
-      <div className="text-xs text-neutral-500 leading-loose">
+      <div className="text-xs text-[var(--text-muted)] leading-loose">
         Messages: {messageCount}<br />
         Model: {model}
         {usage && (

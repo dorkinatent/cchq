@@ -8,10 +8,10 @@ type KnowledgeEntryData = {
 };
 
 const typeStyles = {
-  decision: { bg: "bg-blue-950/30", text: "text-blue-400" },
-  fact: { bg: "bg-green-950/30", text: "text-green-400" },
-  context: { bg: "bg-yellow-950/30", text: "text-yellow-400" },
-  summary: { bg: "bg-neutral-800", text: "text-neutral-400" },
+  decision: { bg: "bg-[var(--paused-bg)]", text: "text-[var(--accent)]" },
+  fact: { bg: "bg-[var(--active-bg)]", text: "text-[var(--active-text)]" },
+  context: { bg: "bg-[var(--paused-bg)]", text: "text-[var(--paused-text)]" },
+  summary: { bg: "bg-[var(--completed-bg)]", text: "text-[var(--completed-text)]" },
 };
 
 export function KnowledgeEntry({
@@ -24,30 +24,30 @@ export function KnowledgeEntry({
   const style = typeStyles[entry.type];
 
   return (
-    <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-4 mb-3">
+    <div className="bg-[var(--surface-raised)] border border-[var(--border)] rounded-lg p-4 mb-3">
       <div className="flex justify-between items-start mb-2">
         <span className={`text-[11px] ${style.bg} ${style.text} px-2 py-0.5 rounded-full`}>
           {entry.type}
         </span>
         <div className="flex gap-2 items-center">
-          <span className="text-[11px] text-neutral-600">
+          <span className="text-[11px] text-[var(--text-muted)]">
             {new Date(entry.createdAt).toLocaleDateString()}
           </span>
           <button
             onClick={() => onDelete(entry.id)}
-            className="text-neutral-600 hover:text-red-400 text-xs"
+            className="text-[var(--text-muted)] hover:text-[var(--errored-text)] text-xs"
           >
             Delete
           </button>
         </div>
       </div>
-      <p className="text-sm text-neutral-300 leading-relaxed mb-2">{entry.content}</p>
+      <p className="text-sm text-[var(--text-secondary)] leading-relaxed mb-2">{entry.content}</p>
       {entry.tags.length > 0 && (
         <div className="flex gap-1.5 flex-wrap">
           {entry.tags.map((tag) => (
             <span
               key={tag}
-              className="text-[11px] bg-neutral-800 text-neutral-500 px-2 py-0.5 rounded"
+              className="text-[11px] bg-[var(--surface)] text-[var(--text-muted)] px-2 py-0.5 rounded"
             >
               {tag}
             </span>

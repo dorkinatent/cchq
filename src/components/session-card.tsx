@@ -6,10 +6,10 @@ import { useRouter } from "next/navigation";
 import type { Session } from "@/hooks/use-sessions";
 
 const statusStyles = {
-  active: { bg: "bg-green-950/50", text: "text-green-400", dot: "●" },
-  paused: { bg: "bg-yellow-950/50", text: "text-yellow-400", dot: "◐" },
-  completed: { bg: "bg-neutral-800", text: "text-neutral-400", dot: "○" },
-  errored: { bg: "bg-red-950/50", text: "text-red-400", dot: "✕" },
+  active: { bg: "bg-[var(--active-bg)]", text: "text-[var(--active-text)]", dot: "\u25cf" },
+  paused: { bg: "bg-[var(--paused-bg)]", text: "text-[var(--paused-text)]", dot: "\u25d0" },
+  completed: { bg: "bg-[var(--completed-bg)]", text: "text-[var(--completed-text)]", dot: "\u25cb" },
+  errored: { bg: "bg-[var(--errored-bg)]", text: "text-[var(--errored-text)]", dot: "\u2715" },
 };
 
 export function SessionCard({ session }: { session: Session }) {
@@ -37,8 +37,8 @@ export function SessionCard({ session }: { session: Session }) {
 
   return (
     <div
-      className={`relative bg-neutral-900 border rounded-lg p-4 hover:border-blue-800/50 transition-colors ${
-        session.status === "active" ? "border-blue-900/30" : "border-neutral-800"
+      className={`relative bg-[var(--surface-raised)] border rounded-lg p-4 hover:border-[var(--accent)] transition-colors ${
+        session.status === "active" ? "border-[var(--accent)]" : "border-[var(--border)]"
       } ${session.status === "paused" ? "opacity-70" : ""}`}
     >
       <Link href={`/sessions/${session.id}`} className="block">
@@ -55,7 +55,7 @@ export function SessionCard({ session }: { session: Session }) {
               <input
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
-                className="flex-1 bg-neutral-800 border border-neutral-700 rounded px-2 py-1 text-sm text-white"
+                className="flex-1 bg-[var(--surface)] border border-[var(--border)] rounded px-2 py-1 text-sm text-[var(--text-primary)]"
                 autoFocus
                 onBlur={() => {
                   setRenaming(false);
@@ -70,7 +70,7 @@ export function SessionCard({ session }: { session: Session }) {
               />
             </form>
           ) : (
-            <span className="text-sm font-medium text-white truncate mr-2">
+            <span className="text-sm font-medium text-[var(--text-primary)] truncate mr-2">
               {session.name}
             </span>
           )}
@@ -78,15 +78,15 @@ export function SessionCard({ session }: { session: Session }) {
             {style.dot} {session.status}
           </span>
         </div>
-        <div className="text-xs text-neutral-500 mb-2">
+        <div className="text-xs text-[var(--text-secondary)] mb-2">
           {session.project_name || "Unknown project"} &middot; {session.model}
         </div>
         {session.last_message && (
-          <div className="text-[13px] text-neutral-400 line-clamp-2 mb-3 leading-relaxed">
+          <div className="text-[13px] text-[var(--text-secondary)] line-clamp-2 mb-3 leading-relaxed">
             {session.last_message}
           </div>
         )}
-        <div className="flex justify-between items-center text-[11px] text-neutral-600">
+        <div className="flex justify-between items-center text-[11px] text-[var(--text-muted)]">
           <span>{session.message_count || 0} messages</span>
           <span>{new Date(session.updated_at).toLocaleString()}</span>
         </div>
@@ -99,7 +99,7 @@ export function SessionCard({ session }: { session: Session }) {
           e.stopPropagation();
           setMenuOpen(!menuOpen);
         }}
-        className="absolute top-3 right-3 text-neutral-600 hover:text-neutral-300 text-sm px-1.5 py-0.5 rounded hover:bg-neutral-800"
+        className="absolute top-3 right-3 text-[var(--text-muted)] hover:text-[var(--text-primary)] text-sm px-1.5 py-0.5 rounded hover:bg-[var(--surface)]"
       >
         ···
       </button>
@@ -108,7 +108,7 @@ export function SessionCard({ session }: { session: Session }) {
       {menuOpen && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-          <div className="absolute top-10 right-3 bg-neutral-800 border border-neutral-700 rounded-md shadow-lg z-20 py-1 min-w-[120px]">
+          <div className="absolute top-10 right-3 bg-[var(--surface-raised)] border border-[var(--border)] rounded-md shadow-lg z-20 py-1 min-w-[120px]">
             <button
               onClick={(e) => {
                 e.preventDefault();
@@ -116,7 +116,7 @@ export function SessionCard({ session }: { session: Session }) {
                 setRenaming(true);
                 setMenuOpen(false);
               }}
-              className="w-full text-left px-3 py-1.5 text-sm text-neutral-300 hover:bg-neutral-700"
+              className="w-full text-left px-3 py-1.5 text-sm text-[var(--text-secondary)] hover:bg-[var(--surface)]"
             >
               Rename
             </button>
@@ -126,7 +126,7 @@ export function SessionCard({ session }: { session: Session }) {
                 e.stopPropagation();
                 handleDelete();
               }}
-              className="w-full text-left px-3 py-1.5 text-sm text-red-400 hover:bg-neutral-700"
+              className="w-full text-left px-3 py-1.5 text-sm text-[var(--errored-text)] hover:bg-[var(--surface)]"
             >
               Delete
             </button>
