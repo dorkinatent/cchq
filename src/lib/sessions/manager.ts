@@ -285,6 +285,47 @@ function processMessages(
           }
         }
 
+        // Detect tool errors carried back on user messages as tool_result blocks.
+        // Surfaces silent SDK refusals (out-of-cwd reads in acceptEdits, etc.)
+        // so the user isn't left wondering why Claude gave up.
+        if (message.type === "user" && (message as any).message?.content) {
+          const blocks = (message as any).message.content;
+          if (Array.isArray(blocks)) {
+            for (const b of blocks) {
+              if (b?.type === "tool_result" && b.is_error === true) {
+                const raw =
+                  typeof b.content === "string"
+                    ? b.content
+                    : Array.isArray(b.content)
+                    ? b.content.map((c: any) => c?.text ?? "").join("\n")
+                    : "";
+                const lower = raw.toLowerCase();
+                let hint: "path_outside_cwd" | "permission_denied" | "other" = "other";
+                if (
+                  lower.includes("outside") &&
+                  (lower.includes("working directory") || lower.includes("allowed"))
+                ) {
+                  hint = "path_outside_cwd";
+                } else if (
+                  lower.includes("permission") ||
+                  lower.includes("denied") ||
+                  lower.includes("not allowed")
+                ) {
+                  hint = "permission_denied";
+                }
+                sessionEventBus.emit(sessionId, {
+                  type: "tool_error",
+                  toolUseId: b.tool_use_id || "",
+                  toolName: "",
+                  message: raw.slice(0, 400),
+                  hint,
+                  timestamp: Date.now(),
+                });
+              }
+            }
+          }
+        }
+
         // Handle full assistant messages (these arrive after streaming completes)
         if (message.type === "assistant" && message.message?.content) {
           if (isThinking) {
@@ -516,7 +557,12 @@ function getPermissionConfig(
   projectId: string,
   trustLevel: TrustLevel
 ): { permissionMode: string; canUseTool?: any; hooks?: any } {
-  if (trustLevel === "full_auto" || trustLevel === "auto_log") {
+  if (trustLevel === "full_auto") {
+    // bypassPermissions skips the SDK's cwd guardrail too — true unattended mode.
+    return { permissionMode: "bypassPermissions" };
+  }
+  if (trustLevel === "auto_log") {
+    // acceptEdits auto-approves file edits inside cwd / additionalDirectories.
     return { permissionMode: "acceptEdits" };
   }
   // ask_me: use PreToolUse hook to force ALL tools through the ask flow,
@@ -576,10 +622,12 @@ export async function startSession(
     }
   }
 
+  const extraDirs = project?.additionalDirectories ?? [];
   const q = query({
     prompt: initialPrompt,
     options: {
       cwd: projectPath,
+      ...(extraDirs.length > 0 ? { additionalDirectories: extraDirs } : {}),
       model,
       effort: (effort as "low" | "medium" | "high" | "max") || "high",
       abortController,
@@ -690,12 +738,18 @@ export async function sendMessage(
   }
 
   const permConfig = getPermissionConfig(sessionId, projectId!, trustLevel);
+  const projectRow = await db.query.projects.findFirst({
+    where: eq(schema.projects.id, projectId!),
+    columns: { additionalDirectories: true },
+  });
+  const extraDirs = projectRow?.additionalDirectories ?? [];
 
   const abortController = new AbortController();
   const q = query({
     prompt: fullPrompt,
     options: {
       resume: sdkSessionId,
+      ...(extraDirs.length > 0 ? { additionalDirectories: extraDirs } : {}),
       abortController,
       includePartialMessages: true,
       thinking: { type: "enabled", budgetTokens: 10000 },
@@ -818,11 +872,18 @@ export async function resumeSession(sessionId: string, resumeNote?: string): Pro
     ? parts.join("\n\n")
     : "Resume the session. Continue where you left off.";
 
+  const projectRow = await db.query.projects.findFirst({
+    where: eq(schema.projects.id, session.projectId),
+    columns: { additionalDirectories: true },
+  });
+  const extraDirs = projectRow?.additionalDirectories ?? [];
+
   const abortController = new AbortController();
   const q = query({
     prompt: resumePrompt,
     options: {
       resume: session.sdkSessionId,
+      ...(extraDirs.length > 0 ? { additionalDirectories: extraDirs } : {}),
       abortController,
       includePartialMessages: true,
       permissionMode: permConfig.permissionMode as any,

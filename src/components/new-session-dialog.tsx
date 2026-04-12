@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { IngestionPrompt } from "@/components/project/ingestion-prompt";
 
 type Project = { id: string; name: string; path: string };
 type BrowseResult = {
@@ -34,16 +33,22 @@ export function NewSessionDialog({
   const [engine, setEngine] = useState<"sdk" | "gastown">("sdk");
   const [townPath, setTownPath] = useState("~/gt");
   const [rigName, setRigName] = useState("");
-  const [ingestionPromptProject, setIngestionPromptProject] = useState<{
-    id: string;
-    fileCount: number;
-  } | null>(null);
-  const [pendingSessionRedirect, setPendingSessionRedirect] = useState<string | null>(null);
-
   // Folder browser state
   const [showBrowser, setShowBrowser] = useState(false);
   const [browseResult, setBrowseResult] = useState<BrowseResult | null>(null);
   const [browsing, setBrowsing] = useState(false);
+
+  const headingRef = useRef<HTMLHeadingElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    headingRef.current?.focus();
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
 
   useEffect(() => {
     if (open) {
@@ -111,15 +116,14 @@ export function NewSessionDialog({
         return;
       }
 
+      let ingestQS = "";
       if (showNewProject && finalProjectId) {
         try {
           const docsRes = await fetch(`/api/projects/${finalProjectId}/docs`);
           if (docsRes.ok) {
             const files = await docsRes.json();
             if (Array.isArray(files) && files.length > 0) {
-              setIngestionPromptProject({ id: finalProjectId, fileCount: files.length });
-              setPendingSessionRedirect(`/projects/${finalProjectId}/rig`);
-              return;
+              ingestQS = `?ingest=1&count=${files.length}`;
             }
           }
         } catch {
@@ -128,7 +132,7 @@ export function NewSessionDialog({
       }
 
       onClose();
-      router.push(`/projects/${finalProjectId}/rig`);
+      router.push(`/projects/${finalProjectId}/rig${ingestQS}`);
       return;
     }
 
@@ -147,15 +151,14 @@ export function NewSessionDialog({
     const session = await res.json();
     setSubmitting(false);
 
+    let ingestQS = "";
     if (showNewProject && finalProjectId) {
       try {
         const docsRes = await fetch(`/api/projects/${finalProjectId}/docs`);
         if (docsRes.ok) {
           const files = await docsRes.json();
           if (Array.isArray(files) && files.length > 0) {
-            setIngestionPromptProject({ id: finalProjectId, fileCount: files.length });
-            setPendingSessionRedirect(`/sessions/${session.id}`);
-            return;
+            ingestQS = `?ingest=${encodeURIComponent(finalProjectId)}&count=${files.length}`;
           }
         }
       } catch {
@@ -164,21 +167,34 @@ export function NewSessionDialog({
     }
 
     onClose();
-    router.push(`/sessions/${session.id}`);
+    router.push(`/sessions/${session.id}${ingestQS}`);
   }
 
   return (
-    <div className="fixed inset-0 backdrop-themed flex items-center justify-center z-50">
+    <div
+      className="fixed inset-0 backdrop-themed flex items-center justify-center z-50 p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="new-session-dialog-title"
+    >
       <form
         onSubmit={handleSubmit}
         className="bg-[var(--surface-raised)] border border-[var(--border)] rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto"
       >
-        <h2 className="text-[19px] font-semibold tracking-tight leading-tight text-[var(--text-primary)] mb-5">New session</h2>
+        <h2
+          id="new-session-dialog-title"
+          ref={headingRef}
+          tabIndex={-1}
+          className="font-display text-xl font-semibold tracking-tight leading-tight text-[var(--text-primary)] mb-5 focus:outline-none"
+        >
+          New session
+        </h2>
 
         {!showNewProject ? (
           <div className="mb-4">
-            <label className="block text-xs text-[var(--text-secondary)] mb-1">Project</label>
+            <label htmlFor="nsd-project" className="block text-xs text-[var(--text-secondary)] mb-1">Project</label>
             <select
+              id="nsd-project"
               value={projectId}
               onChange={(e) => setProjectId(e.target.value)}
               className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)]"
@@ -202,9 +218,10 @@ export function NewSessionDialog({
         ) : (
           <div className="mb-4 space-y-2">
             <div>
-              <label className="block text-xs text-[var(--text-secondary)] mb-1">Directory Path</label>
+              <label htmlFor="nsd-dir-path" className="block text-xs text-[var(--text-secondary)] mb-1">Directory Path</label>
               <div className="flex gap-2">
                 <input
+                  id="nsd-dir-path"
                   value={newProjectPath}
                   onChange={(e) => setNewProjectPath(e.target.value)}
                   className="flex-1 bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)] font-mono"
@@ -296,8 +313,9 @@ export function NewSessionDialog({
             )}
 
             <div>
-              <label className="block text-xs text-[var(--text-secondary)] mb-1">Project Name</label>
+              <label htmlFor="nsd-project-name" className="block text-xs text-[var(--text-secondary)] mb-1">Project Name</label>
               <input
+                id="nsd-project-name"
                 value={newProjectName}
                 onChange={(e) => setNewProjectName(e.target.value)}
                 className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)]"
@@ -319,8 +337,9 @@ export function NewSessionDialog({
         )}
 
         <div className="mb-4">
-          <label className="block text-xs text-[var(--text-secondary)] mb-1">Engine</label>
+          <label htmlFor="nsd-engine" className="block text-xs text-[var(--text-secondary)] mb-1">Engine</label>
           <select
+            id="nsd-engine"
             value={engine}
             onChange={(e) => setEngine(e.target.value as "sdk" | "gastown")}
             className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)]"
@@ -333,8 +352,9 @@ export function NewSessionDialog({
         {engine === "gastown" && (
           <>
             <div className="mb-4">
-              <label className="block text-xs text-[var(--text-secondary)] mb-1">Town Path</label>
+              <label htmlFor="nsd-town-path" className="block text-xs text-[var(--text-secondary)] mb-1">Town Path</label>
               <input
+                id="nsd-town-path"
                 value={townPath}
                 onChange={(e) => setTownPath(e.target.value)}
                 placeholder="~/gt"
@@ -342,8 +362,9 @@ export function NewSessionDialog({
               />
             </div>
             <div className="mb-4">
-              <label className="block text-xs text-[var(--text-secondary)] mb-1">Rig Name</label>
+              <label htmlFor="nsd-rig-name" className="block text-xs text-[var(--text-secondary)] mb-1">Rig Name</label>
               <input
+                id="nsd-rig-name"
                 value={rigName}
                 onChange={(e) => setRigName(e.target.value)}
                 placeholder="rig-slug"
@@ -357,8 +378,9 @@ export function NewSessionDialog({
         {engine === "sdk" && (
           <>
             <div className="mb-4">
-              <label className="block text-xs text-[var(--text-secondary)] mb-1">Session Name</label>
+              <label htmlFor="nsd-session-name" className="block text-xs text-[var(--text-secondary)] mb-1">Session Name</label>
               <input
+                id="nsd-session-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)]"
@@ -368,8 +390,9 @@ export function NewSessionDialog({
             </div>
 
             <div className="mb-4">
-              <label className="block text-xs text-[var(--text-secondary)] mb-1">Model</label>
+              <label htmlFor="nsd-model" className="block text-xs text-[var(--text-secondary)] mb-1">Model</label>
               <select
+                id="nsd-model"
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
                 className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)]"
@@ -381,8 +404,9 @@ export function NewSessionDialog({
             </div>
 
             <div className="mb-4">
-              <label className="block text-xs text-[var(--text-secondary)] mb-1">Effort</label>
+              <label htmlFor="nsd-effort" className="block text-xs text-[var(--text-secondary)] mb-1">Effort</label>
               <select
+                id="nsd-effort"
                 value={effort}
                 onChange={(e) => setEffort(e.target.value)}
                 className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)]"
@@ -395,8 +419,9 @@ export function NewSessionDialog({
             </div>
 
             <div className="mb-4">
-              <label className="block text-xs text-[var(--text-secondary)] mb-1">Permission mode</label>
+              <label htmlFor="nsd-trust-level" className="block text-xs text-[var(--text-secondary)] mb-1">Permission mode</label>
               <select
+                id="nsd-trust-level"
                 value={trustLevel}
                 onChange={(e) => setTrustLevel(e.target.value)}
                 className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)]"
@@ -411,10 +436,11 @@ export function NewSessionDialog({
             </div>
 
             <div className="mb-6">
-              <label className="block text-xs text-[var(--text-secondary)] mb-1">
+              <label htmlFor="nsd-initial-prompt" className="block text-xs text-[var(--text-secondary)] mb-1">
                 Initial prompt <span className="text-[var(--text-muted)] font-normal">· optional</span>
               </label>
               <textarea
+                id="nsd-initial-prompt"
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)] h-24 resize-none"
@@ -441,19 +467,6 @@ export function NewSessionDialog({
           </button>
         </div>
       </form>
-      {ingestionPromptProject && (
-        <IngestionPrompt
-          projectId={ingestionPromptProject.id}
-          fileCount={ingestionPromptProject.fileCount}
-          onClose={() => {
-            setIngestionPromptProject(null);
-            onClose();
-            if (pendingSessionRedirect) {
-              router.push(pendingSessionRedirect);
-            }
-          }}
-        />
-      )}
     </div>
   );
 }

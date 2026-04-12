@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use, useCallback } from "react";
+import { useEffect, useState, use, useCallback, useRef } from "react";
 import Link from "next/link";
 
 type PermissionRule = {
@@ -18,6 +18,7 @@ type Project = {
   path: string;
   docGlobs?: string[];
   autoInjectDocs?: boolean;
+  additionalDirectories?: string[];
 };
 
 const TOOL_OPTIONS = ["Read", "Edit", "Write", "Bash", "Grep", "Glob", "*"];
@@ -41,12 +42,25 @@ export default function ProjectSettingsPage({
   // Doc patterns & ingestion state
   const [docGlobs, setDocGlobs] = useState<string[]>([]);
   const [autoInjectDocs, setAutoInjectDocs] = useState(true);
+  const [additionalDirs, setAdditionalDirs] = useState<string[]>([]);
+  const [newAdditionalDir, setNewAdditionalDir] = useState("");
   const [matchCount, setMatchCount] = useState<number | null>(null);
   const [newPattern, setNewPattern] = useState("");
   const [ingestModalOpen, setIngestModalOpen] = useState(false);
   const [availableDocs, setAvailableDocs] = useState<{ relativePath: string; name: string }[]>([]);
   const [ingestSelected, setIngestSelected] = useState<Set<string>>(new Set());
   const [ingesting, setIngesting] = useState(false);
+  const ingestHeadingRef = useRef<HTMLHeadingElement | null>(null);
+
+  useEffect(() => {
+    if (!ingestModalOpen) return;
+    ingestHeadingRef.current?.focus();
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setIngestModalOpen(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [ingestModalOpen]);
 
   // New rule form
   const [showForm, setShowForm] = useState(false);
@@ -64,6 +78,7 @@ export default function ProjectSettingsPage({
       setProject(proj);
       setDocGlobs(proj.docGlobs || []);
       setAutoInjectDocs(proj.autoInjectDocs ?? true);
+      setAdditionalDirs(proj.additionalDirectories || []);
       setRules(rls);
       setLoading(false);
     });
@@ -143,26 +158,26 @@ export default function ProjectSettingsPage({
 
   return (
     <div className="max-w-2xl mx-auto p-6">
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center gap-3 mb-2">
         <Link
           href="/"
           className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-sm"
         >
           &larr; Back
         </Link>
-        <h1 className="text-[19px] font-semibold tracking-tight leading-tight text-[var(--text-primary)]">
+        <h1 className="font-display text-xl font-semibold tracking-tight leading-tight text-[var(--text-primary)] mt-0">
           {project?.name} <span className="text-[var(--text-muted)] font-normal">· Permissions</span>
         </h1>
       </div>
 
-      <p className="text-sm text-[var(--text-secondary)] mb-6 max-w-[68ch]">
+      <p className="text-sm text-[var(--text-secondary)] mb-8 max-w-[68ch]">
         Permission rules decide what Claude can do in this project&apos;s sessions.
         Rules are evaluated top-down — specific tool patterns match before wildcards.
         If no rule matches, the session&apos;s permission mode applies.
       </p>
 
       {/* Rules list */}
-      <div className="space-y-2 mb-6">
+      <div className="space-y-1.5 mb-4">
         {rules.length === 0 ? (
           <div className="text-sm text-[var(--text-muted)] py-8 text-center border border-dashed border-[var(--border)] rounded-lg">
             No rules yet. Sessions will fall back to their permission mode for every action.
@@ -206,10 +221,11 @@ export default function ProjectSettingsPage({
         >
           <h3 className="text-sm font-medium text-[var(--text-primary)]">New Rule</h3>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-[var(--text-secondary)] mb-1">Tool</label>
+              <label htmlFor="rule-tool" className="block text-xs text-[var(--text-secondary)] mb-1">Tool</label>
               <select
+                id="rule-tool"
                 value={newTool}
                 onChange={(e) => setNewTool(e.target.value)}
                 className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)]"
@@ -223,8 +239,9 @@ export default function ProjectSettingsPage({
             </div>
 
             <div>
-              <label className="block text-xs text-[var(--text-secondary)] mb-1">Decision</label>
+              <label htmlFor="rule-decision" className="block text-xs text-[var(--text-secondary)] mb-1">Decision</label>
               <select
+                id="rule-decision"
                 value={newDecision}
                 onChange={(e) => setNewDecision(e.target.value as "allow" | "deny" | "ask")}
                 className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)]"
@@ -239,10 +256,11 @@ export default function ProjectSettingsPage({
           </div>
 
           <div>
-            <label className="block text-xs text-[var(--text-secondary)] mb-1">
+            <label htmlFor="rule-action" className="block text-xs text-[var(--text-secondary)] mb-1">
               Action Pattern <span className="text-[var(--text-muted)]">(regex, optional)</span>
             </label>
             <input
+              id="rule-action"
               value={newAction}
               onChange={(e) => setNewAction(e.target.value)}
               className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)] font-mono"
@@ -251,10 +269,11 @@ export default function ProjectSettingsPage({
           </div>
 
           <div>
-            <label className="block text-xs text-[var(--text-secondary)] mb-1">
+            <label htmlFor="rule-priority" className="block text-xs text-[var(--text-secondary)] mb-1">
               Priority <span className="text-[var(--text-muted)]">(higher = evaluated first)</span>
             </label>
             <input
+              id="rule-priority"
               type="number"
               value={newPriority}
               onChange={(e) => setNewPriority(parseInt(e.target.value) || 0)}
@@ -289,13 +308,13 @@ export default function ProjectSettingsPage({
       )}
 
       {/* Doc Patterns */}
-      <section className="mb-8 mt-8 border-t border-[var(--border)] pt-6">
-        <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-2">Doc Patterns</h2>
-        <p className="text-xs text-[var(--text-muted)] mb-3">
+      <section className="mt-12 border-t border-[var(--border)] pt-8">
+        <h2 className="font-display text-lg font-semibold text-[var(--text-primary)] mb-2">Doc Patterns</h2>
+        <p className="text-xs text-[var(--text-muted)] mb-5">
           Glob patterns for markdown files to surface in the Docs tab.
           {matchCount !== null && ` Matches ${matchCount} file${matchCount === 1 ? "" : "s"}.`}
         </p>
-        <div className="space-y-1 mb-3">
+        <div className="space-y-1 mb-4">
           {docGlobs.map((g, i) => (
             <div key={i} className="flex items-center gap-2">
               <span className="flex-1 font-mono text-xs bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-2 py-1 text-[var(--text-primary)]">
@@ -319,6 +338,7 @@ export default function ProjectSettingsPage({
             value={newPattern}
             onChange={(e) => setNewPattern(e.target.value)}
             placeholder="docs/**/*.md"
+            aria-label="New doc glob pattern"
             className="flex-1 font-mono text-xs bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-2 py-1.5 text-[var(--text-primary)]"
           />
           <button
@@ -338,8 +358,8 @@ export default function ProjectSettingsPage({
       </section>
 
       {/* Auto-Inject Docs */}
-      <section className="mb-8">
-        <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-2">Auto-Inject Docs</h2>
+      <section className="mt-10">
+        <h2 className="font-display text-lg font-semibold text-[var(--text-primary)] mb-2">Auto-Inject Docs</h2>
         <label className="flex items-center gap-3 text-sm text-[var(--text-secondary)]">
           <input
             type="checkbox"
@@ -354,9 +374,9 @@ export default function ProjectSettingsPage({
       </section>
 
       {/* Doc Ingestion */}
-      <section className="mb-8">
-        <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-2">Doc Ingestion</h2>
-        <p className="text-xs text-[var(--text-muted)] mb-3">
+      <section className="mt-10">
+        <h2 className="font-display text-lg font-semibold text-[var(--text-primary)] mb-2">Doc Ingestion</h2>
+        <p className="text-xs text-[var(--text-muted)] mb-5">
           Extract stable facts from matched docs and add them to the knowledge base.
         </p>
         <button
@@ -367,9 +387,79 @@ export default function ProjectSettingsPage({
         </button>
       </section>
 
+      {/* Additional Directories */}
+      <section className="mt-10">
+        <h2 className="font-display text-lg font-semibold text-[var(--text-primary)] mb-2">
+          Additional Directories
+        </h2>
+        <p className="text-xs text-[var(--text-muted)] mb-5">
+          Paths outside the project&apos;s working directory that Claude may Read / Glob / Grep.
+          Use absolute paths (e.g. <span className="font-mono">~/.config/foo</span>,{" "}
+          <span className="font-mono">/Users/you/Code/other-repo</span>). Unaffected by trust level
+          — this is an SDK-level guardrail.
+        </p>
+        {additionalDirs.length > 0 && (
+          <ul className="divide-y divide-[var(--border)] mb-4 border border-[var(--border)] rounded">
+            {additionalDirs.map((d, i) => (
+              <li key={i} className="flex items-center justify-between px-3 py-2 text-sm">
+                <span className="font-mono text-[var(--text-primary)] truncate">{d}</span>
+                <button
+                  onClick={async () => {
+                    const next = additionalDirs.filter((_, idx) => idx !== i);
+                    setAdditionalDirs(next);
+                    await savePatch({ additionalDirectories: next });
+                  }}
+                  className="text-xs text-[var(--errored-text)] hover:underline shrink-0 ml-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded px-1"
+                >
+                  Remove
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        <div className="flex gap-2">
+          {/* Error variant kicks in purely as a display mirror of the existing
+             duplicate check in the Add handler below — no new validation logic. */}
+          {(() => {
+            const trimmed = newAdditionalDir.trim();
+            const isDuplicate = trimmed.length > 0 && additionalDirs.includes(trimmed);
+            return (
+              <input
+                id="project-additional-dir-input"
+                type="text"
+                value={newAdditionalDir}
+                onChange={(e) => setNewAdditionalDir(e.target.value)}
+                placeholder="/absolute/path/to/directory"
+                aria-invalid={isDuplicate || undefined}
+                aria-label="Additional directory path"
+                className={
+                  isDuplicate
+                    ? "flex-1 bg-[var(--errored-bg)]/20 border border-[var(--errored-border)] rounded px-3 py-2 text-sm font-mono text-[var(--text-primary)]"
+                    : "flex-1 bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm font-mono text-[var(--text-primary)]"
+                }
+              />
+            );
+          })()}
+          <button
+            onClick={async () => {
+              const trimmed = newAdditionalDir.trim();
+              if (!trimmed || additionalDirs.includes(trimmed)) return;
+              const next = [...additionalDirs, trimmed];
+              setAdditionalDirs(next);
+              setNewAdditionalDir("");
+              await savePatch({ additionalDirectories: next });
+            }}
+            disabled={!newAdditionalDir.trim()}
+            className="text-sm px-4 py-2 bg-[var(--accent)] text-[var(--bg)] rounded hover:bg-[var(--accent-hover)] disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          >
+            Add
+          </button>
+        </div>
+      </section>
+
       {/* Common presets */}
-      <div className="mt-8 border-t border-[var(--border)] pt-6">
-        <h3 className="text-sm font-medium text-[var(--text-primary)] mb-3">Quick Presets</h3>
+      <div className="mt-12 border-t border-[var(--border)] pt-8">
+        <h3 className="text-sm font-medium text-[var(--text-primary)] mb-4">Quick Presets</h3>
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => {
@@ -408,9 +498,19 @@ export default function ProjectSettingsPage({
 
       {/* Ingestion modal */}
       {ingestModalOpen && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+        <div
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="ingest-modal-title"
+        >
           <div className="bg-[var(--surface-raised)] border border-[var(--border)] rounded-lg p-6 w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col">
-            <h3 className="text-base font-semibold text-[var(--text-primary)] mb-3">
+            <h3
+              id="ingest-modal-title"
+              ref={ingestHeadingRef}
+              tabIndex={-1}
+              className="text-base font-semibold text-[var(--text-primary)] mb-3 focus:outline-none"
+            >
               Ingest Docs
             </h3>
             <div className="flex-1 overflow-y-auto mb-4 space-y-1.5">
@@ -433,7 +533,7 @@ export default function ProjectSettingsPage({
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setIngestModalOpen(false)}
-                className="text-xs px-3 py-1.5 text-[var(--text-secondary)]"
+                className="text-xs px-3 py-2 text-[var(--text-secondary)]"
               >
                 Cancel
               </button>
@@ -455,7 +555,7 @@ export default function ProjectSettingsPage({
                     alert("Ingestion failed");
                   }
                 }}
-                className="text-xs px-3 py-1.5 bg-[var(--accent)] text-[var(--bg)] rounded hover:bg-[var(--accent-hover)] disabled:opacity-50"
+                className="text-xs px-3 py-2 bg-[var(--accent)] text-[var(--bg)] rounded hover:bg-[var(--accent-hover)] disabled:opacity-50"
               >
                 {ingesting ? "Ingesting…" : `Ingest ${ingestSelected.size}`}
               </button>

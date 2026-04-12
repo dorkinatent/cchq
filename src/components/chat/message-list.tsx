@@ -89,6 +89,7 @@ export const MessageList = forwardRef<
   const prevScrollHeightRef = useRef<number>(0);
   const isLoadingMoreRef = useRef(false);
   const hasDoneInitialScrollRef = useRef(false);
+  const lastMessageIdRef = useRef<string | null>(null);
 
   // Expose scrollToMessage
   useImperativeHandle(ref, () => ({
@@ -104,17 +105,31 @@ export const MessageList = forwardRef<
     },
   }));
 
-  // On initial load, jump to bottom (most recent message). Subsequent renders
-  // only auto-scroll if the user is already near the bottom.
+  // Scroll behavior:
+  //  - Initial load: jump straight to bottom.
+  //  - User just sent a message: force-scroll to bottom (even if they had
+  //    scrolled up to read history — submitting always pulls you down).
+  //  - Assistant is streaming / any other update: only auto-follow if the
+  //    user is already near the bottom, so we don't yank them while reading.
   useEffect(() => {
     if (isLoadingMoreRef.current) return;
     const container = containerRef.current;
     if (!container || messages.length === 0) return;
 
     if (!hasDoneInitialScrollRef.current) {
-      // First time we have messages — jump straight to the bottom (no smooth).
       bottomRef.current?.scrollIntoView({ behavior: "auto" });
       hasDoneInitialScrollRef.current = true;
+      lastMessageIdRef.current = messages[messages.length - 1].id;
+      return;
+    }
+
+    const lastMsg = messages[messages.length - 1];
+    const isNewMessage = lastMsg.id !== lastMessageIdRef.current;
+    const isNewUserMessage = isNewMessage && lastMsg.role === "user";
+    lastMessageIdRef.current = lastMsg.id;
+
+    if (isNewUserMessage) {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
       return;
     }
 
@@ -123,7 +138,7 @@ export const MessageList = forwardRef<
     if (isNearBottom) {
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages.length, streamState?.phase, streamState?.streamingText]);
+  }, [messages, streamState?.phase, streamState?.streamingText]);
 
   // Scroll anchoring: restore scroll position after prepending older messages
   useEffect(() => {

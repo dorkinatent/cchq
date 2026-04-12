@@ -2,11 +2,13 @@
 
 import { useCallback, useEffect, useState, use } from "react";
 import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
 import type { DaemonStatus as DaemonStatusType } from "@/lib/engines/types";
 import { DaemonStatus } from "@/components/rig/daemon-status";
 import { AgentTree } from "@/components/rig/agent-tree";
 import { ReadyBeads } from "@/components/rig/ready-beads";
 import { EventFeed } from "@/components/rig/event-feed";
+import { IngestionPrompt } from "@/components/project/ingestion-prompt";
 
 type Status = {
   daemon: DaemonStatusType;
@@ -19,7 +21,17 @@ export default function RigDashboardPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const showIngest = searchParams.get("ingest") === "1";
+  const ingestCount = Number(searchParams.get("count") || "0");
+  const [ingestDismissed, setIngestDismissed] = useState(false);
   const [status, setStatus] = useState<Status | null>(null);
+
+  function dismissIngestBanner() {
+    setIngestDismissed(true);
+    router.replace(`/projects/${id}/rig`);
+  }
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/rigs/${id}/status`);
@@ -53,14 +65,24 @@ export default function RigDashboardPage({
         )}
       </div>
 
+      {showIngest && ingestCount > 0 && !ingestDismissed && (
+        <div className="px-6 pt-4">
+          <IngestionPrompt
+            projectId={id}
+            fileCount={ingestCount}
+            onClose={dismissIngestBanner}
+          />
+        </div>
+      )}
+
       <div className="flex flex-1 overflow-hidden">
-        <aside className="w-64 border-r border-[var(--border)] overflow-y-auto">
+        <aside className="hidden md:block w-64 border-r border-[var(--border)] overflow-y-auto">
           <AgentTree projectId={id} />
         </aside>
         <main className="flex-1 overflow-y-auto">
           <ReadyBeads projectId={id} />
         </main>
-        <aside className="w-80 border-l border-[var(--border)] overflow-hidden flex flex-col">
+        <aside className="hidden lg:flex w-80 border-l border-[var(--border)] overflow-hidden flex-col">
           <EventFeed projectId={id} enabled={daemonRunning} />
         </aside>
       </div>

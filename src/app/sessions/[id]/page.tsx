@@ -2,18 +2,22 @@
 
 import { useEffect, useState, useRef, use } from "react";
 import Link from "next/link";
+import { useSearchParams, useRouter } from "next/navigation";
+import { IngestionPrompt } from "@/components/project/ingestion-prompt";
 import { useMessagePagination } from "@/hooks/use-message-pagination";
 import { useSessionStream } from "@/hooks/use-session-stream";
 import { useMessageQueue } from "@/hooks/use-message-queue";
 import { MessageList, type MessageListHandle } from "@/components/chat/message-list";
 import { MessageInput, type Attachment } from "@/components/chat/message-input";
-import { SessionContextPanel } from "@/components/chat/session-context-panel";
+import { SessionContextPanel, type MainOverlay } from "@/components/chat/session-context-panel";
+import { SessionMainOverlay } from "@/components/chat/main-overlay";
 import { ConnectionStatus } from "@/components/chat/connection-status";
 import { MessageStatus } from "@/components/chat/message-status";
 import { ResumePanel } from "@/components/chat/resume-panel";
 import { SessionSummary } from "@/components/chat/session-summary";
 import { SessionSearch } from "@/components/chat/session-search";
 import { PermissionCard, type PermissionResponse } from "@/components/chat/permission-card";
+import { ToolErrorNoticeList } from "@/components/chat/tool-error-notice";
 import { useContextPanel } from "@/hooks/use-context-panel";
 
 type SessionDetail = {
@@ -36,10 +40,22 @@ export default function SessionPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const ingestProjectId = searchParams.get("ingest");
+  const ingestCount = Number(searchParams.get("count") || "0");
+  const [ingestDismissed, setIngestDismissed] = useState(false);
   const { messages, loading, loadingMore, hasMore, loadMore } =
     useMessagePagination(id);
   const [session, setSession] = useState<SessionDetail | null>(null);
+  const [mainOverlay, setMainOverlay] = useState<MainOverlay>(null);
   const messageListRef = useRef<MessageListHandle>(null);
+
+  function dismissIngestBanner() {
+    setIngestDismissed(true);
+    // Strip the query params so a refresh doesn't re-show.
+    router.replace(`/sessions/${id}`);
+  }
 
   const isActive = session?.status === "active";
   // Connect SSE eagerly — don't wait for session metadata to arrive, or we'll
@@ -130,7 +146,7 @@ export default function SessionPage({
           >
             &larr;
           </Link>
-          <h1 className="text-[19px] font-semibold tracking-tight text-[var(--text-primary)] leading-tight truncate">
+          <h1 className="font-display text-xl font-semibold tracking-tight text-[var(--text-primary)] leading-tight truncate">
             {session?.name || "Loading…"}
           </h1>
           {session && (
@@ -207,18 +223,51 @@ export default function SessionPage({
 
       <div className="flex flex-1 overflow-hidden">
         <div className="flex flex-col flex-1">
+          {ingestProjectId && ingestCount > 0 && !ingestDismissed && (
+            <div className="px-5 pt-4">
+              <IngestionPrompt
+                projectId={ingestProjectId}
+                fileCount={ingestCount}
+                onClose={dismissIngestBanner}
+              />
+            </div>
+          )}
           {loading ? (
             <div className="flex-1 flex items-center justify-center text-[var(--text-secondary)] text-sm">
               Loading messages...
             </div>
           ) : (
-            <MessageList
-              ref={messageListRef}
-              messages={messages}
-              streamState={streamState}
-              hasMore={hasMore}
-              loadingMore={loadingMore}
-              onLoadMore={loadMore}
+            <>
+              {/* Keep MessageList mounted so scroll + stream state persist
+                  when the user expands a doc/note into the main column. */}
+              <div
+                className={mainOverlay ? "hidden" : "flex flex-col flex-1 min-h-0"}
+                aria-hidden={mainOverlay ? true : undefined}
+              >
+                <MessageList
+                  ref={messageListRef}
+                  messages={messages}
+                  streamState={streamState}
+                  hasMore={hasMore}
+                  loadingMore={loadingMore}
+                  onLoadMore={loadMore}
+                />
+              </div>
+              {mainOverlay && session && (
+                <SessionMainOverlay
+                  overlay={mainOverlay}
+                  projectId={session.projectId}
+                  onClose={() => setMainOverlay(null)}
+                />
+              )}
+            </>
+          )}
+          {/* Silent tool failures surfaced to the user */}
+          {session && (
+            <ToolErrorNoticeList
+              errors={streamState.toolErrors}
+              projectId={session.projectId}
+              onDismiss={streamState.dismissToolError}
             />
           )}
           {/* Pending permission requests */}
@@ -283,15 +332,18 @@ export default function SessionPage({
         </div>
 
         {session && panelOpen && (
-          <SessionContextPanel
-            sessionId={id}
-            projectId={session.projectId}
-            projectPath={session.projectPath || ""}
-            model={session.model}
-            effort={session.effort}
-            messageCount={messages.length}
-            usage={session.usage}
-          />
+          <div className="hidden lg:flex">
+            <SessionContextPanel
+              sessionId={id}
+              projectId={session.projectId}
+              projectPath={session.projectPath || ""}
+              model={session.model}
+              effort={session.effort}
+              messageCount={messages.length}
+              usage={session.usage}
+              onExpandToMain={setMainOverlay}
+            />
+          </div>
         )}
       </div>
     </div>

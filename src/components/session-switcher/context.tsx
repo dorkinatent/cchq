@@ -48,6 +48,9 @@ type SwitcherCtx = {
   closeSwitcher: () => void;
   switcherOpen: boolean;
   navigateTo: (sessionId: string) => void;
+  newSessionOpen: boolean;
+  openNewSession: () => void;
+  closeNewSession: () => void;
 };
 
 const Ctx = createContext<SwitcherCtx | null>(null);
@@ -62,6 +65,7 @@ export function SessionSwitcherProvider({ children }: { children: ReactNode }) {
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [switcherOpen, setSwitcherOpen] = useState(false);
+  const [newSessionOpen, setNewSessionOpen] = useState(false);
 
   useEffect(() => {
     fetch("/api/projects")
@@ -106,6 +110,11 @@ export function SessionSwitcherProvider({ children }: { children: ReactNode }) {
 
   const openSwitcher = useCallback(() => setSwitcherOpen(true), []);
   const closeSwitcher = useCallback(() => setSwitcherOpen(false), []);
+  const openNewSession = useCallback(() => {
+    setSwitcherOpen(false);
+    setNewSessionOpen(true);
+  }, []);
+  const closeNewSession = useCallback(() => setNewSessionOpen(false), []);
 
   // Global keyboard shortcuts. Registered once here so rail + overlay + any
   // page can rely on them.
@@ -121,6 +130,7 @@ export function SessionSwitcherProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+
       // ⌘⇧[ / ⌘⇧]: cycle prev/next session in the visible list.
       if (e.shiftKey && (e.key === "[" || e.key === "]" || e.code === "BracketLeft" || e.code === "BracketRight")) {
         e.preventDefault();
@@ -135,12 +145,21 @@ export function SessionSwitcherProvider({ children }: { children: ReactNode }) {
 
     }
 
-    function onAltNum(e: KeyboardEvent) {
-      // ⌥1..9 (macOS) / Alt+1..9: jump to pinned. Avoids ⌘1..9 which
-      // macOS browsers steal for tab switching and won't let us preventDefault.
-      if (!e.altKey || e.metaKey || e.ctrlKey || e.shiftKey) return;
-      // e.code gives us the physical digit key even when Option produces
-      // a different character (e.g. ⌥1 = "¡" on US keyboards).
+    function onAlt(e: KeyboardEvent) {
+      if (!e.altKey || e.metaKey || e.ctrlKey) return;
+
+      // ⌥⇧N: open new-session dialog. ⌘N / ⌘⇧N are taken by browsers.
+      // We rely on e.code because ⌥ produces glyphs (⌥N = "˜", ⌥⇧N = "˜").
+      if (e.shiftKey && e.code === "KeyN") {
+        e.preventDefault();
+        setSwitcherOpen(false);
+        setNewSessionOpen(true);
+        return;
+      }
+
+      // ⌥1..9: jump to pinned. Avoids ⌘1..9 which macOS browsers steal
+      // for tab switching and won't let us preventDefault.
+      if (e.shiftKey) return;
       const m = /^Digit([1-9])$/.exec(e.code);
       if (!m) return;
       const id = prefs.pinned[Number(m[1]) - 1];
@@ -150,10 +169,10 @@ export function SessionSwitcherProvider({ children }: { children: ReactNode }) {
     }
 
     window.addEventListener("keydown", onKey);
-    window.addEventListener("keydown", onAltNum);
+    window.addEventListener("keydown", onAlt);
     return () => {
       window.removeEventListener("keydown", onKey);
-      window.removeEventListener("keydown", onAltNum);
+      window.removeEventListener("keydown", onAlt);
     };
   }, [sessions, currentSessionId, prefs.pinned, router]);
 
@@ -174,6 +193,9 @@ export function SessionSwitcherProvider({ children }: { children: ReactNode }) {
       closeSwitcher,
       switcherOpen,
       navigateTo,
+      newSessionOpen,
+      openNewSession,
+      closeNewSession,
     }),
     [
       projects,
@@ -191,6 +213,9 @@ export function SessionSwitcherProvider({ children }: { children: ReactNode }) {
       closeSwitcher,
       switcherOpen,
       navigateTo,
+      newSessionOpen,
+      openNewSession,
+      closeNewSession,
     ]
   );
 

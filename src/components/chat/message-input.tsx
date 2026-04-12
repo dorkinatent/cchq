@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { SlashAutocomplete } from "./slash-autocomplete";
+import { useToast } from "@/components/ui/toast";
 
 export type Attachment = {
   path: string;
@@ -22,11 +23,25 @@ export function MessageInput({
   enqueue?: (content: string, attachments?: { path: string; name: string }[]) => void;
   sessionId?: string;
 }) {
+  const { toast } = useToast();
   const [value, setValue] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [remembering, setRemembering] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-grow the textarea to fit its content, capped so a runaway paste
+  // doesn't push the chat off-screen. Past the cap, the textarea scrolls.
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const MAX_PX = 240; // ~10 lines; then scroll
+    el.style.height = Math.min(el.scrollHeight, MAX_PX) + "px";
+    el.style.overflowY = el.scrollHeight > MAX_PX ? "auto" : "hidden";
+  }, [value]);
 
   // Slash command autocomplete
   const [commands, setCommands] = useState<Command[]>([]);
@@ -216,8 +231,10 @@ export function MessageInput({
             </div>
           ))}
           {uploading && (
-            <div className="w-16 h-16 rounded-md border border-[var(--border)] flex items-center justify-center">
-              <span className="text-xs text-[var(--text-muted)] animate-pulse">...</span>
+            <div className="w-16 h-16 rounded-md border border-[var(--border)] flex items-center justify-center gap-1">
+              <span className="thinking-dot inline-block w-1 h-1 rounded-full bg-[var(--text-muted)]" style={{ animationDelay: "0ms" }} />
+              <span className="thinking-dot inline-block w-1 h-1 rounded-full bg-[var(--text-muted)]" style={{ animationDelay: "200ms" }} />
+              <span className="thinking-dot inline-block w-1 h-1 rounded-full bg-[var(--text-muted)]" style={{ animationDelay: "400ms" }} />
             </div>
           )}
         </div>
@@ -241,6 +258,7 @@ export function MessageInput({
           type="file"
           accept="image/*"
           multiple
+          aria-label="Attach image files"
           className="hidden"
           onChange={(e) => {
             if (e.target.files) handleFiles(e.target.files);
@@ -261,6 +279,7 @@ export function MessageInput({
           </svg>
         </button>
         <textarea
+          ref={textareaRef}
           value={value}
           onChange={(e) => handleValueChange(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -268,30 +287,44 @@ export function MessageInput({
           placeholder={dragOver ? "Drop image here..." : "Type a message or paste/drop an image..."}
           disabled={disabled}
           rows={1}
-          className="flex-1 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg px-4 py-3 text-sm text-[var(--text-primary)] resize-none placeholder-[var(--text-muted)] disabled:opacity-50"
+          aria-label="Message input"
+          className="flex-1 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg px-4 py-3 text-sm leading-[1.5] text-[var(--text-primary)] resize-none placeholder-[var(--text-muted)] disabled:opacity-50"
         />
         {sessionId && (
           <button
             type="button"
             onClick={async () => {
-              const res = await fetch(`/api/sessions/${sessionId}/remember`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ count: 6 }),
-              });
-              if (res.ok) {
-                const data = await res.json();
-                alert(`Extracted ${data.count} new ${data.count === 1 ? "memory" : "memories"}`);
-              } else {
-                const data = await res.json().catch(() => ({}));
-                alert(`Remember failed: ${data.error || "unknown"}`);
+              if (remembering) return;
+              setRemembering(true);
+              toast("Extracting memories…");
+              try {
+                const res = await fetch(`/api/sessions/${sessionId}/remember`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ count: 6 }),
+                });
+                if (res.ok) {
+                  const data = await res.json();
+                  toast(
+                    data.count === 0
+                      ? "Nothing new worth remembering"
+                      : `Extracted ${data.count} new ${data.count === 1 ? "memory" : "memories"}`
+                  );
+                } else {
+                  const data = await res.json().catch(() => ({}));
+                  toast(`Remember failed: ${data.error || "unknown"}`, { variant: "error" });
+                }
+              } catch (err) {
+                toast(`Remember failed: ${err instanceof Error ? err.message : "network error"}`, { variant: "error" });
+              } finally {
+                setRemembering(false);
               }
             }}
-            disabled={disabled}
-            className="px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] rounded text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-50 shrink-0"
-            title="Extract memories from the last few messages"
+            disabled={remembering}
+            className="px-4 py-3 bg-transparent border border-[var(--border)] rounded-lg text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-muted)] disabled:opacity-50 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            title="Extract durable facts from the last 6 messages (preferences, decisions, constraints) into this project's knowledge base — auto-injected into future sessions."
           >
-            🧠 Remember
+            {remembering ? "Remembering…" : "Remember"}
           </button>
         )}
         <button

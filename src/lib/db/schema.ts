@@ -52,6 +52,7 @@ export const projects = pgTable("projects", {
 `),
   autoInjectDocs: boolean("auto_inject_docs").notNull().default(true),
   hasBeenIngestionPrompted: boolean("has_been_ingestion_prompted").notNull().default(false),
+  additionalDirectories: jsonb("additional_directories").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
 });

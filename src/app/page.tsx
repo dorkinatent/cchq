@@ -4,13 +4,13 @@ import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useSessions } from "@/hooks/use-sessions";
 import { SessionCard } from "@/components/session-card";
-import { NewSessionDialog } from "@/components/new-session-dialog";
+import { useSessionSwitcher } from "@/components/session-switcher/context";
 
 function DashboardContent() {
   const searchParams = useSearchParams();
   const projectId = searchParams.get("project") || undefined;
   const { sessions, loading } = useSessions(projectId);
-  const [dialogOpen, setDialogOpen] = useState(false);
+  const { openNewSession } = useSessionSwitcher();
   const [search, setSearch] = useState("");
 
   const activeSessions = sessions.filter((s) => s.status === "active");
@@ -39,8 +39,8 @@ function DashboardContent() {
             className="bg-[var(--input-bg)] border border-[var(--input-border)] rounded-md px-3 py-1.5 text-sm text-[var(--text-primary)] w-52 placeholder-[var(--text-muted)]"
           />
           <button
-            onClick={() => setDialogOpen(true)}
-            className="bg-[var(--accent)] text-[var(--bg)] px-3.5 py-1.5 rounded-md text-sm font-medium hover:bg-[var(--accent-hover)]"
+            onClick={openNewSession}
+            className="bg-[var(--accent)] text-[var(--bg)] px-3.5 py-1.5 rounded-md text-sm font-semibold hover:bg-[var(--accent-hover)] transition-colors"
           >
             + New session
           </button>
@@ -54,7 +54,9 @@ function DashboardContent() {
           <div className="py-24 max-w-sm mx-auto text-center">
             <div className="eyebrow text-[var(--text-muted)] mb-3">Nothing in flight</div>
             <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
-              Hit <span className="text-[var(--accent)]">+ New session</span> to start one, or press{" "}
+              Press{" "}
+              <kbd className="font-mono text-[11px] border border-[var(--border)] rounded px-1.5 py-0.5 text-[var(--text-muted)]">⌥⇧N</kbd>{" "}
+              to start one, or{" "}
               <kbd className="font-mono text-[11px] border border-[var(--border)] rounded px-1.5 py-0.5 text-[var(--text-muted)]">⌘K</kbd>{" "}
               to jump to a recent one.
             </p>
@@ -68,7 +70,6 @@ function DashboardContent() {
         )}
       </div>
 
-      <NewSessionDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
     </div>
   );
 }

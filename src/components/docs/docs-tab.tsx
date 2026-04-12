@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import type { MainOverlay } from "@/components/chat/session-context-panel";
 
 type DocFile = {
   relativePath: string;
@@ -11,7 +12,15 @@ type DocFile = {
   mtime: string;
 };
 
-export function DocsTab({ projectId, projectPath }: { projectId: string; projectPath: string }) {
+export function DocsTab({
+  projectId,
+  projectPath,
+  onExpandToMain,
+}: {
+  projectId: string;
+  projectPath: string;
+  onExpandToMain?: (payload: MainOverlay) => void;
+}) {
   const [files, setFiles] = useState<DocFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
@@ -80,41 +89,56 @@ export function DocsTab({ projectId, projectPath }: { projectId: string; project
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div className="overflow-y-auto border-b border-[var(--border)] max-h-60 shrink-0">
-        {Object.entries(grouped).map(([group, items]) => (
-          <div key={group} className="mb-2">
-            <div className="eyebrow px-4 pt-2 pb-1">{group}</div>
+        {Object.entries(grouped).map(([group, items], gIdx) => (
+          <div key={group} className={gIdx === 0 ? "pb-2" : "mt-4 pb-2"}>
+            <div className="eyebrow px-4 pt-2 pb-1.5">{group}</div>
             {items.map((f) => (
               <button
                 key={f.relativePath}
                 onClick={() => setSelected(f.relativePath)}
-                className={`w-full text-left px-4 py-1 text-xs font-mono truncate ${
+                aria-current={selected === f.relativePath ? "true" : undefined}
+                className={`w-full text-left px-4 py-1.5 text-xs font-mono truncate flex items-center gap-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--accent)] focus-visible:outline-offset-[-2px] ${
                   selected === f.relativePath
-                    ? "bg-[var(--surface-raised)] text-[var(--accent)]"
+                    ? "bg-[var(--surface-raised)] text-[var(--accent)] font-medium"
                     : "text-[var(--text-secondary)] hover:bg-[var(--surface-raised)]"
                 }`}
                 title={f.relativePath}
               >
-                {f.name}
+                <span aria-hidden="true" className="inline-block w-3 shrink-0 text-[var(--accent)]">
+                  {selected === f.relativePath ? "›" : ""}
+                </span>
+                <span className="truncate">{f.name}</span>
               </button>
             ))}
           </div>
         ))}
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-y-auto pt-5 px-4 pb-4">
         {selected ? (
           <>
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between gap-1 mb-4">
               <div className="text-[11px] text-[var(--text-muted)] font-mono truncate">
                 {selected}
               </div>
-              <button
-                onClick={() => openInEditor(selected)}
-                className="text-[11px] text-[var(--accent)] hover:text-[var(--accent-hover)] shrink-0 ml-2"
-                title="Open in VS Code"
-              >
-                ↗ Open
-              </button>
+              <div className="flex items-center gap-3 shrink-0 ml-2">
+                {onExpandToMain && (
+                  <button
+                    onClick={() => onExpandToMain({ kind: "doc", relativePath: selected })}
+                    className="text-[11px] text-[var(--accent)] hover:text-[var(--accent-hover)] rounded px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                    title="Expand to full-width reader"
+                  >
+                    Expand ↗
+                  </button>
+                )}
+                <button
+                  onClick={() => openInEditor(selected)}
+                  className="text-[11px] text-[var(--accent)] hover:text-[var(--accent-hover)] rounded px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+                  title="Open in VS Code"
+                >
+                  ↗ Open
+                </button>
+              </div>
             </div>
             {contentLoading ? (
               <div className="text-xs text-[var(--text-muted)]">Loading…</div>

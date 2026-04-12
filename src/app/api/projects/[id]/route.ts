@@ -28,6 +28,7 @@ export async function PATCH(
     docGlobs?: string[];
     autoInjectDocs?: boolean;
     hasBeenIngestionPrompted?: boolean;
+    additionalDirectories?: string[];
   } = {};
   if (typeof body.name === "string") patch.name = body.name;
   if (typeof body.path === "string") patch.path = body.path;
@@ -37,6 +38,12 @@ export async function PATCH(
   if (typeof body.autoInjectDocs === "boolean") patch.autoInjectDocs = body.autoInjectDocs;
   if (typeof body.hasBeenIngestionPrompted === "boolean") {
     patch.hasBeenIngestionPrompted = body.hasBeenIngestionPrompted;
+  }
+  if (Array.isArray(body.additionalDirectories)) {
+    patch.additionalDirectories = body.additionalDirectories
+      .filter((d: unknown): d is string => typeof d === "string")
+      .map((d: string) => d.trim())
+      .filter((d: string) => d.length > 0);
   }
 
   const [updated] = await db

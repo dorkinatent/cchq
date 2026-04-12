@@ -21,6 +21,15 @@ export type PendingPermission = {
   input: Record<string, unknown>;
 };
 
+export type ToolErrorNotice = {
+  id: string;
+  toolUseId: string;
+  toolName: string;
+  message: string;
+  hint: "path_outside_cwd" | "permission_denied" | "other";
+  timestamp: number;
+};
+
 export type StreamState = {
   phase: StreamPhase;
   activeTools: ActiveTool[];
@@ -30,6 +39,7 @@ export type StreamState = {
   completedMessage: { messageId: string; content: string; toolUse: unknown[] | null } | null;
   resultReceived: boolean;
   pendingPermissions: PendingPermission[];
+  toolErrors: ToolErrorNotice[];
 };
 
 const initialState: StreamState = {
@@ -41,12 +51,14 @@ const initialState: StreamState = {
   completedMessage: null,
   resultReceived: false,
   pendingPermissions: [],
+  toolErrors: [],
 };
 
 type Action =
   | { type: "EVENT"; event: StreamEvent }
   | { type: "RESET" }
-  | { type: "DISMISS_PERMISSION"; id: string };
+  | { type: "DISMISS_PERMISSION"; id: string }
+  | { type: "DISMISS_TOOL_ERROR"; id: string };
 
 export function streamReducer(state: StreamState, action: Action): StreamState {
   if (action.type === "RESET") return initialState;
@@ -54,6 +66,12 @@ export function streamReducer(state: StreamState, action: Action): StreamState {
     return {
       ...state,
       pendingPermissions: state.pendingPermissions.filter((p) => p.id !== action.id),
+    };
+  }
+  if (action.type === "DISMISS_TOOL_ERROR") {
+    return {
+      ...state,
+      toolErrors: state.toolErrors.filter((e) => e.id !== action.id),
     };
   }
 
@@ -157,6 +175,21 @@ export function streamReducer(state: StreamState, action: Action): StreamState {
     case "auto_approval_log":
       // Informational only — no state change needed right now.
       return state;
+    case "tool_error":
+      return {
+        ...state,
+        toolErrors: [
+          ...state.toolErrors,
+          {
+            id: `${event.toolUseId}-${event.timestamp}`,
+            toolUseId: event.toolUseId,
+            toolName: event.toolName || "tool",
+            message: event.message,
+            hint: event.hint || "other",
+            timestamp: event.timestamp,
+          },
+        ],
+      };
     default:
       return state;
   }
@@ -251,6 +284,7 @@ export function useSessionStream(sessionId: string, isActive: boolean) {
   }, [connect]);
 
   const dismissPermission = (id: string) => dispatch({ type: "DISMISS_PERMISSION", id });
+  const dismissToolError = (id: string) => dispatch({ type: "DISMISS_TOOL_ERROR", id });
 
-  return { ...state, connectionStatus, dismissPermission };
+  return { ...state, connectionStatus, dismissPermission, dismissToolError };
 }
