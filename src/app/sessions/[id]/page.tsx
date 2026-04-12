@@ -13,6 +13,7 @@ import { MessageStatus } from "@/components/chat/message-status";
 import { ResumePanel } from "@/components/chat/resume-panel";
 import { SessionSummary } from "@/components/chat/session-summary";
 import { SessionSearch } from "@/components/chat/session-search";
+import { PermissionCard, type PermissionResponse } from "@/components/chat/permission-card";
 import { useContextPanel } from "@/hooks/use-context-panel";
 
 type SessionDetail = {
@@ -71,6 +72,14 @@ export default function SessionPage({
   // Fallback onSend (not used when enqueue is provided, but kept for type compat)
   function handleSend(content: string, _attachments?: Attachment[]) {
     queue.enqueue(content, _attachments?.map((a) => ({ path: a.path, name: a.name })));
+  }
+
+  async function handlePermissionRespond(response: PermissionResponse) {
+    await fetch(`/api/sessions/${id}/permission`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(response),
+    });
   }
 
   async function handleComplete() {
@@ -201,6 +210,22 @@ export default function SessionPage({
               loadingMore={loadingMore}
               onLoadMore={loadMore}
             />
+          )}
+          {/* Pending permission requests */}
+          {streamState.pendingPermissions.length > 0 && (
+            <div className="px-5 py-3 space-y-3 border-t border-[var(--border)] bg-[var(--paused-bg)]/30">
+              {streamState.pendingPermissions.map((p) => (
+                <PermissionCard
+                  key={p.id}
+                  request={{
+                    id: p.id,
+                    toolName: p.toolName,
+                    input: p.input,
+                  }}
+                  onRespond={handlePermissionRespond}
+                />
+              ))}
+            </div>
           )}
           {/* Queued / failed message status indicators */}
           {queue.messages.filter((m) => m.status !== "sent").length > 0 && (

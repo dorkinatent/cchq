@@ -15,6 +15,12 @@ export type ActiveTool = {
   done: boolean;
 };
 
+export type PendingPermission = {
+  id: string;
+  toolName: string;
+  input: Record<string, unknown>;
+};
+
 export type StreamState = {
   phase: StreamPhase;
   activeTools: ActiveTool[];
@@ -23,6 +29,7 @@ export type StreamState = {
   error: string | null;
   completedMessage: { messageId: string; content: string; toolUse: unknown[] | null } | null;
   resultReceived: boolean;
+  pendingPermissions: PendingPermission[];
 };
 
 const initialState: StreamState = {
@@ -33,6 +40,7 @@ const initialState: StreamState = {
   error: null,
   completedMessage: null,
   resultReceived: false,
+  pendingPermissions: [],
 };
 
 type Action = { type: "EVENT"; event: StreamEvent } | { type: "RESET" };
@@ -119,6 +127,26 @@ export function streamReducer(state: StreamState, action: Action): StreamState {
     case "error":
       return { ...state, phase: "error", error: event.error };
     case "ping":
+      return state;
+    case "permission_request":
+      return {
+        ...state,
+        pendingPermissions: [
+          ...state.pendingPermissions.filter((p) => p.id !== event.requestId),
+          {
+            id: event.requestId,
+            toolName: event.toolName,
+            input: event.input,
+          },
+        ],
+      };
+    case "permission_timeout":
+      return {
+        ...state,
+        pendingPermissions: state.pendingPermissions.filter((p) => p.id !== event.requestId),
+      };
+    case "auto_approval_log":
+      // Informational only — no state change needed right now.
       return state;
     default:
       return state;
