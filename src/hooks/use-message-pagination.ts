@@ -67,13 +67,23 @@ export function useMessagePagination(sessionId: string) {
 
   const loadMore = useCallback(async () => {
     if (loadingMore || !hasMore || messagesRef.current.length === 0) return;
-    setLoadingMore(true);
 
     const oldest = messagesRef.current[0];
+    // Drizzle returns camelCase `createdAt`; Supabase Realtime returns snake_case `created_at`.
+    const oldestTimestamp =
+      oldest.created_at || (oldest as unknown as { createdAt?: string }).createdAt;
+    if (!oldestTimestamp) return;
+
+    setLoadingMore(true);
+
     try {
       const res = await fetch(
-        `/api/sessions/${sessionId}/messages?before=${encodeURIComponent(oldest.created_at)}&limit=50`
+        `/api/sessions/${sessionId}/messages?before=${encodeURIComponent(oldestTimestamp)}&limit=50`
       );
+      if (!res.ok) {
+        setLoadingMore(false);
+        return;
+      }
       const data = await res.json();
       const olderMessages: Message[] = data.messages;
       messagesRef.current = [...olderMessages, ...messagesRef.current];

@@ -17,7 +17,7 @@ export function MessageBubble({ message }: { message: Message }) {
       </div>
       {hasContent && (
         <div
-          className={`rounded-lg px-4 py-3 text-sm leading-relaxed max-w-[80%] ${
+          className={`rounded-lg px-4 py-3 text-sm leading-relaxed max-w-[min(96%,720px)] ${
             isUser
               ? "bg-[var(--user-msg-bg)] text-[var(--user-msg-text)]"
               : "bg-[var(--surface-raised)] border border-[var(--border)] text-[var(--text-secondary)]"
@@ -52,7 +52,7 @@ export function MessageBubble({ message }: { message: Message }) {
             thinking={message.thinking}
           />
         ) : hasContent ? (
-          <div className="mt-1.5 max-w-[80%]">
+          <div className="mt-1.5 max-w-[min(96%,720px)]">
             <div className="bg-[var(--bg)] border border-[var(--border)] rounded-md overflow-hidden">
               <div className="flex items-center gap-2 px-3 py-2">
                 <span className="text-[var(--text-muted)] text-xs">·</span>

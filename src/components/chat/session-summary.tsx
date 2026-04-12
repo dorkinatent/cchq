@@ -92,9 +92,10 @@ export function SessionSummary({
   })();
 
   return (
+    <div className="px-5 pt-2 pb-6">
     <section
       aria-label="Session summary"
-      className="mx-5 my-6 border-t border-b border-[var(--border)] bg-[color-mix(in_oklch,var(--surface-raised)_50%,transparent)]"
+      className="max-w-[min(96%,720px)] border border-[var(--border)] rounded-md overflow-hidden bg-[color-mix(in_oklch,var(--surface-raised)_50%,transparent)]"
     >
       {/* Closing log entry header */}
       <header className="flex items-baseline justify-between px-4 pt-3 pb-2">
@@ -178,5 +179,6 @@ export function SessionSummary({
         <span className="eyebrow text-[var(--text-muted)]">end of log</span>
       </footer>
     </section>
+    </div>
   );
 }

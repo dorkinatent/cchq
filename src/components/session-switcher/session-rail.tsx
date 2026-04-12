@@ -408,11 +408,11 @@ export function SessionRail() {
         )}
       </div>
 
-      {/* Footer: knowledge + theme */}
-      <div className="border-t border-[var(--border)] px-3 py-2 flex items-center gap-2">
+      {/* Footer: knowledge link stacked above theme switcher */}
+      <div className="border-t border-[var(--border)] px-3 py-2 flex flex-col gap-1">
         <Link
           href="/knowledge"
-          className={`flex-1 px-2 py-1.5 rounded text-[12px] ${
+          className={`block px-2 py-1.5 rounded text-[12px] ${
             pathname === "/knowledge"
               ? "bg-[var(--surface-raised)] text-[var(--accent)]"
               : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"

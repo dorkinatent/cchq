@@ -117,7 +117,7 @@ export function StreamingIndicator({ state }: { state: StreamState }) {
   return (
     <div className="mb-5">
       <div className="text-[11px] text-[var(--text-muted)] mb-1">Claude</div>
-      <div className="bg-[var(--surface-raised)] border border-[var(--border)] rounded-lg overflow-hidden max-w-[80%]">
+      <div className="bg-[var(--surface-raised)] border border-[var(--border)] rounded-lg overflow-hidden max-w-[min(96%,720px)]">
 
         {/* Activity tree */}
         {hasTools && (

@@ -150,7 +150,6 @@ export const MessageList = forwardRef<
         for (const entry of entries) {
           if (
             entry.isIntersecting &&
-            hasDoneInitialScrollRef.current &&
             !loadingMore &&
             !isLoadingMoreRef.current
           ) {
@@ -165,7 +164,7 @@ export const MessageList = forwardRef<
       },
       {
         root: container,
-        rootMargin: "200px 0px 0px 0px",
+        rootMargin: "400px 0px 0px 0px",
         threshold: 0,
       }
     );

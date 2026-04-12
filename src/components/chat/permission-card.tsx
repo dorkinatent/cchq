@@ -101,7 +101,7 @@ export function PermissionCard({
   return (
     <div className="mb-5">
       <div className="eyebrow mb-1.5">Permission request</div>
-      <div className="bg-[var(--surface-raised)] border-2 border-[var(--paused-bg)] rounded-lg px-4 py-3 max-w-[80%]">
+      <div className="bg-[var(--surface-raised)] border-2 border-[var(--paused-bg)] rounded-lg px-4 py-3 max-w-[min(96%,720px)]">
         {/* Header */}
         <div className="flex items-center gap-2 mb-3 flex-wrap">
           <ToolChip name={request.toolName} />

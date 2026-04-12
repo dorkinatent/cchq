@@ -88,7 +88,7 @@ export function ToolUseBlock({ tools, thinking }: { tools: ToolBlock[]; thinking
     : "reasoning only";
 
   return (
-    <div className="mt-1.5 max-w-[80%]">
+    <div className="mt-1.5 max-w-[min(96%,720px)]">
       <div className="bg-[var(--bg)] border border-[var(--border)] rounded-md overflow-hidden">
         <button
           onClick={() => setExpanded(!expanded)}
