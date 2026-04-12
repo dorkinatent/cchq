@@ -153,6 +153,9 @@ function processMessages(
     try {
       // Emit thinking_start at the beginning of processing
       sessionEventBus.emit(sessionId, { type: "thinking_start", timestamp: Date.now() });
+      let isThinking = true;
+      const emittedToolIds = new Set<string>();
+      let lastStreamedText = "";
 
       for await (const message of q) {
         if (message.type === "system" && message.subtype === "init") {
@@ -164,9 +167,52 @@ function processMessages(
             .where(eq(schema.sessions.id, sessionId));
         }
 
+        // Handle partial/streaming messages — these arrive with includePartialMessages
+        if (message.type === "stream_event") {
+          if (isThinking) {
+            sessionEventBus.emit(sessionId, { type: "thinking_end", timestamp: Date.now() });
+            isThinking = false;
+          }
+
+          // Extract text deltas from the stream event
+          const event = (message as any).event;
+          if (event?.type === "content_block_delta" && event?.delta?.type === "text_delta") {
+            sessionEventBus.emit(sessionId, {
+              type: "text_delta",
+              text: event.delta.text,
+              timestamp: Date.now(),
+            });
+          }
+        }
+
+        // Handle tool progress messages
+        if (message.type === "tool_progress") {
+          if (isThinking) {
+            sessionEventBus.emit(sessionId, { type: "thinking_end", timestamp: Date.now() });
+            isThinking = false;
+          }
+
+          const toolName = (message as any).tool_name || (message as any).toolName || "unknown";
+          const toolUseId = (message as any).tool_use_id || (message as any).toolUseId || "";
+
+          if (toolUseId && !emittedToolIds.has(toolUseId)) {
+            emittedToolIds.add(toolUseId);
+            sessionEventBus.emit(sessionId, {
+              type: "tool_start",
+              toolUseId,
+              toolName,
+              input: (message as any).input || {},
+              timestamp: Date.now(),
+            });
+          }
+        }
+
+        // Handle full assistant messages (these arrive after streaming completes)
         if (message.type === "assistant" && message.message?.content) {
-          // End thinking phase when we get the first assistant response
-          sessionEventBus.emit(sessionId, { type: "thinking_end", timestamp: Date.now() });
+          if (isThinking) {
+            sessionEventBus.emit(sessionId, { type: "thinking_end", timestamp: Date.now() });
+            isThinking = false;
+          }
 
           const textContent = message.message.content
             .filter((b: any) => "text" in b)
@@ -177,26 +223,32 @@ function processMessages(
             (b: any) => "name" in b
           );
 
-          // Emit text_delta for text content
-          if (textContent) {
+          // Emit tool_start for tools we haven't seen via tool_progress
+          for (const block of toolBlocks) {
+            const toolId = (block as any).id || crypto.randomUUID();
+            if (!emittedToolIds.has(toolId)) {
+              emittedToolIds.add(toolId);
+              sessionEventBus.emit(sessionId, {
+                type: "tool_start",
+                toolUseId: toolId,
+                toolName: (block as any).name,
+                input: (block as any).input || {},
+                timestamp: Date.now(),
+              });
+            }
+          }
+
+          // If we didn't stream text deltas, emit the full text now
+          if (textContent && !lastStreamedText) {
             sessionEventBus.emit(sessionId, {
               type: "text_delta",
               text: textContent,
               timestamp: Date.now(),
             });
           }
+          lastStreamedText = "";
 
-          // Emit tool_start for each tool use block
-          for (const block of toolBlocks) {
-            sessionEventBus.emit(sessionId, {
-              type: "tool_start",
-              toolUseId: (block as any).id || crypto.randomUUID(),
-              toolName: (block as any).name,
-              input: (block as any).input || {},
-              timestamp: Date.now(),
-            });
-          }
-
+          // Persist to database
           if (textContent) {
             const insertedMessage = await db.insert(schema.messages).values({
               sessionId,
@@ -205,7 +257,6 @@ function processMessages(
               toolUse: toolBlocks.length > 0 ? toolBlocks : null,
             }).returning({ id: schema.messages.id });
 
-            // Emit message_complete
             sessionEventBus.emit(sessionId, {
               type: "message_complete",
               messageId: insertedMessage[0]?.id || crypto.randomUUID(),
@@ -215,7 +266,7 @@ function processMessages(
             });
           }
 
-          // Emit tool_end for each tool block (they completed as part of this message)
+          // Emit tool_end for completed tools
           for (const block of toolBlocks) {
             sessionEventBus.emit(sessionId, {
               type: "tool_end",
@@ -225,9 +276,18 @@ function processMessages(
               timestamp: Date.now(),
             });
           }
+
+          // Reset for next thinking phase
+          isThinking = true;
+          sessionEventBus.emit(sessionId, { type: "thinking_start", timestamp: Date.now() });
         }
 
         if (message.type === "result") {
+          // End any active thinking phase
+          if (isThinking) {
+            sessionEventBus.emit(sessionId, { type: "thinking_end", timestamp: Date.now() });
+            isThinking = false;
+          }
           if (message.subtype === "success") {
             // Fetch current usage to accumulate
             const current = await db.query.sessions.findFirst({
@@ -349,6 +409,7 @@ export async function startSession(
       model,
       effort: (effort as "low" | "medium" | "high" | "max") || "high",
       abortController,
+      includePartialMessages: true,
       systemPrompt: {
         type: "preset",
         preset: "claude_code",
@@ -433,6 +494,7 @@ export async function sendMessage(
     options: {
       resume: sdkSessionId,
       abortController,
+      includePartialMessages: true,
       permissionMode: permConfig.permissionMode as any,
       ...(permConfig.canUseTool ? { canUseTool: permConfig.canUseTool } : {}),
     },
