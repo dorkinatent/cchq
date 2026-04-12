@@ -134,15 +134,26 @@ export async function startSession(
   });
 }
 
+type Attachment = { path: string; name: string };
+
 export async function sendMessage(
   sessionId: string,
-  content: string
+  content: string,
+  attachments?: Attachment[]
 ): Promise<void> {
-  // Persist user message first
+  // Build the prompt — if there are images, tell Claude about the file paths
+  let fullPrompt = content;
+  if (attachments && attachments.length > 0) {
+    const imagePaths = attachments.map((a) => a.path).join("\n");
+    fullPrompt = `${content}\n\n[Attached images — read these files to view them:\n${imagePaths}\n]`;
+  }
+
+  // Persist user message
   await db.insert(schema.messages).values({
     sessionId,
     role: "user",
     content,
+    ...(attachments ? { toolUse: attachments } : {}),
   });
 
   let active = activeSessions.get(sessionId);
@@ -174,7 +185,7 @@ export async function sendMessage(
 
   const abortController = new AbortController();
   const q = query({
-    prompt: content,
+    prompt: fullPrompt,
     options: {
       resume: sdkSessionId,
       abortController,

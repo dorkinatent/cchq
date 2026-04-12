@@ -6,10 +6,10 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const { content } = await req.json();
+  const { content, attachments } = await req.json();
 
   try {
-    await sendMessage(id, content);
+    await sendMessage(id, content, attachments);
     return NextResponse.json({ ok: true });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 400 });

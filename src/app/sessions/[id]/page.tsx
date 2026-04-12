@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, use } from "react";
 import Link from "next/link";
 import { useSessionMessages } from "@/hooks/use-session-messages";
 import { MessageList } from "@/components/chat/message-list";
-import { MessageInput } from "@/components/chat/message-input";
+import { MessageInput, type Attachment } from "@/components/chat/message-input";
 import { SessionContextPanel } from "@/components/chat/session-context-panel";
 
 type SessionDetail = {
@@ -51,14 +51,14 @@ export default function SessionPage({
     prevMessageCount.current = messages.length;
   }, [messages, id]);
 
-  async function handleSend(content: string) {
+  async function handleSend(content: string, attachments?: Attachment[]) {
     setSending(true);
     setThinking(true);
     try {
       const res = await fetch(`/api/sessions/${id}/message`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content, attachments }),
       });
       if (!res.ok) {
         const data = await res.json();
