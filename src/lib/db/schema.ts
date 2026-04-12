@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, jsonb, pgEnum, integer } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, jsonb, pgEnum, integer, boolean } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
 export const sessionStatusEnum = pgEnum("session_status", [
@@ -36,11 +36,22 @@ export const permissionDecisionEnum = pgEnum("permission_decision", [
 
 export const engineEnum = pgEnum("engine", ["sdk", "gastown"]);
 
+export const knowledgeOriginEnum = pgEnum("knowledge_origin", [
+  "session_extract",
+  "manual",
+  "doc_seed",
+]);
+
 export const projects = pgTable("projects", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
   path: text("path").notNull().unique(),
   engine: engineEnum("engine").notNull().default("sdk"),
+  docGlobs: jsonb("doc_globs").$type<string[]>().notNull().default(sql`
+  '["README.md", "CHANGELOG.md", "AGENTS.md", "CLAUDE.md", "docs/**/*.md", ".github/**/*.md", "doc/**/*.md"]'::jsonb
+`),
+  autoInjectDocs: boolean("auto_inject_docs").notNull().default(true),
+  hasBeenIngestionPrompted: boolean("has_been_ingestion_prompted").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
 });
@@ -82,6 +93,7 @@ export const knowledge = pgTable("knowledge", {
   type: knowledgeTypeEnum("type").notNull(),
   content: text("content").notNull(),
   tags: jsonb("tags").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  origin: knowledgeOriginEnum("origin").notNull().default("session_extract"),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
 });
 
@@ -120,4 +132,15 @@ export const rigEvents = pgTable("rig_events", {
   payload: jsonb("payload"),
   timestamp: timestamp("timestamp", { withTimezone: true, mode: "string" }),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+});
+
+export const projectNotes = pgTable("project_notes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  projectId: uuid("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  content: text("content").notNull().default(""),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
 });
