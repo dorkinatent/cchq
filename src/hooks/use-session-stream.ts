@@ -71,15 +71,14 @@ export function streamReducer(state: StreamState, action: Action): StreamState {
         ),
       };
     case "tool_end":
+      // Just mark the tool as done — stay in tool_use phase so the indicator
+      // keeps showing. The phase will transition out of tool_use when the next
+      // thinking_start, text_delta, message_complete, or result event arrives.
       return {
         ...state,
         activeTools: state.activeTools.map((t) =>
           t.toolUseId === event.toolUseId ? { ...t, done: true, output: event.output } : t
         ),
-        // If all tools done, go back to idle (or streaming if text follows)
-        phase: state.activeTools.every((t) => t.toolUseId === event.toolUseId || t.done)
-          ? "idle"
-          : "tool_use",
       };
     case "text_delta":
       return { ...state, phase: "streaming", streamingText: state.streamingText + event.text };
