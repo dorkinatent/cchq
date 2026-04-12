@@ -142,22 +142,21 @@ export const MessageList = forwardRef<
   useEffect(() => {
     if (!hasMore || !onLoadMore) return;
     const sentinel = sentinelRef.current;
-    if (!sentinel) return;
+    const container = containerRef.current;
+    if (!sentinel || !container) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
-          // Don't fire until we've done the initial scroll-to-bottom — otherwise
-          // the sentinel is visible on mount and would immediately trigger.
           if (
             entry.isIntersecting &&
             hasDoneInitialScrollRef.current &&
             !loadingMore &&
             !isLoadingMoreRef.current
           ) {
-            const container = containerRef.current;
-            if (container) {
-              prevScrollHeightRef.current = container.scrollHeight;
+            const c = containerRef.current;
+            if (c) {
+              prevScrollHeightRef.current = c.scrollHeight;
               isLoadingMoreRef.current = true;
               onLoadMore();
             }
@@ -165,16 +164,16 @@ export const MessageList = forwardRef<
         }
       },
       {
-        root: containerRef.current,
-        // Trigger a bit before the sentinel is actually in view so the
-        // load feels snappy.
+        root: container,
         rootMargin: "200px 0px 0px 0px",
         threshold: 0,
       }
     );
 
     observer.observe(sentinel);
-    return () => observer.disconnect();
+    return () => {
+      observer.disconnect();
+    };
   }, [hasMore, loadingMore, onLoadMore]);
 
   const turns = groupIntoTurns(messages);
