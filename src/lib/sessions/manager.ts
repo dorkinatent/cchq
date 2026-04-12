@@ -274,8 +274,9 @@ function processMessages(
           }
           lastStreamedText = "";
 
-          // Persist to database
-          if (textContent) {
+          // Persist to database — save if there is ANY content: text, tools, or thinking.
+          // Tool-only turns get an empty content string so the caret still renders.
+          if (textContent || toolBlocks.length > 0 || thinkingContent) {
             const insertedMessage = await db.insert(schema.messages).values({
               sessionId,
               role: "assistant",

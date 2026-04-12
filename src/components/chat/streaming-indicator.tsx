@@ -109,12 +109,12 @@ export function StreamingIndicator({ state }: { state: StreamState }) {
         {state.phase === "thinking" && (
           <div className={`px-4 py-2.5 ${hasTools ? "border-t border-[var(--border)]" : ""}`}>
             <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
-              <span className="flex gap-1">
-                <span className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                <span className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                <span className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+              <span className="flex gap-1" aria-hidden>
+                <span className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full thinking-dot" style={{ animationDelay: "0ms" }} />
+                <span className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full thinking-dot" style={{ animationDelay: "200ms" }} />
+                <span className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full thinking-dot" style={{ animationDelay: "400ms" }} />
               </span>
-              <span>Thinking...</span>
+              <span>Thinking</span>
               {state.thinkingStartedAt && (
                 <span className="text-[var(--text-muted)]">
                   <ElapsedTimer startedAt={state.thinkingStartedAt} />
@@ -127,23 +127,25 @@ export function StreamingIndicator({ state }: { state: StreamState }) {
         {state.phase === "tool_use" && !state.activeTools.some(t => !t.done) && (
           <div className="px-4 py-2.5 border-t border-[var(--border)]">
             <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
-              <span className="flex gap-1">
-                <span className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                <span className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                <span className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+              <span className="flex gap-1" aria-hidden>
+                <span className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full thinking-dot" style={{ animationDelay: "0ms" }} />
+                <span className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full thinking-dot" style={{ animationDelay: "200ms" }} />
+                <span className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full thinking-dot" style={{ animationDelay: "400ms" }} />
               </span>
-              <span>Processing...</span>
+              <span>Processing</span>
             </div>
           </div>
         )}
 
-        {state.phase === "streaming" && (
+        {/* Show streaming text whenever we have any, regardless of phase —
+            Claude often alternates between text and tool calls in the same turn */}
+        {state.streamingText && state.phase !== "error" && (
           <div className={`px-4 py-2.5 ${hasTools ? "border-t border-[var(--border)]" : ""}`}>
             <div className="prose prose-sm max-w-none prose-p:my-2 prose-headings:my-3 prose-pre:bg-[var(--bg)] prose-pre:border prose-pre:border-[var(--border)] prose-code:text-[var(--accent)] prose-code:before:content-none prose-code:after:content-none prose-a:text-[var(--accent)] prose-strong:text-[var(--text-primary)]">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {state.streamingText}
               </ReactMarkdown>
-              <span className="inline-block w-1.5 h-4 bg-[var(--accent)] animate-pulse ml-0.5 align-text-bottom" />
+              <span className="inline-block w-[2px] h-4 bg-[var(--accent)] caret-blink ml-0.5 align-text-bottom" aria-hidden />
             </div>
           </div>
         )}

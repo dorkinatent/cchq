@@ -99,7 +99,7 @@ export function ResumePanel({
         <button
           onClick={handleResume}
           disabled={resuming}
-          className="w-full py-2 px-4 bg-[var(--accent)] text-white rounded-md text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
+          className="w-full py-2 px-4 bg-[var(--accent)] text-[var(--bg)] rounded-md text-sm font-semibold hover:bg-[var(--accent-hover)] disabled:opacity-50 transition-colors"
         >
           {resuming ? "Resuming..." : "Resume Session"}
         </button>

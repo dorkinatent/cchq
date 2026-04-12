@@ -1,10 +1,19 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Recursive } from "next/font/google";
 import "./globals.css";
-import { Sidebar } from "@/components/sidebar";
 import { ThemeProvider } from "@/components/theme-provider";
+import { SessionSwitcherProvider } from "@/components/session-switcher/context";
+import { SessionRail } from "@/components/session-switcher/session-rail";
+import { QuickSwitcher } from "@/components/session-switcher/quick-switcher";
 
-const inter = Inter({ subsets: ["latin"] });
+// Recursive is a variable font with CASL (casual/warmth) and MONO axes — one
+// family covers UI text and terminal contexts without loading a second family.
+const recursive = Recursive({
+  subsets: ["latin"],
+  axes: ["CASL", "MONO", "slnt"],
+  variable: "--font-recursive",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "CCUI — Claude Code Dashboard",
@@ -17,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" data-theme="fossil" suppressHydrationWarning>
+    <html lang="en" data-theme="fossil" className={recursive.variable} suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -25,12 +34,15 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${inter.className} bg-[var(--bg)] text-[var(--text-primary)] antialiased`}>
+      <body className="bg-[var(--bg)] text-[var(--text-primary)] antialiased">
         <ThemeProvider>
-          <div className="flex h-screen overflow-hidden">
-            <Sidebar />
-            <main className="flex-1 overflow-auto">{children}</main>
-          </div>
+          <SessionSwitcherProvider>
+            <div className="flex h-screen overflow-hidden">
+              <SessionRail />
+              <main className="flex-1 overflow-auto min-w-0">{children}</main>
+            </div>
+            <QuickSwitcher />
+          </SessionSwitcherProvider>
         </ThemeProvider>
       </body>
     </html>

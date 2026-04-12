@@ -11,6 +11,7 @@ import { SessionContextPanel } from "@/components/chat/session-context-panel";
 import { ConnectionStatus } from "@/components/chat/connection-status";
 import { MessageStatus } from "@/components/chat/message-status";
 import { ResumePanel } from "@/components/chat/resume-panel";
+import { SessionSummary } from "@/components/chat/session-summary";
 import { SessionSearch } from "@/components/chat/session-search";
 
 type SessionDetail = {
@@ -23,6 +24,7 @@ type SessionDetail = {
   projectName?: string;
   projectPath?: string;
   usage?: { totalTokens: number; totalCostUsd: number; numTurns: number } | null;
+  createdAt?: string;
   updatedAt?: string;
 };
 
@@ -97,14 +99,18 @@ export default function SessionPage({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex justify-between items-center px-6 py-3 border-b border-[var(--border)] shrink-0">
-        <div className="flex items-center gap-3">
-          <Link href="/" className="text-[var(--text-secondary)] hover:text-[var(--text-primary)] text-sm">
-            &larr; Back
+      <div className="flex justify-between items-center px-6 py-4 border-b border-[var(--border)] shrink-0">
+        <div className="flex items-center gap-4 min-w-0">
+          <Link
+            href="/"
+            className="text-[var(--text-muted)] hover:text-[var(--text-primary)] text-[12px] shrink-0"
+            aria-label="Back to dashboard"
+          >
+            &larr;
           </Link>
-          <span className="text-base font-semibold text-[var(--text-primary)]">
-            {session?.name || "Loading..."}
-          </span>
+          <h1 className="text-[19px] font-semibold tracking-tight text-[var(--text-primary)] leading-tight truncate">
+            {session?.name || "Loading…"}
+          </h1>
           {session && (
             <span
               className={`text-[11px] px-2 py-0.5 rounded-full ${
@@ -201,6 +207,14 @@ export default function SessionPage({
               projectId={session.projectId}
               pausedAt={session.updatedAt || new Date().toISOString()}
               onResume={handleResume}
+            />
+          ) : session?.status === "completed" || session?.status === "errored" ? (
+            <SessionSummary
+              sessionId={id}
+              model={session.model}
+              usage={session.usage}
+              createdAt={session.createdAt || session.updatedAt || new Date().toISOString()}
+              endedAt={session.updatedAt || new Date().toISOString()}
             />
           ) : (
             <MessageInput

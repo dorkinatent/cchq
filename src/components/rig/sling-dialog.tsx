@@ -39,7 +39,7 @@ export function SlingDialog({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+    <div className="fixed inset-0 backdrop-themed flex items-center justify-center z-50">
       <form
         onSubmit={submit}
         className="bg-[var(--surface-raised)] border border-[var(--border)] rounded-lg p-6 w-full max-w-sm"

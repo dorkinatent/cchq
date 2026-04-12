@@ -128,12 +128,12 @@ export function NewSessionDialog({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+    <div className="fixed inset-0 backdrop-themed flex items-center justify-center z-50">
       <form
         onSubmit={handleSubmit}
         className="bg-[var(--surface-raised)] border border-[var(--border)] rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto"
       >
-        <h2 className="text-lg font-semibold text-[var(--text-primary)] mb-4">New Session</h2>
+        <h2 className="text-[19px] font-semibold tracking-tight leading-tight text-[var(--text-primary)] mb-5">New session</h2>
 
         {!showNewProject ? (
           <div className="mb-4">

@@ -32,7 +32,7 @@ export function KnowledgeDelta({ projectId, since }: { projectId: string; since:
         onClick={() => setExpanded(!expanded)}
         className="flex items-center gap-2 text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
       >
-        <span className="bg-[var(--accent)] text-white text-[10px] font-medium px-1.5 py-0.5 rounded-full">
+        <span className="bg-[var(--accent)] text-[var(--bg)] text-[10px] font-semibold px-1.5 py-0.5 rounded-full">
           {entries.length}
         </span>
         <span>new knowledge {entries.length === 1 ? "entry" : "entries"} since pause</span>

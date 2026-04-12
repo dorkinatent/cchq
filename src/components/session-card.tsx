@@ -114,7 +114,7 @@ export function SessionCard({ session }: { session: Session }) {
               e.stopPropagation();
               router.push(`/sessions/${session.id}`);
             }}
-            className="mt-3 w-full py-1.5 px-3 bg-[var(--accent)] text-white rounded text-xs font-medium hover:opacity-90 transition-opacity"
+            className="mt-3 w-full py-1.5 px-3 bg-[var(--accent)] text-[var(--bg)] rounded text-xs font-semibold hover:bg-[var(--accent-hover)] transition-colors"
           >
             Resume
           </button>
