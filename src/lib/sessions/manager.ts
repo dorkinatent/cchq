@@ -52,7 +52,7 @@ export function respondToPermission(
         createAllowRule(session.projectId, pending.toolName).catch(console.error);
       }
     }
-    pending.resolve({ behavior: "allow" });
+    pending.resolve({ behavior: "allow", updatedInput: pending.input });
   } else {
     const message = [
       "The user denied this action.",
@@ -61,7 +61,7 @@ export function respondToPermission(
     ]
       .filter(Boolean)
       .join(" ");
-    pending.resolve({ behavior: "deny", message });
+    pending.resolve({ behavior: "deny", message, interrupt: false });
   }
 }
 
@@ -122,11 +122,17 @@ function buildCanUseTool(sessionId: string, projectId: string, trustLevel: Trust
           timestamp: Date.now(),
         });
       }
-      return { behavior: "allow" };
+      // Pass the original input back as updatedInput — some SDK Zod schemas
+      // require this field even though the type marks it optional.
+      return { behavior: "allow", updatedInput: input };
     }
 
     if (result.decision === "deny") {
-      return { behavior: "deny", message: `Denied by project rule: ${result.reason}` };
+      return {
+        behavior: "deny",
+        message: `Denied by project rule: ${result.reason}`,
+        interrupt: false,
+      };
     }
 
     // decision === "ask" — emit permission request to UI and wait
@@ -418,37 +424,19 @@ function getPermissionConfig(
   sessionId: string,
   projectId: string,
   trustLevel: TrustLevel
-): { permissionMode: string; canUseTool?: any; settings?: any } {
+): { permissionMode: string; canUseTool?: any } {
   if (trustLevel === "full_auto" || trustLevel === "auto_log") {
     return { permissionMode: "acceptEdits" };
   }
   // ask_me: force every tool through canUseTool.
   //
-  // The SDK's "default" permissionMode only prompts for operations the SDK
-  // considers "dangerous" (Bash, network tools). Safe file tools like Read,
-  // Glob, Grep, Write, Edit are auto-allowed WITHOUT invoking canUseTool.
-  //
-  // To route every tool through our custom callback, we explicitly list the
-  // tools we want to be prompted on via settings.permissions.ask. Pattern
-  // follows the SDK example: `"Bash(*)"` means "any Bash call".
+  // Using permissionMode: "default" with a canUseTool callback. The SDK
+  // invokes canUseTool for tool calls that would otherwise prompt. The
+  // "default" mode's internal ask list should cover most tools when we
+  // also provide the callback — observed behavior may require tuning.
   return {
     permissionMode: "default",
     canUseTool: buildCanUseTool(sessionId, projectId, trustLevel),
-    settings: {
-      permissions: {
-        ask: [
-          "Read(*)",
-          "Write(*)",
-          "Edit(*)",
-          "Bash(*)",
-          "Glob(*)",
-          "Grep(*)",
-          "WebFetch(*)",
-          "WebSearch(*)",
-          "NotebookEdit(*)",
-        ],
-      },
-    },
   };
 }
 
@@ -499,7 +487,6 @@ export async function startSession(
       },
       permissionMode: permConfig.permissionMode as any,
       ...(permConfig.canUseTool ? { canUseTool: permConfig.canUseTool } : {}),
-      ...(permConfig.settings ? { settings: permConfig.settings } : {}),
     },
   });
 
@@ -581,7 +568,6 @@ export async function sendMessage(
       thinking: { type: "enabled", budgetTokens: 10000 },
       permissionMode: permConfig.permissionMode as any,
       ...(permConfig.canUseTool ? { canUseTool: permConfig.canUseTool } : {}),
-      ...(permConfig.settings ? { settings: permConfig.settings } : {}),
     },
   });
 
@@ -698,7 +684,6 @@ export async function resumeSession(sessionId: string, resumeNote?: string): Pro
       includePartialMessages: true,
       permissionMode: permConfig.permissionMode as any,
       ...(permConfig.canUseTool ? { canUseTool: permConfig.canUseTool } : {}),
-      ...(permConfig.settings ? { settings: permConfig.settings } : {}),
     },
   });
 
