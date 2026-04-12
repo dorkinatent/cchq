@@ -1,3 +1,5 @@
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { Message } from "@/hooks/use-session-messages";
 import { ToolUseBlock } from "./tool-use-block";
 
@@ -17,7 +19,15 @@ export function MessageBubble({ message }: { message: Message }) {
             : "bg-neutral-900 border border-neutral-800 text-neutral-300"
         }`}
       >
-        <div className="whitespace-pre-wrap">{message.content}</div>
+        {isUser ? (
+          <div className="whitespace-pre-wrap">{message.content}</div>
+        ) : (
+          <div className="prose prose-invert prose-sm max-w-none prose-p:my-2 prose-headings:my-3 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-pre:bg-neutral-950 prose-pre:border prose-pre:border-neutral-800 prose-code:text-blue-300 prose-code:before:content-none prose-code:after:content-none prose-a:text-blue-400 prose-strong:text-neutral-200">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {message.content}
+            </ReactMarkdown>
+          </div>
+        )}
       </div>
       {message.tool_use && Array.isArray(message.tool_use) && (
         <ToolUseBlock tools={message.tool_use} />
