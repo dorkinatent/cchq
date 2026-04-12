@@ -16,6 +16,29 @@ function ElapsedTimer({ startedAt }: { startedAt: number }) {
   return <span className="tabular-nums">{elapsed}s</span>;
 }
 
+const THINKING_VERBS = [
+  "Thinking", "Pondering", "Considering", "Reasoning", "Musing", "Reflecting",
+  "Cogitating", "Ruminating", "Deliberating", "Contemplating", "Weighing",
+  "Puzzling", "Wondering", "Plotting", "Brewing",
+];
+
+const PROCESSING_VERBS = [
+  "Processing", "Churning", "Working", "Crunching", "Computing",
+  "Synthesizing", "Assembling", "Crafting", "Constructing", "Building",
+  "Wrangling", "Weaving", "Forging", "Cooking", "Distilling",
+];
+
+function RotatingVerb({ verbs }: { verbs: string[] }) {
+  const [index, setIndex] = useState(() => Math.floor(Math.random() * verbs.length));
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIndex((i) => (i + 1) % verbs.length);
+    }, 2500);
+    return () => clearInterval(interval);
+  }, [verbs.length]);
+  return <span>{verbs[index]}</span>;
+}
+
 function ToolIcon({ done }: { done: boolean }) {
   if (!done) {
     return (
@@ -114,7 +137,7 @@ export function StreamingIndicator({ state }: { state: StreamState }) {
                 <span className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full thinking-dot" style={{ animationDelay: "200ms" }} />
                 <span className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full thinking-dot" style={{ animationDelay: "400ms" }} />
               </span>
-              <span>Thinking</span>
+              <span><RotatingVerb verbs={THINKING_VERBS} />...</span>
               {state.thinkingStartedAt && (
                 <span className="text-[var(--text-muted)]">
                   <ElapsedTimer startedAt={state.thinkingStartedAt} />
@@ -132,7 +155,7 @@ export function StreamingIndicator({ state }: { state: StreamState }) {
                 <span className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full thinking-dot" style={{ animationDelay: "200ms" }} />
                 <span className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full thinking-dot" style={{ animationDelay: "400ms" }} />
               </span>
-              <span>Processing</span>
+              <span><RotatingVerb verbs={PROCESSING_VERBS} />...</span>
             </div>
           </div>
         )}
