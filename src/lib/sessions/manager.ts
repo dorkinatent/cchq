@@ -151,6 +151,9 @@ function processMessages(
 ) {
   (async () => {
     try {
+      // Emit thinking_start at the beginning of processing
+      sessionEventBus.emit(sessionId, { type: "thinking_start", timestamp: Date.now() });
+
       for await (const message of q) {
         if (message.type === "system" && message.subtype === "init") {
           const sdkId = message.session_id;
@@ -162,6 +165,9 @@ function processMessages(
         }
 
         if (message.type === "assistant" && message.message?.content) {
+          // End thinking phase when we get the first assistant response
+          sessionEventBus.emit(sessionId, { type: "thinking_end", timestamp: Date.now() });
+
           const textContent = message.message.content
             .filter((b: any) => "text" in b)
             .map((b: any) => b.text)
@@ -171,12 +177,52 @@ function processMessages(
             (b: any) => "name" in b
           );
 
+          // Emit text_delta for text content
           if (textContent) {
-            await db.insert(schema.messages).values({
+            sessionEventBus.emit(sessionId, {
+              type: "text_delta",
+              text: textContent,
+              timestamp: Date.now(),
+            });
+          }
+
+          // Emit tool_start for each tool use block
+          for (const block of toolBlocks) {
+            sessionEventBus.emit(sessionId, {
+              type: "tool_start",
+              toolUseId: (block as any).id || crypto.randomUUID(),
+              toolName: (block as any).name,
+              input: (block as any).input || {},
+              timestamp: Date.now(),
+            });
+          }
+
+          if (textContent) {
+            const insertedMessage = await db.insert(schema.messages).values({
               sessionId,
               role: "assistant",
               content: textContent,
               toolUse: toolBlocks.length > 0 ? toolBlocks : null,
+            }).returning({ id: schema.messages.id });
+
+            // Emit message_complete
+            sessionEventBus.emit(sessionId, {
+              type: "message_complete",
+              messageId: insertedMessage[0]?.id || crypto.randomUUID(),
+              content: textContent,
+              toolUse: toolBlocks.length > 0 ? toolBlocks : null,
+              timestamp: Date.now(),
+            });
+          }
+
+          // Emit tool_end for each tool block (they completed as part of this message)
+          for (const block of toolBlocks) {
+            sessionEventBus.emit(sessionId, {
+              type: "tool_end",
+              toolUseId: (block as any).id || "",
+              toolName: (block as any).name,
+              output: (block as any).output || null,
+              timestamp: Date.now(),
             });
           }
         }
@@ -191,27 +237,51 @@ function processMessages(
             const prev = (current?.usage as any) || { totalTokens: 0, totalCostUsd: 0, numTurns: 0 };
             const newTokens = (message.usage?.input_tokens || 0) + (message.usage?.output_tokens || 0);
 
+            const updatedUsage = {
+              totalTokens: prev.totalTokens + newTokens,
+              totalCostUsd: prev.totalCostUsd + (message.total_cost_usd || 0),
+              numTurns: prev.numTurns + (message.num_turns || 0),
+            };
+
             await db
               .update(schema.sessions)
               .set({
                 updatedAt: new Date().toISOString(),
-                usage: {
-                  totalTokens: prev.totalTokens + newTokens,
-                  totalCostUsd: prev.totalCostUsd + (message.total_cost_usd || 0),
-                  numTurns: prev.numTurns + (message.num_turns || 0),
-                },
+                usage: updatedUsage,
               })
               .where(eq(schema.sessions.id, sessionId));
+
+            sessionEventBus.emit(sessionId, {
+              type: "result",
+              success: true,
+              totalCostUsd: updatedUsage.totalCostUsd,
+              totalTokens: updatedUsage.totalTokens,
+              numTurns: updatedUsage.numTurns,
+              timestamp: Date.now(),
+            });
           } else {
             await db
               .update(schema.sessions)
               .set({ updatedAt: new Date().toISOString() })
               .where(eq(schema.sessions.id, sessionId));
+
+            sessionEventBus.emit(sessionId, {
+              type: "error",
+              error: (message as any).error || (message as any).errors?.join(", ") || "Session ended with an error",
+              timestamp: Date.now(),
+            });
           }
         }
       }
     } catch (error) {
       console.error(`Session ${sessionId} error:`, error);
+
+      sessionEventBus.emit(sessionId, {
+        type: "error",
+        error: error instanceof Error ? error.message : "Unknown error",
+        timestamp: Date.now(),
+      });
+
       await db
         .update(schema.sessions)
         .set({ status: "errored", updatedAt: new Date().toISOString() })

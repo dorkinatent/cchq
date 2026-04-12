@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState, useRef, use } from "react";
+import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { useSessionMessages } from "@/hooks/use-session-messages";
+import { useSessionStream } from "@/hooks/use-session-stream";
 import { MessageList } from "@/components/chat/message-list";
 import { MessageInput, type Attachment } from "@/components/chat/message-input";
 import { SessionContextPanel } from "@/components/chat/session-context-panel";
@@ -27,8 +28,9 @@ export default function SessionPage({
   const { messages, loading } = useSessionMessages(id);
   const [session, setSession] = useState<SessionDetail | null>(null);
   const [sending, setSending] = useState(false);
-  const [thinking, setThinking] = useState(false);
-  const prevMessageCount = useRef(0);
+
+  const isActive = session?.status === "active";
+  const streamState = useSessionStream(id, !!isActive);
 
   useEffect(() => {
     fetch(`/api/sessions/${id}`)
@@ -36,24 +38,25 @@ export default function SessionPage({
       .then(setSession);
   }, [id]);
 
-  // Detect when a new assistant message arrives -> stop thinking
+  // Refresh session details when a message completes (to get updated usage)
   useEffect(() => {
-    if (messages.length > prevMessageCount.current) {
-      const newMessages = messages.slice(prevMessageCount.current);
-      if (newMessages.some((m) => m.role === "assistant")) {
-        setThinking(false);
-        // Refresh session to get updated usage
-        fetch(`/api/sessions/${id}`)
-          .then((r) => r.json())
-          .then(setSession);
-      }
+    if (streamState.completedMessage) {
+      fetch(`/api/sessions/${id}`)
+        .then((r) => r.json())
+        .then(setSession);
     }
-    prevMessageCount.current = messages.length;
-  }, [messages, id]);
+  }, [streamState.completedMessage, id]);
+
+  const phaseLabel = {
+    idle: null,
+    thinking: "Thinking...",
+    tool_use: "Using tools...",
+    streaming: "Writing...",
+    error: "Error",
+  }[streamState.phase];
 
   async function handleSend(content: string, attachments?: Attachment[]) {
     setSending(true);
-    setThinking(true);
     try {
       const res = await fetch(`/api/sessions/${id}/message`, {
         method: "POST",
@@ -63,11 +66,9 @@ export default function SessionPage({
       if (!res.ok) {
         const data = await res.json();
         alert(`Failed to send: ${data.error || "Unknown error"}`);
-        setThinking(false);
       }
     } catch (err: any) {
       alert(`Failed to send: ${err.message}`);
-      setThinking(false);
     }
     setSending(false);
   }
@@ -85,8 +86,6 @@ export default function SessionPage({
     });
     setSession((s) => (s ? { ...s, status: "paused" } : s));
   }
-
-  const isActive = session?.status === "active";
 
   return (
     <div className="flex flex-col h-full">
@@ -111,9 +110,9 @@ export default function SessionPage({
               {session.status}
             </span>
           )}
-          {thinking && (
+          {phaseLabel && (
             <span className="text-[11px] text-[var(--accent)] animate-pulse">
-              Claude is working...
+              {phaseLabel}
             </span>
           )}
         </div>
@@ -150,11 +149,11 @@ export default function SessionPage({
               Loading messages...
             </div>
           ) : (
-            <MessageList messages={messages} thinking={thinking} />
+            <MessageList messages={messages} streamState={streamState} />
           )}
           <MessageInput
             onSend={handleSend}
-            disabled={!isActive || sending}
+            disabled={!isActive || sending || streamState.phase !== "idle"}
           />
         </div>
 
