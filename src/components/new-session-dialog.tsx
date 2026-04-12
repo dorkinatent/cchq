@@ -4,6 +4,12 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 type Project = { id: string; name: string; path: string };
+type BrowseResult = {
+  current: string;
+  parent: string;
+  directories: { name: string; path: string }[];
+  isGitRepo: boolean;
+};
 
 export function NewSessionDialog({
   open,
@@ -23,13 +29,45 @@ export function NewSessionDialog({
   const [showNewProject, setShowNewProject] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // Folder browser state
+  const [showBrowser, setShowBrowser] = useState(false);
+  const [browseResult, setBrowseResult] = useState<BrowseResult | null>(null);
+  const [browsing, setBrowsing] = useState(false);
+
   useEffect(() => {
     if (open) {
       fetch("/api/projects")
         .then((r) => r.json())
-        .then(setProjects);
+        .then((data) => {
+          setProjects(data);
+          // If no projects exist, default to new project mode
+          if (data.length === 0) {
+            setShowNewProject(true);
+          }
+        });
     }
   }, [open]);
+
+  async function browseTo(path?: string) {
+    setBrowsing(true);
+    const params = path ? `?path=${encodeURIComponent(path)}` : "";
+    const res = await fetch(`/api/browse${params}`);
+    const data = await res.json();
+    if (!data.error) {
+      setBrowseResult(data);
+    }
+    setBrowsing(false);
+  }
+
+  function handleSelectFolder(path: string) {
+    setNewProjectPath(path);
+    // Auto-fill project name from folder name
+    const folderName = path.split("/").pop() || "";
+    if (!newProjectName) {
+      setNewProjectName(folderName);
+    }
+    setShowBrowser(false);
+  }
 
   if (!open) return null;
 
@@ -69,7 +107,7 @@ export function NewSessionDialog({
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
       <form
         onSubmit={handleSubmit}
-        className="bg-neutral-900 border border-neutral-800 rounded-lg p-6 w-full max-w-md"
+        className="bg-neutral-900 border border-neutral-800 rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto"
       >
         <h2 className="text-lg font-semibold text-white mb-4">New Session</h2>
 
@@ -94,11 +132,105 @@ export function NewSessionDialog({
               onClick={() => setShowNewProject(true)}
               className="text-xs text-blue-400 mt-1 hover:underline"
             >
-              + New project
+              + Add new project folder
             </button>
           </div>
         ) : (
           <div className="mb-4 space-y-2">
+            <div>
+              <label className="block text-xs text-neutral-400 mb-1">Directory Path</label>
+              <div className="flex gap-2">
+                <input
+                  value={newProjectPath}
+                  onChange={(e) => setNewProjectPath(e.target.value)}
+                  className="flex-1 bg-neutral-800 border border-neutral-700 rounded px-3 py-2 text-sm text-white font-mono"
+                  placeholder="/Users/you/Code/project"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowBrowser(true);
+                    browseTo(newProjectPath || undefined);
+                  }}
+                  className="px-3 py-2 bg-neutral-800 border border-neutral-700 rounded text-sm text-neutral-300 hover:text-white shrink-0"
+                >
+                  Browse
+                </button>
+              </div>
+            </div>
+
+            {/* Folder browser */}
+            {showBrowser && browseResult && (
+              <div className="bg-neutral-950 border border-neutral-700 rounded-md overflow-hidden">
+                <div className="px-3 py-2 border-b border-neutral-800 flex justify-between items-center">
+                  <span className="text-xs text-neutral-400 font-mono truncate">
+                    {browseResult.current}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowBrowser(false)}
+                    className="text-xs text-neutral-500 hover:text-white ml-2"
+                  >
+                    Close
+                  </button>
+                </div>
+
+                <div className="flex gap-2 px-3 py-2 border-b border-neutral-800">
+                  <button
+                    type="button"
+                    onClick={() => browseTo(browseResult.parent)}
+                    className="text-xs text-neutral-400 hover:text-white"
+                  >
+                    .. (up)
+                  </button>
+                  {browseResult.isGitRepo && (
+                    <span className="text-xs text-green-400 ml-auto">git repo</span>
+                  )}
+                </div>
+
+                <div className="max-h-48 overflow-y-auto">
+                  {browsing ? (
+                    <div className="px-3 py-4 text-xs text-neutral-500">Loading...</div>
+                  ) : browseResult.directories.length === 0 ? (
+                    <div className="px-3 py-4 text-xs text-neutral-500">No subdirectories</div>
+                  ) : (
+                    browseResult.directories.map((dir) => (
+                      <div
+                        key={dir.path}
+                        className="flex justify-between items-center px-3 py-1.5 hover:bg-neutral-800 group"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => browseTo(dir.path)}
+                          className="text-sm text-neutral-300 hover:text-white text-left flex-1 truncate"
+                        >
+                          {dir.name}/
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleSelectFolder(dir.path)}
+                          className="text-xs text-blue-400 hover:text-blue-300 opacity-0 group-hover:opacity-100 shrink-0 ml-2"
+                        >
+                          Select
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div className="px-3 py-2 border-t border-neutral-800">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectFolder(browseResult.current)}
+                    className="text-xs text-blue-400 hover:text-blue-300 font-medium"
+                  >
+                    Select this folder
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div>
               <label className="block text-xs text-neutral-400 mb-1">Project Name</label>
               <input
@@ -109,23 +241,16 @@ export function NewSessionDialog({
                 required
               />
             </div>
-            <div>
-              <label className="block text-xs text-neutral-400 mb-1">Directory Path</label>
-              <input
-                value={newProjectPath}
-                onChange={(e) => setNewProjectPath(e.target.value)}
-                className="w-full bg-neutral-800 border border-neutral-700 rounded px-3 py-2 text-sm text-white font-mono"
-                placeholder="/Users/you/Code/project"
-                required
-              />
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowNewProject(false)}
-              className="text-xs text-neutral-400 hover:underline"
-            >
-              Use existing project
-            </button>
+
+            {projects.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowNewProject(false)}
+                className="text-xs text-neutral-400 hover:underline"
+              >
+                Use existing project
+              </button>
+            )}
           </div>
         )}
 
