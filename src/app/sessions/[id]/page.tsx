@@ -19,6 +19,7 @@ import { SessionSearch } from "@/components/chat/session-search";
 import { PermissionCard, type PermissionResponse } from "@/components/chat/permission-card";
 import { ToolErrorNoticeList } from "@/components/chat/tool-error-notice";
 import { useContextPanel } from "@/hooks/use-context-panel";
+import { ThemeSwitcher } from "@/components/theme-switcher";
 
 type SessionDetail = {
   id: string;
@@ -44,7 +45,6 @@ function MobileOverflowMenu({
   onComplete: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  if (!isActive) return null;
   return (
     <div className="relative md:hidden">
       <button
@@ -58,19 +58,27 @@ function MobileOverflowMenu({
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div className="absolute top-12 right-0 bg-[var(--surface-raised)] border border-[var(--border)] rounded-md shadow-lg z-20 py-1 min-w-[160px]">
-            <button
-              onClick={() => { setOpen(false); onPause(); }}
-              className="w-full text-left px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--surface)]"
-            >
-              Pause session
-            </button>
-            <button
-              onClick={() => { setOpen(false); onComplete(); }}
-              className="w-full text-left px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--surface)]"
-            >
-              End session
-            </button>
+          <div className="absolute top-12 right-0 bg-[var(--surface-raised)] border border-[var(--border)] rounded-md shadow-lg z-20 py-1 min-w-[200px]">
+            {isActive && (
+              <>
+                <button
+                  onClick={() => { setOpen(false); onPause(); }}
+                  className="w-full text-left px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--surface)]"
+                >
+                  Pause session
+                </button>
+                <button
+                  onClick={() => { setOpen(false); onComplete(); }}
+                  className="w-full text-left px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--surface)]"
+                >
+                  End session
+                </button>
+                <div className="my-1 border-t border-[var(--border)]" />
+              </>
+            )}
+            <div className="px-3 pb-2">
+              <ThemeSwitcher />
+            </div>
           </div>
         </>
       )}

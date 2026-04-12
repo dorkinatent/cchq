@@ -2,7 +2,6 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { SlashAutocomplete } from "./slash-autocomplete";
-import { useToast } from "@/components/ui/toast";
 
 export type Attachment = {
   path: string;
@@ -27,12 +26,10 @@ export function MessageInput({
   busy?: boolean;
   onInterrupt?: () => void;
 }) {
-  const { toast } = useToast();
   const [value, setValue] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
-  const [remembering, setRemembering] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -294,43 +291,6 @@ export function MessageInput({
           aria-label="Message input"
           className="flex-1 min-h-11 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg px-4 py-3 text-sm leading-[1.5] text-[var(--text-primary)] resize-none placeholder-[var(--text-muted)] disabled:opacity-50"
         />
-        {sessionId && (
-          <button
-            type="button"
-            onClick={async () => {
-              if (remembering) return;
-              setRemembering(true);
-              toast("Extracting memories…");
-              try {
-                const res = await fetch(`/api/sessions/${sessionId}/remember`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ count: 6 }),
-                });
-                if (res.ok) {
-                  const data = await res.json();
-                  toast(
-                    data.count === 0
-                      ? "Nothing new worth remembering"
-                      : `Extracted ${data.count} new ${data.count === 1 ? "memory" : "memories"}`
-                  );
-                } else {
-                  const data = await res.json().catch(() => ({}));
-                  toast(`Remember failed: ${data.error || "unknown"}`, { variant: "error" });
-                }
-              } catch (err) {
-                toast(`Remember failed: ${err instanceof Error ? err.message : "network error"}`, { variant: "error" });
-              } finally {
-                setRemembering(false);
-              }
-            }}
-            disabled={remembering}
-            className="px-4 py-3 bg-transparent border border-[var(--border)] rounded-lg text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-muted)] disabled:opacity-50 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-            title="Extract durable facts from the last 6 messages (preferences, decisions, constraints) into this project's knowledge base — auto-injected into future sessions."
-          >
-            {remembering ? "Remembering…" : "Remember"}
-          </button>
-        )}
         {busy && onInterrupt ? (
           <button
             type="button"

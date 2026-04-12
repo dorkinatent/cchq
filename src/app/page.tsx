@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useSessions } from "@/hooks/use-sessions";
 import { SessionCard } from "@/components/session-card";
 import { useSessionSwitcher } from "@/components/session-switcher/context";
+import { ThemeSwitcher } from "@/components/theme-switcher";
 
 function DashboardContent() {
   const searchParams = useSearchParams();
@@ -12,6 +13,7 @@ function DashboardContent() {
   const { sessions, loading } = useSessions(projectId);
   const { openNewSession } = useSessionSwitcher();
   const [search, setSearch] = useState("");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const activeSessions = sessions.filter((s) => s.status === "active");
 
@@ -45,6 +47,23 @@ function DashboardContent() {
           >
             + New
           </button>
+          <div className="md:hidden relative">
+            <button
+              onClick={() => setMobileMenuOpen((v) => !v)}
+              aria-label="Menu"
+              className="flex items-center justify-center min-h-11 min-w-11 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded hover:bg-[var(--surface-raised)]"
+            >
+              <span className="text-base leading-none font-bold">···</span>
+            </button>
+            {mobileMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setMobileMenuOpen(false)} />
+                <div className="absolute top-full right-0 mt-1 bg-[var(--surface-raised)] border border-[var(--border)] rounded-md shadow-lg z-40 p-3 min-w-[200px]">
+                  <ThemeSwitcher />
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
