@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { useEffect, useRef, useState } from "react";
 
 export type Session = {
   id: string;
@@ -22,73 +21,50 @@ export type Session = {
 export function useSessions(projectId?: string) {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function fetchSessions() {
-      let query = supabase
-        .from("sessions")
-        .select("*, projects(name, path)")
-        .order("updated_at", { ascending: false });
-
-      if (projectId) {
-        query = query.eq("project_id", projectId);
-      }
-
-      const { data } = await query;
-      if (!data || data.length === 0) {
-        setSessions([]);
-        setLoading(false);
-        return;
-      }
-
-      // Fetch message counts for all sessions in one query
-      const sessionIds = data.map((s: any) => s.id);
-      const { data: countsData } = await supabase
-        .from("messages")
-        .select("session_id")
-        .in("session_id", sessionIds);
-
-      const counts = new Map<string, number>();
-      if (countsData) {
-        for (const row of countsData as any[]) {
-          counts.set(row.session_id, (counts.get(row.session_id) || 0) + 1);
+      abortRef.current?.abort();
+      const ac = new AbortController();
+      abortRef.current = ac;
+      const qs = projectId ? `?projectId=${encodeURIComponent(projectId)}` : "";
+      try {
+        const res = await fetch(`/api/sessions${qs}`, { cache: "no-store", signal: ac.signal });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = (await res.json()) as Session[];
+        if (!cancelled) {
+          setSessions(data);
+          setLoading(false);
         }
+      } catch (err) {
+        if ((err as Error).name === "AbortError") return;
+        console.error("[useSessions] fetch failed", err);
+        if (!cancelled) setLoading(false);
       }
-
-      setSessions(
-        data.map((s: any) => ({
-          ...s,
-          project_name: s.projects?.name,
-          project_path: s.projects?.path,
-          message_count: counts.get(s.id) || 0,
-        }))
-      );
-      setLoading(false);
     }
 
     fetchSessions();
 
-    // Use a unique channel name per effect run to avoid
-    // "cannot add callbacks after subscribe()" under StrictMode double-mount.
-    const channelName = `sessions-realtime-${projectId || "all"}-${Math.random().toString(36).slice(2, 8)}`;
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "sessions",
-          ...(projectId ? { filter: `project_id=eq.${projectId}` } : {}),
-        },
-        () => {
-          fetchSessions();
-        }
-      )
-      .subscribe();
+    const es = new EventSource("/api/sessions/stream");
+    es.onmessage = (ev) => {
+      try {
+        const evt = JSON.parse(ev.data);
+        if (evt.type === "ping") return;
+        // Any session_*/message_added event may affect the list; refetch.
+        fetchSessions();
+      } catch {}
+    };
+    es.onerror = () => {
+      // Browser auto-reconnects; no-op.
+    };
 
     return () => {
-      supabase.removeChannel(channel);
+      cancelled = true;
+      abortRef.current?.abort();
+      es.close();
     };
   }, [projectId]);
 

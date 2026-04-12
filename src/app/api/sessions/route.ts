@@ -1,16 +1,70 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, schema } from "@/lib/db";
-import { eq } from "drizzle-orm";
+import { eq, desc, inArray, sql } from "drizzle-orm";
 import { startSession } from "@/lib/sessions/manager";
 
 export async function GET(req: NextRequest) {
   const projectId = req.nextUrl.searchParams.get("projectId");
 
-  const sessions = await db.query.sessions.findMany({
-    where: projectId ? eq(schema.sessions.projectId, projectId) : undefined,
-    orderBy: (sessions, { desc }) => [desc(sessions.updatedAt)],
-  });
-  return NextResponse.json(sessions);
+  // Session rows + project info in one query
+  const base = db
+    .select({
+      id: schema.sessions.id,
+      projectId: schema.sessions.projectId,
+      status: schema.sessions.status,
+      model: schema.sessions.model,
+      name: schema.sessions.name,
+      sdkSessionId: schema.sessions.sdkSessionId,
+      trustLevel: schema.sessions.trustLevel,
+      effort: schema.sessions.effort,
+      usage: schema.sessions.usage,
+      createdAt: schema.sessions.createdAt,
+      updatedAt: schema.sessions.updatedAt,
+      projectName: schema.projects.name,
+      projectPath: schema.projects.path,
+    })
+    .from(schema.sessions)
+    .leftJoin(schema.projects, eq(schema.projects.id, schema.sessions.projectId));
+
+  const rows = projectId
+    ? await base
+        .where(eq(schema.sessions.projectId, projectId))
+        .orderBy(desc(schema.sessions.updatedAt))
+    : await base.orderBy(desc(schema.sessions.updatedAt));
+
+  // Message counts in one query
+  const ids = rows.map((r) => r.id);
+  const counts = new Map<string, number>();
+  if (ids.length) {
+    const countRows = await db
+      .select({
+        sessionId: schema.messages.sessionId,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(schema.messages)
+      .where(inArray(schema.messages.sessionId, ids))
+      .groupBy(schema.messages.sessionId);
+    for (const r of countRows) counts.set(r.sessionId, Number(r.count));
+  }
+
+  return NextResponse.json(
+    rows.map((r) => ({
+      id: r.id,
+      project_id: r.projectId,
+      status: r.status,
+      model: r.model,
+      name: r.name,
+      sdk_session_id: r.sdkSessionId,
+      trust_level: r.trustLevel,
+      effort: r.effort,
+      usage: r.usage,
+      created_at: r.createdAt,
+      updated_at: r.updatedAt,
+      project_name: r.projectName,
+      project_path: r.projectPath,
+      message_count: counts.get(r.id) ?? 0,
+    }))
+  );
 }
 
 export async function POST(req: NextRequest) {
