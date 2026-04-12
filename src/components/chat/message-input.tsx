@@ -17,11 +17,15 @@ export function MessageInput({
   disabled,
   enqueue,
   sessionId,
+  busy,
+  onInterrupt,
 }: {
   onSend: (content: string, attachments?: Attachment[]) => void;
   disabled?: boolean;
   enqueue?: (content: string, attachments?: { path: string; name: string }[]) => void;
   sessionId?: string;
+  busy?: boolean;
+  onInterrupt?: () => void;
 }) {
   const { toast } = useToast();
   const [value, setValue] = useState("");
@@ -327,13 +331,24 @@ export function MessageInput({
             {remembering ? "Remembering…" : "Remember"}
           </button>
         )}
-        <button
-          type="submit"
-          disabled={disabled || (!value.trim() && attachments.length === 0)}
-          className="bg-[var(--accent)] text-[var(--bg)] px-4 py-3 rounded-lg text-sm font-medium hover:bg-[var(--accent-hover)] disabled:opacity-50 shrink-0"
-        >
-          Send
-        </button>
+        {busy && onInterrupt ? (
+          <button
+            type="button"
+            onClick={onInterrupt}
+            title="Stop the current turn (Esc)"
+            className="bg-[var(--errored-bg)] border border-[var(--errored-text)] text-[var(--errored-text)] px-4 py-3 rounded-lg text-sm font-medium hover:bg-[var(--errored-text)] hover:text-[var(--bg)] shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          >
+            Stop
+          </button>
+        ) : (
+          <button
+            type="submit"
+            disabled={disabled || (!value.trim() && attachments.length === 0)}
+            className="bg-[var(--accent)] text-[var(--bg)] px-4 py-3 rounded-lg text-sm font-medium hover:bg-[var(--accent-hover)] disabled:opacity-50 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          >
+            Send
+          </button>
+        )}
       </div>
     </form>
   );

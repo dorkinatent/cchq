@@ -88,6 +88,23 @@ export default function SessionPage({
     error: "Error",
   }[streamState.phase];
 
+  const isBusy = streamState.phase !== "idle" && streamState.phase !== "error";
+
+  // Esc while the turn is in flight interrupts without ending the session.
+  // Ignores Esc when an input/textarea has focus (they own Esc for their own UX).
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== "Escape") return;
+      if (!isBusy) return;
+      const tag = (e.target as HTMLElement | null)?.tagName?.toLowerCase();
+      if (tag === "input" || tag === "textarea" || tag === "select") return;
+      e.preventDefault();
+      handleInterrupt();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isBusy]);
+
   // Fallback onSend (not used when enqueue is provided, but kept for type compat)
   function handleSend(content: string, _attachments?: Attachment[]) {
     queue.enqueue(content, _attachments?.map((a) => ({ path: a.path, name: a.name })));
@@ -111,6 +128,10 @@ export default function SessionPage({
   async function handleComplete() {
     await fetch(`/api/sessions/${id}/complete`, { method: "POST" });
     setSession((s) => (s ? { ...s, status: "completed" } : s));
+  }
+
+  async function handleInterrupt() {
+    await fetch(`/api/sessions/${id}/interrupt`, { method: "POST" });
   }
 
   async function handlePause() {
@@ -327,6 +348,8 @@ export default function SessionPage({
               enqueue={queue.enqueue}
               sessionId={id}
               disabled={!isActive || streamState.phase !== "idle"}
+              busy={isActive && isBusy}
+              onInterrupt={handleInterrupt}
             />
           )}
         </div>

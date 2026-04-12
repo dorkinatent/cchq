@@ -801,6 +801,30 @@ export async function completeSession(sessionId: string): Promise<void> {
     .where(eq(schema.sessions.id, sessionId));
 }
 
+/**
+ * Interrupt the current turn without ending the session. The SDK's
+ * query.interrupt() cancels mid-turn work; the session stays active and
+ * can accept the next user message. For unrecoverable states, use pause.
+ */
+export async function interruptSession(sessionId: string): Promise<void> {
+  const active = activeSessions.get(sessionId);
+  if (!active) return;
+  try {
+    await active.query.interrupt();
+  } catch (err) {
+    // Fall back to abort if interrupt is unsupported or already settled
+    try {
+      active.abortController.abort();
+    } catch {}
+    console.error(`[session ${sessionId}] interrupt failed:`, err);
+  }
+  sessionEventBus.emit(sessionId, {
+    type: "error",
+    error: "Interrupted by user",
+    timestamp: Date.now(),
+  });
+}
+
 export async function pauseSession(sessionId: string): Promise<void> {
   const active = activeSessions.get(sessionId);
   if (active) {
