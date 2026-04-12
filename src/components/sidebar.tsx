@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 type Project = {
   id: string;
@@ -15,9 +16,27 @@ export function Sidebar() {
   const [projects, setProjects] = useState<Project[]>([]);
 
   useEffect(() => {
-    fetch("/api/projects")
-      .then((r) => r.json())
-      .then(setProjects);
+    function fetchProjects() {
+      fetch("/api/projects")
+        .then((r) => r.json())
+        .then(setProjects);
+    }
+
+    fetchProjects();
+
+    // Re-fetch when sessions change (which means a new project might have been added)
+    const channel = supabase
+      .channel("sidebar-sessions")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "sessions" },
+        () => fetchProjects()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   return (
@@ -42,7 +61,8 @@ export function Sidebar() {
         <Link
           key={p.id}
           href={`/?project=${p.id}`}
-          className="px-2.5 py-1.5 rounded text-sm text-neutral-400 hover:text-neutral-200 mb-0.5"
+          className="px-2.5 py-1.5 rounded text-sm text-neutral-400 hover:text-neutral-200 mb-0.5 truncate"
+          title={p.path}
         >
           {p.name}
         </Link>

@@ -125,7 +125,7 @@ export function NewSessionDialog({
               <option value="">Select a project...</option>
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>
-                  {p.name}
+                  {p.name} — {p.path}
                 </option>
               ))}
             </select>

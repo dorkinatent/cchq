@@ -46,6 +46,8 @@ export function useSessionMessages(sessionId: string) {
         },
         (payload) => {
           const newMsg = payload.new as Message;
+          // Deduplicate — skip if we already have this message
+          if (messagesRef.current.some((m) => m.id === newMsg.id)) return;
           messagesRef.current = [...messagesRef.current, newMsg];
           setMessages([...messagesRef.current]);
         }
