@@ -59,32 +59,37 @@ function ToolSummaryLine({ tool }: { tool: ToolBlock }) {
   );
 }
 
-export function ToolUseBlock({ tools }: { tools: ToolBlock[] }) {
+export function ToolUseBlock({ tools, thinking }: { tools: ToolBlock[]; thinking?: string | null }) {
   const [expanded, setExpanded] = useState(false);
 
-  if (tools.length === 0) return null;
+  if (tools.length === 0 && !thinking) return null;
 
-  // Build summary: "Read 2 files, Edited 1 file, Ran 1 command"
+  // summary logic — tools summary as before, add "reasoning" if thinking present
   const counts: Record<string, number> = {};
   for (const t of tools) {
     const name = t.name || "Unknown";
     counts[name] = (counts[name] || 0) + 1;
   }
-  const summaryParts = Object.entries(counts).map(([name, count]) => {
+  const summaryParts: string[] = [];
+  if (thinking) summaryParts.push("reasoning");
+  for (const [name, count] of Object.entries(counts)) {
     const n = name.toLowerCase();
-    if (n === "read") return `Read ${count} file${count > 1 ? "s" : ""}`;
-    if (n === "edit") return `Edited ${count} file${count > 1 ? "s" : ""}`;
-    if (n === "write") return `Wrote ${count} file${count > 1 ? "s" : ""}`;
-    if (n === "bash") return `Ran ${count} command${count > 1 ? "s" : ""}`;
-    if (n === "grep") return `Searched ${count} time${count > 1 ? "s" : ""}`;
-    if (n === "glob") return `Globbed ${count} time${count > 1 ? "s" : ""}`;
-    return `${name} ×${count}`;
-  });
+    if (n === "read") summaryParts.push(`Read ${count} file${count > 1 ? "s" : ""}`);
+    else if (n === "edit") summaryParts.push(`Edited ${count} file${count > 1 ? "s" : ""}`);
+    else if (n === "write") summaryParts.push(`Wrote ${count} file${count > 1 ? "s" : ""}`);
+    else if (n === "bash") summaryParts.push(`Ran ${count} command${count > 1 ? "s" : ""}`);
+    else if (n === "grep") summaryParts.push(`Searched ${count} time${count > 1 ? "s" : ""}`);
+    else if (n === "glob") summaryParts.push(`Globbed ${count} time${count > 1 ? "s" : ""}`);
+    else summaryParts.push(`${name} ×${count}`);
+  }
+
+  const countLabel = tools.length > 0
+    ? `${tools.length} tool call${tools.length > 1 ? "s" : ""}`
+    : "reasoning only";
 
   return (
     <div className="mt-1.5 max-w-[80%]">
       <div className="bg-[var(--bg)] border border-[var(--border)] rounded-md overflow-hidden">
-        {/* Compact summary header — always visible */}
         <button
           onClick={() => setExpanded(!expanded)}
           className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-[var(--surface)] transition-colors"
@@ -93,26 +98,32 @@ export function ToolUseBlock({ tools }: { tools: ToolBlock[] }) {
             ▶
           </span>
           <span className="text-xs text-[var(--text-secondary)]">
-            {tools.length} tool call{tools.length > 1 ? "s" : ""} — {summaryParts.join(", ")}
+            {countLabel} — {summaryParts.join(", ")}
           </span>
         </button>
 
-        {/* Expanded: show activity tree + detailed views */}
         {expanded && (
           <div className="border-t border-[var(--border)]">
-            {/* Activity tree lines */}
-            <div className="px-3 py-2 space-y-0.5 border-b border-[var(--border)]">
-              {tools.map((tool, i) => (
-                <ToolSummaryLine key={i} tool={tool} />
-              ))}
-            </div>
-
-            {/* Detailed tool renderers */}
-            <div className="p-2 space-y-1.5">
-              {tools.map((tool, i) => (
-                <ToolRenderer key={i} tool={tool} />
-              ))}
-            </div>
+            {thinking && (
+              <div className="px-3 py-2 border-b border-[var(--border)]">
+                <div className="text-[10px] uppercase tracking-wide text-[var(--text-muted)] mb-1">Reasoning</div>
+                <div className="text-xs text-[var(--text-secondary)] whitespace-pre-wrap">{thinking}</div>
+              </div>
+            )}
+            {tools.length > 0 && (
+              <>
+                <div className="px-3 py-2 space-y-0.5 border-b border-[var(--border)]">
+                  {tools.map((tool, i) => (
+                    <ToolSummaryLine key={i} tool={tool} />
+                  ))}
+                </div>
+                <div className="p-2 space-y-1.5">
+                  {tools.map((tool, i) => (
+                    <ToolRenderer key={i} tool={tool} />
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>

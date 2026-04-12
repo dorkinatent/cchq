@@ -88,7 +88,17 @@ export function SessionCard({ session }: { session: Session }) {
           </div>
         )}
         <div className="flex justify-between items-center text-[11px] text-[var(--text-muted)]">
-          <span>{session.message_count || 0} messages</span>
+          <span>
+            {session.message_count || 0} messages
+            {session.usage && session.usage.totalTokens > 0 && (
+              <>
+                {" · "}
+                {session.usage.totalTokens.toLocaleString()} tokens
+                {" · $"}
+                {session.usage.totalCostUsd.toFixed(4)}
+              </>
+            )}
+          </span>
           {session.status === "paused" ? (
             <span className="text-[var(--paused-text)]">
               Paused {relativeTime(session.updated_at)}

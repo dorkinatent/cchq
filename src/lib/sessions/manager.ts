@@ -243,6 +243,12 @@ function processMessages(
             (b: any) => "name" in b
           );
 
+          const thinkingContent = message.message.content
+            .filter((b: any) => b.type === "thinking" || "thinking" in b)
+            .map((b: any) => b.thinking || b.text || "")
+            .filter(Boolean)
+            .join("\n\n");
+
           // Emit tool_start for tools we haven't seen via tool_progress
           for (const block of toolBlocks) {
             const toolId = (block as any).id || crypto.randomUUID();
@@ -275,6 +281,7 @@ function processMessages(
               role: "assistant",
               content: textContent,
               toolUse: toolBlocks.length > 0 ? toolBlocks : null,
+              thinking: thinkingContent || null,
             }).returning({ id: schema.messages.id });
 
             sessionEventBus.emit(sessionId, {

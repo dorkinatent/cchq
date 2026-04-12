@@ -5,12 +5,13 @@ import { ToolUseBlock } from "./tool-use-block";
 
 export function MessageBubble({ message }: { message: Message }) {
   const isUser = message.role === "user";
-  const timeAgo = new Date(message.created_at).toLocaleTimeString();
+  const timestamp = message.created_at || (message as any).createdAt;
+  const timeDisplay = timestamp ? new Date(timestamp).toLocaleTimeString() : "";
 
   return (
     <div className="mb-5">
       <div className="text-[11px] text-[var(--text-muted)] mb-1">
-        {isUser ? "You" : "Claude"} &middot; {timeAgo}
+        {isUser ? "You" : "Claude"} &middot; {timeDisplay}
       </div>
       <div
         className={`rounded-lg px-4 py-3 text-sm leading-relaxed max-w-[80%] ${
@@ -41,8 +42,11 @@ export function MessageBubble({ message }: { message: Message }) {
         )}
       </div>
       {!isUser && (
-        message.tool_use && Array.isArray(message.tool_use) && message.tool_use.length > 0 ? (
-          <ToolUseBlock tools={message.tool_use} />
+        (message.tool_use && Array.isArray(message.tool_use) && message.tool_use.length > 0) || message.thinking ? (
+          <ToolUseBlock
+            tools={(message.tool_use && Array.isArray(message.tool_use)) ? message.tool_use : []}
+            thinking={message.thinking}
+          />
         ) : (
           <div className="mt-1.5 max-w-[80%]">
             <div className="bg-[var(--bg)] border border-[var(--border)] rounded-md overflow-hidden">

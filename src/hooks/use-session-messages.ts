@@ -9,6 +9,7 @@ export type Message = {
   role: "user" | "assistant" | "system" | "tool";
   content: string;
   tool_use: any;
+  thinking: string | null;
   created_at: string;
 };
 

@@ -12,6 +12,7 @@ export type Session = {
   sdk_session_id: string | null;
   created_at: string;
   updated_at: string;
+  usage?: { totalTokens: number; totalCostUsd: number; numTurns: number } | null;
   project_name?: string;
   project_path?: string;
   message_count?: number;
@@ -34,15 +35,34 @@ export function useSessions(projectId?: string) {
       }
 
       const { data } = await query;
-      if (data) {
-        setSessions(
-          data.map((s: any) => ({
-            ...s,
-            project_name: s.projects?.name,
-            project_path: s.projects?.path,
-          }))
-        );
+      if (!data || data.length === 0) {
+        setSessions([]);
+        setLoading(false);
+        return;
       }
+
+      // Fetch message counts for all sessions in one query
+      const sessionIds = data.map((s: any) => s.id);
+      const { data: countsData } = await supabase
+        .from("messages")
+        .select("session_id")
+        .in("session_id", sessionIds);
+
+      const counts = new Map<string, number>();
+      if (countsData) {
+        for (const row of countsData as any[]) {
+          counts.set(row.session_id, (counts.get(row.session_id) || 0) + 1);
+        }
+      }
+
+      setSessions(
+        data.map((s: any) => ({
+          ...s,
+          project_name: s.projects?.name,
+          project_path: s.projects?.path,
+          message_count: counts.get(s.id) || 0,
+        }))
+      );
       setLoading(false);
     }
 
