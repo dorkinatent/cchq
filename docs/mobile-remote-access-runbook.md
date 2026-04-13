@@ -30,7 +30,7 @@ Work through these one at a time. Anything failing blocks completion.
 
 - [ ] **Reboot the Mac.** Within ~60s of login: `curl -I http://localhost:3000/` returns `200`.
 - [ ] **LAN access:** from another device on the same Wi-Fi, `http://<mac-lan-ip>:3000/` loads and the session list populates.
-- [ ] **Tailscale access:** from your phone (switch Wi-Fi off, cellular on), `http://<mac>.tailXXXX.ts.net:3000/` loads and the session list populates.
+- [ ] **Tailscale access:** from your phone (switch Wi-Fi off, cellular on), `https://ccui.<tailnet>.ts.net/` loads and the session list populates. (If you haven't run `setup-tailscale-serve.sh` yet, substitute `http://<mac>.<tailnet>.ts.net:3000/`.)
 - [ ] **mDNS broadcast:** on a second Mac, `dns-sd -B _ccui._tcp` lists a `CCUI` service.
 - [ ] **Live updates (SSE):** send a message from the desktop UI; the phone's list and detail views update within ~1s without a manual refresh.
 - [ ] **Permission flow:** trigger a tool call that requires approval (e.g. Bash in a full-auto-off session). The permission banner appears on the phone; **Allow** proceeds, **Deny** blocks.
@@ -69,7 +69,7 @@ When you want to iterate on CCUI, you have two options:
 ## Deferred (not in phase 1)
 
 - Push notifications (APNs for iOS, web push via VAPID for browser).
-- HTTPS via `tailscale cert` + `tailscale serve`.
+- Custom-domain HTTPS (e.g., issuing certs via `tailscale cert` for a non-ts.net domain or using an external CA). Baseline HTTPS on `<node>.<tailnet>.ts.net` is handled by step 6.
 - App-level authentication.
 - Admin / log-viewer page.
 - Native iOS app — separate project, will reuse the `/api/*` contract and mDNS broadcast.

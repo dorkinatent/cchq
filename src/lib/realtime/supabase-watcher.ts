@@ -50,7 +50,7 @@ export function ensureSupabaseWatcher(): void {
       (payload) => {
         const row: any = payload.new ?? {};
         const { id: messageId, session_id: sessionId, role } = row;
-        if (!messageId || !sessionId) return;
+        if (!messageId || !sessionId || !role) return;
         const timestamp = Date.now();
         sessionListBus.emit({ type: "message_added", sessionId, messageId, timestamp });
         sessionEventBus.emit(sessionId, {

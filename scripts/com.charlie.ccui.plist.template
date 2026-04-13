@@ -16,6 +16,9 @@
   <dict>
     <key>NODE_ENV</key><string>production</string>
     <key>PORT</key><string>3000</string>
+    <!-- launchd provides a minimal PATH; this covers Homebrew (arm64 + Intel) and system bins.
+         ccui-start.sh additionally prepends these at runtime for defense in depth. -->
+    <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
   </dict>
 </dict>
 </plist>

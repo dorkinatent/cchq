@@ -12,12 +12,11 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: [
     "localhost",
     "127.0.0.1",
-    // Private LAN ranges (common home/office subnets)
-    "10.0.7.115",
-    "10.0.*.*",
+    // RFC 1918 private ranges (covers common home/office subnets):
+    //   10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
     "10.*.*.*",
+    "172.*.*.*",
     "192.168.*.*",
-    "172.16.*.*",
     // Tailscale MagicDNS
     "*.ts.net",
   ],
