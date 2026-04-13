@@ -5,7 +5,7 @@ A web dashboard for managing multiple Claude Code sessions from one place, with 
 CCUI is an engine-agnostic cockpit. You can run it against:
 
 - **Claude Code SDK** — single-agent chat sessions (default)
-- **Gas Town** — multi-agent orchestration (swarm mode)
+- **Gas Town** — multi-agent orchestration (experimental)
 
 You pick the engine per project. Both engines share the same themes, knowledge base, and UX.
 
@@ -13,17 +13,21 @@ You pick the engine per project. Both engines share the same themes, knowledge b
 
 ## Features
 
-- **Unified session dashboard** — every active and paused session in one grid, with status, model, token count, and cost at a glance
-- **Persistent knowledge base** — decisions, facts, and context extracted from finished sessions, auto-injected into new sessions on the same project
+- **Multi-session dashboard** — every active and paused session grouped by project, with status, model, token count, and a "needs you" block for sessions waiting on input
+- **Column-strip workspace** — open several sessions side by side in resizable columns; save and restore named workspaces
+- **Persistent knowledge base** — decisions, facts, and context extracted from finished sessions and auto-injected into new sessions on the same project; manual capture via the Remember button in the session header, plus incremental/on-pause extraction and doc seeding
 - **Live activity streaming** — watch Claude think and use tools in real time; tool calls collapse to a summary you can expand later
 - **Rich tool rendering** — purpose-built views for Read/Edit/Write/Bash/Grep tools (diffs, terminal output, file paths)
-- **Slash command autocomplete** — type `/` to see available skills (commit, review-pr, etc.) from the active SDK session
+- **Slash-command autocomplete** — type `/` to see available skills from the active SDK session; **Stop/Esc** interrupts a running turn; inline **permission cards** handle tool-approval prompts
+- **Resizable context panel** — per-session context docs with a full-width overlay for reading/editing docs and notes
 - **Image support** — drag-drop, paste, or file-pick images into the chat
 - **Session resume** — pause a session, come back later, see what knowledge was added in the meantime, resume with a note
 - **Message pagination & search** — infinite scroll through long histories, `Cmd+F` to search
 - **Error recovery** — client-side message queue with auto-retry, connection status indicator, failed message retry
+- **Per-project controls** — additional directories setting and permission modes (`full_auto` / `auto_log` / `ask_me`)
 - **Four themes** — Fossil (default, warm stone), Midnight (deep indigo), Arctic (clean light), Terminal (green phosphor)
-- **Gas Town engine** — Rig Dashboard with live agent tree, ready beads, real-time event feed
+- **Mobile / remote access** — LAN + Tailscale-ready, with a LaunchAgent for boot-start on macOS (see [docs/mobile-remote-access-runbook.md](docs/mobile-remote-access-runbook.md))
+- **Gas Town engine (experimental)** — Rig Dashboard with live agent tree, ready beads, real-time event feed
 
 ---
 
@@ -44,13 +48,18 @@ You pick the engine per project. Both engines share the same themes, knowledge b
 npm install
 
 # 2. Start local Supabase
-npx supabase start
+supabase start
 
-# 3. Push the database schema
+# 3. Configure env vars
+cp .env.local.example .env.local
+# Then fill in NEXT_PUBLIC_SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY
+# from the output of `supabase status`.
+
+# 4. Push the database schema
 DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:54332/postgres" \
   npx drizzle-kit push
 
-# 4. Run the dev server
+# 5. Run the dev server
 npm run dev
 ```
 
@@ -157,7 +166,7 @@ gt doctor
 ## Architecture
 
 ```
-Frontend (Next.js 15 App Router)
+Frontend (Next.js 16 App Router)
     ↕
 Backend (Next.js API routes)
     ↓
@@ -179,7 +188,7 @@ Backend (Next.js API routes)
 
 | Layer | Technology |
 |-------|-----------|
-| Frontend | Next.js 15 App Router, React, Tailwind CSS v4 |
+| Frontend | Next.js 16 App Router, React 19, Tailwind CSS v4 |
 | Design | impeccable.style design system |
 | Backend | Next.js API Routes, Server-Sent Events for streaming |
 | Database | Supabase (local → hosted), Postgres |
@@ -216,4 +225,4 @@ Design specs live in `docs/superpowers/specs/` and implementation plans in `docs
 
 ## License
 
-See `LICENSE` (not yet added).
+MIT — see [LICENSE](LICENSE).
