@@ -785,7 +785,7 @@ export async function sendMessage(
     if (activeForCounter) activeForCounter.messagesSinceExtract += 1;
   }
 
-  let active = activeSessions.get(sessionId);
+  const active = activeSessions.get(sessionId);
 
   let sdkSessionId: string | null = null;
   let projectId: string | null = null;

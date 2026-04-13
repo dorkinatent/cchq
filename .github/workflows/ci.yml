@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        # Build doesn't need DB connectivity (no DB queries at module top-level
+        # in the build path), but we still set placeholders so any boundary
+        # check that imports env doesn't crash.
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54332/postgres
+          NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54331
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder
+          SUPABASE_SERVICE_ROLE_KEY: ci-placeholder
+        run: npm run build

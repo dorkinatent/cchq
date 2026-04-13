@@ -8,6 +8,9 @@
     "start": "next start -H 0.0.0.0",
     "lint": "eslint"
   },
+  "engines": {
+    "node": ">=18.18.0"
+  },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.101",
     "@supabase/supabase-js": "^2.103.0",
