@@ -1,6 +1,9 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { OverviewSession } from "@/app/api/sessions/overview/route";
+import { useSessionSwitcher } from "@/components/session-switcher/context";
 
 function formatTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
@@ -89,19 +92,68 @@ export function AggregateBar({
     <div className="flex items-center justify-between gap-6 px-6 py-3 border-b border-[var(--border)] bg-[var(--bg)]">
       <DefRow stats={stats} />
       <div className="flex items-center gap-3">
+        <WorkspacesMenu />
         <input
           value={search}
           onChange={(e) => onSearch(e.target.value)}
           placeholder="Search sessions…"
-          className="bg-[var(--input-bg)] border border-[var(--input-border)] rounded-md px-3 py-1.5 text-sm text-[var(--text-primary)] w-52 placeholder-[var(--text-muted)]"
+          className="bg-[var(--input-bg)] border border-[var(--input-border)] rounded-md px-3 py-1.5 text-sm text-[var(--text-primary)] w-52 placeholder-[var(--text-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
         />
         <button
           onClick={onNew}
-          className="bg-[var(--accent)] text-[var(--bg)] px-3.5 py-1.5 rounded-md text-sm font-semibold hover:bg-[var(--accent-hover)] transition-colors"
+          className="bg-[var(--accent)] text-[var(--bg)] px-3.5 py-1.5 rounded-md text-sm font-semibold hover:bg-[var(--accent-hover)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
         >
           + New session
         </button>
       </div>
+    </div>
+  );
+}
+
+function WorkspacesMenu() {
+  const router = useRouter();
+  const { workspaces } = useSessionSwitcher();
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onDown(e: MouseEvent) {
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+    }
+    window.addEventListener("mousedown", onDown);
+    return () => window.removeEventListener("mousedown", onDown);
+  }, [open]);
+
+  if (workspaces.length === 0) return null;
+
+  return (
+    <div className="relative" ref={wrapRef}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="px-2.5 py-1.5 text-sm border border-[var(--border)] rounded-md text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
+      >
+        Workspaces ▾
+      </button>
+      {open && (
+        <div className="absolute right-0 mt-1 w-64 max-h-[60vh] overflow-y-auto z-30 rounded-md border border-[var(--border)] bg-[var(--surface-raised)] shadow-lg py-1">
+          {workspaces.map((w) => (
+            <button
+              key={w.id}
+              onClick={() => {
+                setOpen(false);
+                router.push(`/workspace?ids=${w.sessionIds.join(",")}`);
+              }}
+              className="w-full text-left px-3 py-1.5 text-sm hover:bg-[var(--surface)] flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
+            >
+              <span className="text-[var(--text-primary)] truncate flex-1">{w.name}</span>
+              <span className="text-[11px] text-[var(--text-muted)] tabular-nums shrink-0">
+                {w.sessionIds.length}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

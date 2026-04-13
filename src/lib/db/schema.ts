@@ -135,6 +135,14 @@ export const rigEvents = pgTable("rig_events", {
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
 });
 
+export const workspaces = pgTable("workspaces", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  sessionIds: jsonb("session_ids").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
+});
+
 export const projectNotes = pgTable("project_notes", {
   id: uuid("id").primaryKey().defaultRandom(),
   projectId: uuid("project_id")

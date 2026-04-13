@@ -16,6 +16,7 @@ import { MessageStatus } from "@/components/chat/message-status";
 import { ResumePanel } from "@/components/chat/resume-panel";
 import { SessionSummary } from "@/components/chat/session-summary";
 import { SessionSearch } from "@/components/chat/session-search";
+import { RememberButton } from "@/components/chat/remember-button";
 import { PermissionCard, type PermissionResponse } from "@/components/chat/permission-card";
 import { ToolErrorNoticeList } from "@/components/chat/tool-error-notice";
 import { useContextPanel } from "@/hooks/use-context-panel";
@@ -223,6 +224,7 @@ export default function SessionPage({
               messageListRef.current?.scrollToMessage(messageId)
             }
           />
+          <RememberButton sessionId={id} />
           {isActive && (
             <>
               <span className="w-px h-5 bg-[var(--border)] mx-1" aria-hidden />

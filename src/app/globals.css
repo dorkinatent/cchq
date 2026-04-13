@@ -47,8 +47,8 @@
   --surface-raised: #262318;
   --border: #332e22;
   --text-primary: #e0d4c0;
-  --text-secondary: #8a7a60;
-  --text-muted: #6a5a4a;
+  --text-secondary: #b3a185;
+  --text-muted: #9a8870;
   --accent: #c8a060;
   --accent-hover: #d4ad6a;
   --active-bg: #1e2a18;
@@ -99,8 +99,8 @@
   --surface-raised: #16162a;
   --border: #1e1e3a;
   --text-primary: #d0d0f0;
-  --text-secondary: #6b6b8a;
-  --text-muted: #4a4a6a;
+  --text-secondary: #9a9ac0;
+  --text-muted: #8a8ab0;
   --accent: #7a7aff;
   --accent-hover: #8a8aff;
   --active-bg: #1a2e1a;
@@ -131,7 +131,7 @@
   --border: #dce2e8;
   --text-primary: #1a2a3a;
   --text-secondary: #5a6a7a;
-  --text-muted: #8a9aaa;
+  --text-muted: #5f7080;
   --accent: #2a6a9a;
   --accent-hover: #1a5a8a;
   --active-bg: #dff5e3;
@@ -142,7 +142,10 @@
   --errored-text: #9a2a2a;
   --errored-border: #d08888;
   --completed-bg: #e8ecf0;
-  --completed-text: #5a6a7a;
+  /* Cooler/bluer than --text-secondary (#5a6a7a) so "Completed" badges read as
+     distinct from secondary body text on the light bg. Contrast vs --bg
+     (#f4f6f8): 4.86:1, vs --surface-raised (#ffffff): 5.26:1 — both ≥ 4.5:1 AA. */
+  --completed-text: #5d6d85;
   --user-msg-bg: #d0dce8;
   --user-msg-text: #1a2a3a;
   --input-bg: #ffffff;
@@ -162,8 +165,8 @@
   --surface-raised: #101a10;
   --border: #1a2a1a;
   --text-primary: #a0e0a0;
-  --text-secondary: #3a6a3a;
-  --text-muted: #2a4a2a;
+  --text-secondary: #88b888;
+  --text-muted: #6a9a6a;
   --accent: #40b040;
   --accent-hover: #50c050;
   --active-bg: #0a200a;

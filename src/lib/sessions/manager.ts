@@ -156,7 +156,8 @@ export function getPendingPermissions(sessionId: string) {
  */
 export function getBlockedSessionsSummary(): Record<string, { toolName: string; preview: string }> {
   const summary: Record<string, { toolName: string; preview: string }> = {};
-  for (const pending of pendingPermissions.values()) {
+  const stale: string[] = [];
+  for (const [id, pending] of pendingPermissions) {
     // Lazy sweep: drop permissions for sessions that are no longer active.
     // Handles leftover state from crashes, reloads, or pre-fix sessions.
     if (!activeSessions.has(pending.sessionId)) {
@@ -164,9 +165,7 @@ export function getBlockedSessionsSummary(): Record<string, { toolName: string; 
       try {
         pending.resolve({ behavior: "deny", message: "Session no longer active" });
       } catch {}
-      for (const [id, p] of pendingPermissions) {
-        if (p === pending) pendingPermissions.delete(id);
-      }
+      stale.push(id);
       continue;
     }
     if (summary[pending.sessionId]) continue; // first-wins (oldest)
@@ -179,6 +178,7 @@ export function getBlockedSessionsSummary(): Record<string, { toolName: string; 
       "";
     summary[pending.sessionId] = { toolName: pending.toolName, preview: String(preview).slice(0, 120) };
   }
+  for (const id of stale) pendingPermissions.delete(id);
   return summary;
 }
 

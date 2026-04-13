@@ -98,7 +98,7 @@ export const MessageList = forwardRef<
         `[data-message-id="${messageId}"]`
       );
       if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
         el.classList.add("bg-[var(--accent)]/10");
         setTimeout(() => el.classList.remove("bg-[var(--accent)]/10"), 2000);
       }
@@ -117,7 +117,7 @@ export const MessageList = forwardRef<
     if (!container || messages.length === 0) return;
 
     if (!hasDoneInitialScrollRef.current) {
-      bottomRef.current?.scrollIntoView({ behavior: "auto" });
+      bottomRef.current?.scrollIntoView({ behavior: "auto", block: "nearest", inline: "nearest" });
       hasDoneInitialScrollRef.current = true;
       lastMessageIdRef.current = messages[messages.length - 1].id;
       return;
@@ -129,14 +129,14 @@ export const MessageList = forwardRef<
     lastMessageIdRef.current = lastMsg.id;
 
     if (isNewUserMessage) {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
       return;
     }
 
     const isNearBottom =
       container.scrollHeight - container.scrollTop - container.clientHeight < 150;
     if (isNearBottom) {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
     }
   }, [messages, streamState?.phase, streamState?.streamingText]);
 
@@ -195,7 +195,7 @@ export const MessageList = forwardRef<
   return (
     <div
       ref={containerRef}
-      className="flex-1 overflow-y-auto p-5"
+      className="flex-1 overflow-y-auto p-5 [overflow-anchor:none]"
     >
       {hasMore && (
         <div ref={sentinelRef} className="h-px" />

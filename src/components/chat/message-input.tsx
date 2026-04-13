@@ -32,7 +32,6 @@ export function MessageInput({
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
-  const [remembering, setRemembering] = useState(false);
   const [stopping, setStopping] = useState(false);
 
   useEffect(() => {
@@ -47,10 +46,38 @@ export function MessageInput({
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = "auto";
+    // When empty, don't let a wrapping placeholder inflate the height in
+    // narrow columns — clamp to the single-line min. CSS `min-h-11` then
+    // enforces the 44px floor.
+    if (!value) {
+      el.style.height = "";
+      el.style.overflowY = "hidden";
+      return;
+    }
     const MAX_PX = 240; // ~10 lines; then scroll
     el.style.height = Math.min(el.scrollHeight, MAX_PX) + "px";
     el.style.overflowY = el.scrollHeight > MAX_PX ? "auto" : "hidden";
   }, [value]);
+
+  // When the column/sidebar resizes, a multi-line wrapped message's height
+  // can go stale. Re-run the same clamp logic on width changes.
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => {
+      el.style.height = "auto";
+      if (!el.value) {
+        el.style.height = "";
+        el.style.overflowY = "hidden";
+        return;
+      }
+      const MAX_PX = 240;
+      el.style.height = Math.min(el.scrollHeight, MAX_PX) + "px";
+      el.style.overflowY = el.scrollHeight > MAX_PX ? "auto" : "hidden";
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // Slash command autocomplete
   const [commands, setCommands] = useState<Command[]>([]);
@@ -294,54 +321,13 @@ export function MessageInput({
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
           placeholder={
-            dragOver
-              ? "Drop image here..."
-              : busy
-              ? "Queue a message to send when Claude finishes..."
-              : "Type a message or paste/drop an image..."
+            dragOver ? "Drop image…" : busy ? "Queue a message…" : "Message…"
           }
           disabled={disabled}
           rows={1}
           aria-label="Message input"
           className="flex-1 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg px-4 py-3 text-sm leading-[1.5] text-[var(--text-primary)] resize-none placeholder-[var(--text-muted)] disabled:opacity-50"
         />
-        {sessionId && (
-          <button
-            type="button"
-            onClick={async () => {
-              if (remembering) return;
-              setRemembering(true);
-              toast("Extracting memories…");
-              try {
-                const res = await fetch(`/api/sessions/${sessionId}/remember`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ count: 6 }),
-                });
-                if (res.ok) {
-                  const data = await res.json();
-                  toast(
-                    data.count === 0
-                      ? "Nothing new worth remembering"
-                      : `Extracted ${data.count} new ${data.count === 1 ? "memory" : "memories"}`
-                  );
-                } else {
-                  const data = await res.json().catch(() => ({}));
-                  toast(`Remember failed: ${data.error || "unknown"}`, { variant: "error" });
-                }
-              } catch (err) {
-                toast(`Remember failed: ${err instanceof Error ? err.message : "network error"}`, { variant: "error" });
-              } finally {
-                setRemembering(false);
-              }
-            }}
-            disabled={remembering}
-            className="px-4 py-3 bg-transparent border border-[var(--border)] rounded-lg text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-muted)] disabled:opacity-50 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-            title="Extract durable facts from the last 6 messages (preferences, decisions, constraints) into this project's knowledge base — auto-injected into future sessions."
-          >
-            {remembering ? "Remembering…" : "Remember"}
-          </button>
-        )}
         {busy && onInterrupt ? (
           <button
             type="button"

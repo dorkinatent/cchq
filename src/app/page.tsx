@@ -1,8 +1,8 @@
 "use client";
 
 import { Suspense, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { useSessionSwitcher } from "@/components/session-switcher/context";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useSessionSwitcherActions } from "@/components/session-switcher/context";
 import {
   useSessionOverview,
   useAllQueues,
@@ -37,14 +37,18 @@ function groupByProject(sessions: OverviewSession[]) {
   return Array.from(groups.values()).sort((a, b) => b.maxUpdated - a.maxUpdated);
 }
 
+const WORKSPACE_MAX = 6;
+
 function DashboardContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const projectFilter = searchParams.get("project") || undefined;
   const { sessions, loading, refetch } = useSessionOverview();
   const queueCounts = useAllQueues();
-  const { openNewSession } = useSessionSwitcher();
+  const { openNewSession } = useSessionSwitcherActions();
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const visible = useMemo(() => {
     let list = sessions;
@@ -70,6 +74,17 @@ function DashboardContent() {
       return next;
     });
   }
+
+  function toggleSelected(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else if (next.size < WORKSPACE_MAX) next.add(id);
+      return next;
+    });
+  }
+
+  const selectionFull = selected.size >= WORKSPACE_MAX;
 
   return (
     <div>
@@ -115,10 +130,49 @@ function DashboardContent() {
                 expanded={expanded}
                 onToggleExpanded={toggleExpanded}
                 onRefresh={refetch}
+                selected={selected}
+                onToggleSelect={toggleSelected}
+                selectionFull={selectionFull}
               />
             ))}
           </div>
         </>
+      )}
+
+      {selected.size > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 z-20 border-t border-[var(--border)] bg-[var(--surface-raised)]/95 backdrop-blur-sm">
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 px-6 py-3">
+            <div className="text-sm text-[var(--text-secondary)]">
+              <span className="font-medium text-[var(--text-primary)] tabular-nums">
+                {selected.size}
+              </span>{" "}
+              session{selected.size === 1 ? "" : "s"} selected
+              {selectionFull && (
+                <span className="ml-2 text-xs text-[var(--text-muted)]">
+                  · max {WORKSPACE_MAX}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setSelected(new Set())}
+                className="px-2.5 py-1 text-[12px] text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded hover:bg-[var(--surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
+              >
+                Clear
+              </button>
+              <button
+                onClick={() => {
+                  const ids = [...selected].join(",");
+                  setSelected(new Set());
+                  router.push(`/workspace?ids=${ids}`);
+                }}
+                className="px-3.5 py-1.5 rounded-md bg-[var(--accent)] text-[var(--bg)] font-semibold text-sm hover:bg-[var(--accent-hover)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
+              >
+                Open in workspace
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

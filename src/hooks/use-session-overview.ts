@@ -11,8 +11,11 @@ export function useSessionOverview() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const lastFetchedAtRef = useRef(0);
 
   const fetchOnce = useCallback(async () => {
+    if (Date.now() - lastFetchedAtRef.current < 500) return;
+    lastFetchedAtRef.current = Date.now();
     abortRef.current?.abort();
     const ac = new AbortController();
     abortRef.current = ac;

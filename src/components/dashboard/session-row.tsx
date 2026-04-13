@@ -34,12 +34,18 @@ export function SessionRow({
   expanded,
   onToggle,
   onRefresh,
+  selected,
+  onToggleSelect,
+  selectDisabled,
 }: {
   session: OverviewSession;
   queuedCount: number;
   expanded: boolean;
   onToggle: () => void;
   onRefresh: () => void;
+  selected: boolean;
+  onToggleSelect: () => void;
+  selectDisabled: boolean;
 }) {
   const router = useRouter();
   const [now, setNow] = useState(() => Date.now());
@@ -57,12 +63,53 @@ export function SessionRow({
   const phase = phaseLabel(session, now, queuedCount);
   const cost = session.usage?.totalCostUsd ?? 0;
 
+  const detailsId = `row-${session.id}-details`;
+
+  function onRowKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
+    if (e.target !== e.currentTarget) return;
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      onToggle();
+    }
+  }
+
   return (
-    <div className="border-b border-[var(--border)]/60 last:border-b-0">
+    <div className="group border-b border-[var(--border)]/60 last:border-b-0">
       <div
-        className="flex items-center gap-3 px-3 h-10 hover:bg-[var(--surface)]/60 transition-colors cursor-pointer"
+        role="button"
+        tabIndex={0}
+        aria-expanded={expanded}
+        aria-controls={detailsId}
+        aria-label={`${expanded ? "Collapse" : "Expand"} details for ${session.name}`}
+        className="flex items-center gap-3 px-3 h-10 hover:bg-[var(--surface)]/60 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
         onClick={onToggle}
+        onKeyDown={onRowKeyDown}
       >
+        <label
+          onClick={(e) => e.stopPropagation()}
+          className={
+            "shrink-0 flex items-center justify-center w-4 h-4 rounded cursor-pointer transition-opacity focus-within:ring-2 focus-within:ring-[var(--accent)] focus-within:ring-offset-0 " +
+            (selected
+              ? "opacity-100"
+              : "opacity-0 group-hover:opacity-70 focus-within:opacity-100")
+          }
+          title={
+            selectDisabled
+              ? "Workspace limit reached (6)"
+              : selected
+              ? "Remove from workspace selection"
+              : "Select for workspace"
+          }
+        >
+          <input
+            type="checkbox"
+            checked={selected}
+            disabled={selectDisabled && !selected}
+            onChange={onToggleSelect}
+            className="accent-[var(--accent)] w-3.5 h-3.5 focus-visible:outline-none"
+            aria-label="Select for workspace"
+          />
+        </label>
         <span
           aria-hidden
           className={
@@ -109,7 +156,9 @@ export function SessionRow({
         </span>
       </div>
       {expanded && (
-        <ExpandedRow session={session} onRefresh={onRefresh} pushHome={() => router.push("/")} />
+        <div id={detailsId}>
+          <ExpandedRow session={session} onRefresh={onRefresh} pushHome={() => router.push("/")} />
+        </div>
       )}
     </div>
   );
@@ -180,7 +229,7 @@ function ExpandedRow({
         <div className="flex flex-col items-end gap-1.5 text-xs">
           <Link
             href={`/sessions/${session.id}`}
-            className="px-2.5 py-1 rounded bg-[var(--accent)] text-[var(--bg)] font-semibold hover:bg-[var(--accent-hover)] transition-colors"
+            className="px-2.5 py-1 rounded bg-[var(--accent)] text-[var(--bg)] font-semibold hover:bg-[var(--accent-hover)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
           >
             Open
           </Link>
@@ -188,7 +237,7 @@ function ExpandedRow({
             <button
               disabled={busy !== null}
               onClick={() => post(`/api/sessions/${session.id}/interrupt`, "interrupt")}
-              className="px-2.5 py-1 rounded border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-secondary)] transition-colors disabled:opacity-50"
+              className="px-2.5 py-1 rounded border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-secondary)] transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
             >
               {busy === "interrupt" ? "Interrupting…" : "Interrupt"}
             </button>
@@ -203,7 +252,7 @@ function ExpandedRow({
                   body: JSON.stringify({ status: "paused" }),
                 }).then(onRefresh)
               }
-              className="px-2.5 py-1 rounded border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-secondary)] transition-colors disabled:opacity-50"
+              className="px-2.5 py-1 rounded border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-secondary)] transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
             >
               Pause
             </button>
@@ -218,13 +267,13 @@ function ExpandedRow({
                     pushHome();
                   })
                 }
-                className="px-2.5 py-1 rounded bg-[var(--errored-bg)] text-[var(--errored-text)] border border-[var(--errored-border)] hover:brightness-110 transition-all"
+                className="px-2.5 py-1 rounded bg-[var(--errored-bg)] text-[var(--errored-text)] border border-[var(--errored-border)] hover:brightness-110 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
               >
                 {busy === "end" ? "Ending…" : "Confirm end"}
               </button>
               <button
                 onClick={() => setConfirmEnd(false)}
-                className="px-2 py-1 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                className="px-2 py-1 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
               >
                 Cancel
               </button>
@@ -232,7 +281,7 @@ function ExpandedRow({
           ) : (
             <button
               onClick={() => setConfirmEnd(true)}
-              className="px-2.5 py-1 rounded text-[var(--text-muted)] hover:text-[var(--errored-text)] transition-colors"
+              className="px-2.5 py-1 rounded text-[var(--text-muted)] hover:text-[var(--errored-text)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
             >
               End session
             </button>
