@@ -122,7 +122,7 @@ function WorkspaceContent() {
   const flexGrow = ids.length <= 2;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full overflow-hidden">
       <WorkspaceTopbar
         openSessions={openSessions}
         available={available}

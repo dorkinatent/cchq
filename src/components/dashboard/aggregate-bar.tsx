@@ -76,7 +76,7 @@ export function AggregateBar({
     }
   }
 
-  const stats: Stat[] = [
+  const mobileStats: Stat[] = [
     { label: "Active", value: String(activeCount) },
     { label: "Streaming", value: String(streamingCount), tone: streamingCount > 0 ? "accent" : "default" },
     {
@@ -84,26 +84,37 @@ export function AggregateBar({
       value: String(needsYouCount),
       tone: needsYouCount > 0 ? "attention" : "default",
     },
+  ];
+  const stats: Stat[] = [
+    ...mobileStats,
     { label: "Tokens today", value: formatTokens(tokensToday) },
     { label: "Cost today", value: `$${costToday.toFixed(2)}` },
   ];
 
   return (
-    <div className="flex items-center justify-between gap-6 px-6 py-3 border-b border-[var(--border)] bg-[var(--bg)]">
-      <DefRow stats={stats} />
-      <div className="flex items-center gap-3">
-        <WorkspacesMenu />
+    <div className="flex flex-wrap md:flex-nowrap items-center justify-between gap-3 md:gap-6 px-4 md:px-6 py-3 border-b border-[var(--border)] bg-[var(--bg)]">
+      <div className="min-w-0 md:hidden">
+        <DefRow stats={mobileStats} />
+      </div>
+      <div className="min-w-0 hidden md:block">
+        <DefRow stats={stats} />
+      </div>
+      <div className="flex items-center gap-2 md:gap-3 w-full md:w-auto">
+        <div className="hidden md:block">
+          <WorkspacesMenu />
+        </div>
         <input
           value={search}
           onChange={(e) => onSearch(e.target.value)}
           placeholder="Search sessions…"
-          className="bg-[var(--input-bg)] border border-[var(--input-border)] rounded-md px-3 py-1.5 text-sm text-[var(--text-primary)] w-52 placeholder-[var(--text-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
+          className="bg-[var(--input-bg)] border border-[var(--input-border)] rounded-md px-3 py-1.5 text-sm text-[var(--text-primary)] flex-1 md:flex-none md:w-52 min-w-0 placeholder-[var(--text-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
         />
         <button
           onClick={onNew}
-          className="bg-[var(--accent)] text-[var(--bg)] px-3.5 py-1.5 rounded-md text-sm font-semibold hover:bg-[var(--accent-hover)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
+          className="shrink-0 bg-[var(--accent)] text-[var(--bg)] px-3.5 py-1.5 rounded-md text-sm font-semibold hover:bg-[var(--accent-hover)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
         >
-          + New session
+          <span className="md:hidden">+ New</span>
+          <span className="hidden md:inline">+ New session</span>
         </button>
       </div>
     </div>

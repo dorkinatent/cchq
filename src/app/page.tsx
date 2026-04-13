@@ -91,7 +91,7 @@ function DashboardContent() {
   const selectionFull = selected.size >= WORKSPACE_MAX;
 
   return (
-    <div>
+    <div className="overflow-x-hidden">
       <div className="flex items-center gap-2">
         <div className="flex-1 min-w-0">
           <AggregateBar

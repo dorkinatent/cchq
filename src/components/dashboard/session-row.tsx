@@ -114,7 +114,7 @@ export function SessionRow({
         <Link
           href={`/sessions/${session.id}`}
           onClick={(e) => e.stopPropagation()}
-          className="text-sm font-medium text-[var(--text-primary)] hover:text-[var(--accent)] truncate max-w-[24ch]"
+          className="text-sm font-medium text-[var(--text-primary)] hover:text-[var(--accent)] truncate max-w-[14ch] sm:max-w-[24ch]"
         >
           {session.name}
         </Link>
@@ -135,7 +135,7 @@ export function SessionRow({
         <span className="text-[11px] text-[var(--text-muted)] tabular-nums whitespace-nowrap w-14 text-right">
           {relativeTime(session.updatedAt)}
         </span>
-        <span className="text-[11px] text-[var(--text-muted)] tabular-nums whitespace-nowrap w-14 text-right">
+        <span className="hidden sm:inline-block text-[11px] text-[var(--text-muted)] tabular-nums whitespace-nowrap w-14 text-right">
           {cost > 0 ? `$${cost.toFixed(2)}` : "—"}
         </span>
         <span
