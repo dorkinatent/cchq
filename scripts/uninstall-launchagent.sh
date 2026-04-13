@@ -3,12 +3,13 @@
 
 set -eu
 
-PLIST="$HOME/Library/LaunchAgents/com.charlie.ccui.plist"
+LABEL="app.ccui"
+PLIST="$HOME/Library/LaunchAgents/${LABEL}.plist"
 
 if [ -f "$PLIST" ]; then
   launchctl unload "$PLIST" 2>/dev/null || true
   rm -f "$PLIST"
-  echo "Uninstalled com.charlie.ccui (removed $PLIST)"
+  echo "Uninstalled ${LABEL} (removed $PLIST)"
 else
   echo "No plist at $PLIST — nothing to uninstall."
 fi

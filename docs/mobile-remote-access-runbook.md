@@ -57,7 +57,7 @@ Work through these one at a time. Anything failing blocks completion.
 | `curl localhost:3000` fails after reboot | Supabase not up, or `supabase` CLI not on PATH in launchd | Check `~/Library/Logs/ccui/supabase.log`; add `/opt/homebrew/bin` to the plist `EnvironmentVariables.PATH` if needed. |
 | Phone can't reach Mac over Tailscale | MagicDNS disabled, or device not in the tailnet | `tailscale status` on both devices; ensure both are authorized. |
 | LaunchAgent flapping | `npm run build` hasn't been run, or build is stale | Rebuild, reinstall: `npm run build && ./scripts/install-launchagent.sh`. |
-| Multiple servers on port 3000 | `npm run dev` running alongside the agent | `launchctl unload ~/Library/LaunchAgents/com.charlie.ccui.plist` during development; re-load when done. |
+| Multiple servers on port 3000 | `npm run dev` running alongside the agent | `launchctl unload ~/Library/LaunchAgents/app.ccui.plist` during development; re-load when done. |
 
 ## Development workflow (with the agent installed)
 

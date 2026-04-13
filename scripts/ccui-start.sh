@@ -2,7 +2,7 @@
 # scripts/ccui-start.sh — launched by the CCUI LaunchAgent on login.
 #
 # Ensures local Supabase is up, then starts the production Next.js server.
-# Intended to be the single ProgramArgument for com.charlie.ccui.plist.
+# Intended to be the single ProgramArgument for app.ccui.plist.
 #
 # Logs write to ~/Library/Logs/ccui/{stdout,stderr,supabase}.log via the plist's
 # StandardOutPath/StandardErrorPath; this script additionally tees supabase

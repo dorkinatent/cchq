@@ -84,7 +84,7 @@ tsconfig.json
 
 Run:
 ```bash
-cd /Users/charlieanderson/Code/CCUI
+cd /path/to/ccui
 npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias "@/*" --use-npm --turbopack
 ```
 

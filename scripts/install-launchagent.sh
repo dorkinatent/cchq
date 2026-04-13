@@ -2,7 +2,7 @@
 # scripts/install-launchagent.sh — install the CCUI LaunchAgent so the server
 # starts on login and restarts on crash.
 #
-# Safe to re-run: unloads any existing com.charlie.ccui before re-loading.
+# Safe to re-run: unloads any existing app.ccui before re-loading.
 #
 # IMPORTANT: run this from a production-ready checkout (e.g. main branch after
 # merging). The installed agent will `npm run start` from the directory this
@@ -10,11 +10,11 @@
 
 set -eu
 
+LABEL="app.ccui"
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 LOG_DIR="$HOME/Library/Logs/ccui"
-PLIST_SRC="$PROJECT_DIR/scripts/com.charlie.ccui.plist.template"
-PLIST_DST="$HOME/Library/LaunchAgents/com.charlie.ccui.plist"
-LABEL="com.charlie.ccui"
+PLIST_SRC="$PROJECT_DIR/scripts/${LABEL}.plist.template"
+PLIST_DST="$HOME/Library/LaunchAgents/${LABEL}.plist"
 
 mkdir -p "$LOG_DIR" "$(dirname "$PLIST_DST")"
 

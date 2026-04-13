@@ -168,7 +168,7 @@ Uses Tailwind responsive breakpoints. Desktop layout unchanged at `md:` and abov
 
 ### Piece 4: Boot persistence
 
-**Approach:** single LaunchAgent plist at `~/Library/LaunchAgents/com.charlie.ccui.plist`. Runs as Charlie's user (not root — needs access to Charlie's files and `supabase` CLI). `KeepAlive = true` so it restarts on crash.
+**Approach:** single LaunchAgent plist at `~/Library/LaunchAgents/app.ccui.plist`. Runs as Charlie's user (not root — needs access to Charlie's files and `supabase` CLI). `KeepAlive = true` so it restarts on crash.
 
 **Plist runs a single script**, `scripts/ccui-start.sh`, which:
 

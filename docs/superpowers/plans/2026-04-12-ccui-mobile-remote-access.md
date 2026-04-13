@@ -26,7 +26,7 @@
 - `scripts/ccui-start.sh` — LaunchAgent launch script (supabase + npm run start).
 - `scripts/install-launchagent.sh` — writes plist, loads it.
 - `scripts/uninstall-launchagent.sh` — unloads, removes plist.
-- `scripts/com.charlie.ccui.plist.template` — plist with `{{PROJECT_DIR}}` and `{{LOG_DIR}}` placeholders.
+- `scripts/app.ccui.plist.template` — plist with `{{PROJECT_DIR}}` and `{{LOG_DIR}}` placeholders.
 - `docs/mobile-remote-access-runbook.md` — manual verification checklist.
 
 **Modified files:**
@@ -1096,7 +1096,7 @@ git commit -m "feat(launchd): add ccui-start.sh launcher"
 ## Task 18: LaunchAgent plist template + install script
 
 **Files:**
-- Create: `scripts/com.charlie.ccui.plist.template`
+- Create: `scripts/app.ccui.plist.template`
 - Create: `scripts/install-launchagent.sh`
 - Create: `scripts/uninstall-launchagent.sh`
 
@@ -1107,7 +1107,7 @@ git commit -m "feat(launchd): add ccui-start.sh launcher"
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>Label</key><string>com.charlie.ccui</string>
+  <key>Label</key><string>app.ccui</string>
   <key>ProgramArguments</key>
   <array>
     <string>{{PROJECT_DIR}}/scripts/ccui-start.sh</string>
@@ -1136,9 +1136,9 @@ set -eu
 
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 LOG_DIR="$HOME/Library/Logs/ccui"
-PLIST_SRC="$PROJECT_DIR/scripts/com.charlie.ccui.plist.template"
-PLIST_DST="$HOME/Library/LaunchAgents/com.charlie.ccui.plist"
-LABEL="com.charlie.ccui"
+PLIST_SRC="$PROJECT_DIR/scripts/app.ccui.plist.template"
+PLIST_DST="$HOME/Library/LaunchAgents/app.ccui.plist"
+LABEL="app.ccui"
 
 mkdir -p "$LOG_DIR" "$(dirname "$PLIST_DST")"
 
@@ -1159,10 +1159,10 @@ Create `scripts/uninstall-launchagent.sh`:
 ```bash
 #!/usr/bin/env bash
 set -eu
-PLIST="$HOME/Library/LaunchAgents/com.charlie.ccui.plist"
+PLIST="$HOME/Library/LaunchAgents/app.ccui.plist"
 [ -f "$PLIST" ] && launchctl unload "$PLIST" 2>/dev/null || true
 rm -f "$PLIST"
-echo "Uninstalled com.charlie.ccui"
+echo "Uninstalled app.ccui"
 ```
 
 - [ ] **Step 4: Mark executable**
@@ -1183,7 +1183,7 @@ Uninstall for now (to not conflict with `npm run dev` during further development
 - [ ] **Step 6: Commit**
 
 ```bash
-git add scripts/com.charlie.ccui.plist.template scripts/install-launchagent.sh scripts/uninstall-launchagent.sh
+git add scripts/app.ccui.plist.template scripts/install-launchagent.sh scripts/uninstall-launchagent.sh
 git commit -m "feat(launchd): add install/uninstall scripts and plist template"
 ```
 
