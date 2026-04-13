@@ -1,6 +1,7 @@
 import { query, type Query, type PermissionResult } from "@anthropic-ai/claude-agent-sdk";
 import { db, schema } from "@/lib/db";
 import { eq, desc, gt, and } from "drizzle-orm";
+import { captureHeadSha } from "@/lib/git/sha";
 import { evaluatePermission, type TrustLevel } from "@/lib/permissions/engine";
 import { createAllowRule } from "@/lib/permissions/rules";
 import { sessionEventBus } from "./stream-events";
@@ -681,6 +682,14 @@ export async function startSession(
   });
   if (!session) throw new Error(`Session ${sessionId} not found`);
 
+  const startSha = await captureHeadSha(projectPath);
+  if (startSha && !session.startSha) {
+    await db
+      .update(schema.sessions)
+      .set({ startSha })
+      .where(eq(schema.sessions.id, sessionId));
+  }
+
   // Reset any lingering errored status — starting a turn means the session
   // is alive again.
   if (session.status === "errored") {
@@ -895,6 +904,26 @@ export async function completeSession(sessionId: string): Promise<void> {
     }
   }
 
+  const sessionRow = await db.query.sessions.findFirst({
+    where: eq(schema.sessions.id, sessionId),
+    columns: { projectId: true },
+  });
+  if (sessionRow) {
+    const project = await db.query.projects.findFirst({
+      where: eq(schema.projects.id, sessionRow.projectId),
+      columns: { path: true },
+    });
+    if (project) {
+      const endSha = await captureHeadSha(project.path);
+      if (endSha) {
+        await db
+          .update(schema.sessions)
+          .set({ endSha })
+          .where(eq(schema.sessions.id, sessionId));
+      }
+    }
+  }
+
   await db
     .update(schema.sessions)
     .set({ status: "completed", updatedAt: new Date().toISOString() })
@@ -955,6 +984,26 @@ export async function pauseSession(sessionId: string): Promise<void> {
     if (pending.sessionId === sessionId) {
       clearTimeout(pending.timeout);
       pendingPermissions.delete(id);
+    }
+  }
+
+  const sessionRow = await db.query.sessions.findFirst({
+    where: eq(schema.sessions.id, sessionId),
+    columns: { projectId: true },
+  });
+  if (sessionRow) {
+    const project = await db.query.projects.findFirst({
+      where: eq(schema.projects.id, sessionRow.projectId),
+      columns: { path: true },
+    });
+    if (project) {
+      const endSha = await captureHeadSha(project.path);
+      if (endSha) {
+        await db
+          .update(schema.sessions)
+          .set({ endSha })
+          .where(eq(schema.sessions.id, sessionId));
+      }
     }
   }
 
