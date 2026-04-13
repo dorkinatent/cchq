@@ -69,9 +69,18 @@ export function DocsTab({
     grouped[group].push(f);
   }
 
-  function openInEditor(relPath: string) {
-    const abs = `${projectPath}/${relPath}`;
-    window.open(`vscode://file${abs}`, "_blank");
+  async function revealInFinder(relPath: string) {
+    // Server shells out to `open -R` / `explorer /select,` / `xdg-open`.
+    // We don't care about the response unless it errors.
+    const res = await fetch(`/api/projects/${projectId}/docs/reveal`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ relativePath: relPath }),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      alert(`Couldn't reveal file: ${data.error || "unknown error"}`);
+    }
   }
 
   if (loading) {
@@ -132,11 +141,11 @@ export function DocsTab({
                   </button>
                 )}
                 <button
-                  onClick={() => openInEditor(selected)}
+                  onClick={() => revealInFinder(selected)}
                   className="text-[11px] text-[var(--accent)] hover:text-[var(--accent-hover)] rounded px-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-                  title="Open in VS Code"
+                  title="Reveal in Finder"
                 >
-                  ↗ Open
+                  Reveal ↗
                 </button>
               </div>
             </div>

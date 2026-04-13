@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { SlashAutocomplete } from "./slash-autocomplete";
+import { useToast } from "@/components/ui/toast";
 
 export type Attachment = {
   path: string;
@@ -26,10 +27,16 @@ export function MessageInput({
   busy?: boolean;
   onInterrupt?: () => void;
 }) {
+  const { toast } = useToast();
   const [value, setValue] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [stopping, setStopping] = useState(false);
+
+  useEffect(() => {
+    if (!busy) setStopping(false);
+  }, [busy]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -39,10 +46,38 @@ export function MessageInput({
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = "auto";
+    // When empty, don't let a wrapping placeholder inflate the height in
+    // narrow columns — clamp to the single-line min. CSS `min-h-11` then
+    // enforces the 44px floor.
+    if (!value) {
+      el.style.height = "";
+      el.style.overflowY = "hidden";
+      return;
+    }
     const MAX_PX = 240; // ~10 lines; then scroll
     el.style.height = Math.min(el.scrollHeight, MAX_PX) + "px";
     el.style.overflowY = el.scrollHeight > MAX_PX ? "auto" : "hidden";
   }, [value]);
+
+  // When the column/sidebar resizes, a multi-line wrapped message's height
+  // can go stale. Re-run the same clamp logic on width changes.
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => {
+      el.style.height = "auto";
+      if (!el.value) {
+        el.style.height = "";
+        el.style.overflowY = "hidden";
+        return;
+      }
+      const MAX_PX = 240;
+      el.style.height = Math.min(el.scrollHeight, MAX_PX) + "px";
+      el.style.overflowY = el.scrollHeight > MAX_PX ? "auto" : "hidden";
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   // Slash command autocomplete
   const [commands, setCommands] = useState<Command[]>([]);
@@ -285,7 +320,9 @@ export function MessageInput({
           onChange={(e) => handleValueChange(e.target.value)}
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
-          placeholder={dragOver ? "Drop image here..." : "Type a message or paste/drop an image..."}
+          placeholder={
+            dragOver ? "Drop image…" : busy ? "Queue a message…" : "Message…"
+          }
           disabled={disabled}
           rows={1}
           aria-label="Message input"
@@ -294,11 +331,17 @@ export function MessageInput({
         {busy && onInterrupt ? (
           <button
             type="button"
-            onClick={onInterrupt}
+            onClick={() => {
+              if (stopping) return;
+              setStopping(true);
+              toast("Interrupting…");
+              onInterrupt();
+            }}
+            disabled={stopping}
             title="Stop the current turn (Esc)"
-            className="min-h-11 min-w-11 bg-[var(--errored-bg)] border border-[var(--errored-text)] text-[var(--errored-text)] px-4 py-3 rounded-lg text-sm font-medium hover:bg-[var(--errored-text)] hover:text-[var(--bg)] shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+            className="min-h-11 min-w-11 bg-[var(--errored-bg)] border border-[var(--errored-text)] text-[var(--errored-text)] px-4 py-3 rounded-lg text-sm font-medium hover:bg-[var(--errored-text)] hover:text-[var(--bg)] disabled:opacity-50 shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
           >
-            Stop
+            {stopping ? "Stopping…" : "Stop"}
           </button>
         ) : (
           <button

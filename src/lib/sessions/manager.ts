@@ -55,6 +55,13 @@ async function buildDocInjection(
   return header + parts.join("") + footer;
 }
 
+type CurrentTool = {
+  toolUseId: string;
+  toolName: string;
+  input: Record<string, unknown>;
+  startedAt: number;
+};
+
 type ActiveSession = {
   query: Query;
   sessionId: string;
@@ -64,6 +71,19 @@ type ActiveSession = {
   trustLevel: TrustLevel;
   messagesSinceExtract: number;
   lastExtractionTimestamp: string | null;
+  interrupted?: boolean;
+  /**
+   * Most recently started, not-yet-ended tool call — used by the dashboard
+   * overview to show "Using Bash: git commit" style labels. Cleared on
+   * tool_end / message completion.
+   */
+  currentTool: CurrentTool | null;
+  /**
+   * Whether the SDK has an in-flight query turn (roughly: thinking or
+   * streaming). Flipped true on thinking_start / tool_start, false on
+   * result / interrupted.
+   */
+  hasActiveQuery: boolean;
 };
 
 const activeSessions = new Map<string, ActiveSession>();
@@ -136,7 +156,18 @@ export function getPendingPermissions(sessionId: string) {
  */
 export function getBlockedSessionsSummary(): Record<string, { toolName: string; preview: string }> {
   const summary: Record<string, { toolName: string; preview: string }> = {};
-  for (const pending of pendingPermissions.values()) {
+  const stale: string[] = [];
+  for (const [id, pending] of pendingPermissions) {
+    // Lazy sweep: drop permissions for sessions that are no longer active.
+    // Handles leftover state from crashes, reloads, or pre-fix sessions.
+    if (!activeSessions.has(pending.sessionId)) {
+      clearTimeout(pending.timeout);
+      try {
+        pending.resolve({ behavior: "deny", message: "Session no longer active" });
+      } catch {}
+      stale.push(id);
+      continue;
+    }
     if (summary[pending.sessionId]) continue; // first-wins (oldest)
     const input = pending.input as Record<string, unknown>;
     const preview =
@@ -147,6 +178,7 @@ export function getBlockedSessionsSummary(): Record<string, { toolName: string; 
       "";
     summary[pending.sessionId] = { toolName: pending.toolName, preview: String(preview).slice(0, 120) };
   }
+  for (const id of stale) pendingPermissions.delete(id);
   return summary;
 }
 
@@ -275,11 +307,22 @@ function processMessages(
 
           if (toolUseId && !emittedToolIds.has(toolUseId)) {
             emittedToolIds.add(toolUseId);
+            const toolInput = (message as any).input || {};
+            const entry = activeSessions.get(sessionId);
+            if (entry) {
+              entry.currentTool = {
+                toolUseId,
+                toolName,
+                input: toolInput,
+                startedAt: Date.now(),
+              };
+              entry.hasActiveQuery = true;
+            }
             sessionEventBus.emit(sessionId, {
               type: "tool_start",
               toolUseId,
               toolName,
-              input: (message as any).input || {},
+              input: toolInput,
               timestamp: Date.now(),
             });
           }
@@ -353,11 +396,22 @@ function processMessages(
             const toolId = (block as any).id || crypto.randomUUID();
             if (!emittedToolIds.has(toolId)) {
               emittedToolIds.add(toolId);
+              const toolInput = (block as any).input || {};
+              const entry = activeSessions.get(sessionId);
+              if (entry) {
+                entry.currentTool = {
+                  toolUseId: toolId,
+                  toolName: (block as any).name,
+                  input: toolInput,
+                  startedAt: Date.now(),
+                };
+                entry.hasActiveQuery = true;
+              }
               sessionEventBus.emit(sessionId, {
                 type: "tool_start",
                 toolUseId: toolId,
                 toolName: (block as any).name,
-                input: (block as any).input || {},
+                input: toolInput,
                 timestamp: Date.now(),
               });
             }
@@ -415,9 +469,14 @@ function processMessages(
 
           // Emit tool_end for completed tools
           for (const block of toolBlocks) {
+            const endedToolId = (block as any).id || "";
+            const entry = activeSessions.get(sessionId);
+            if (entry && entry.currentTool && entry.currentTool.toolUseId === endedToolId) {
+              entry.currentTool = null;
+            }
             sessionEventBus.emit(sessionId, {
               type: "tool_end",
-              toolUseId: (block as any).id || "",
+              toolUseId: endedToolId,
               toolName: (block as any).name,
               output: (block as any).output || null,
               timestamp: Date.now(),
@@ -433,6 +492,15 @@ function processMessages(
           if (isThinking) {
             sessionEventBus.emit(sessionId, { type: "thinking_end", timestamp: Date.now() });
             isThinking = false;
+          }
+
+          // Turn finished — clear live-state flags so the dashboard shows Idle.
+          {
+            const entry = activeSessions.get(sessionId);
+            if (entry) {
+              entry.hasActiveQuery = false;
+              entry.currentTool = null;
+            }
           }
 
           if (message.subtype === "success") {
@@ -478,6 +546,7 @@ function processMessages(
             await db
               .update(schema.sessions)
               .set({
+                status: "active",
                 updatedAt: new Date().toISOString(),
                 usage: updatedUsage,
               })
@@ -491,6 +560,13 @@ function processMessages(
               numTurns: updatedUsage.numTurns,
               timestamp: Date.now(),
             });
+          } else if ((message as any).subtype === "interrupt" || activeSessions.get(sessionId)?.interrupted) {
+            // SDK may emit a terminal result with subtype "interrupt" after
+            // query.interrupt() — treat as benign, session stays active.
+            await db
+              .update(schema.sessions)
+              .set({ status: "active", updatedAt: new Date().toISOString() })
+              .where(eq(schema.sessions.id, sessionId));
           } else {
             // error case — unchanged
             await db
@@ -507,18 +583,30 @@ function processMessages(
         }
       }
     } catch (error) {
-      console.error(`Session ${sessionId} error:`, error);
+      const entry = activeSessions.get(sessionId);
+      const wasInterrupted = entry?.interrupted === true;
+      clearPendingPermissionsForSession(sessionId);
 
-      sessionEventBus.emit(sessionId, {
-        type: "error",
-        error: error instanceof Error ? error.message : "Unknown error",
-        timestamp: Date.now(),
-      });
-
-      await db
-        .update(schema.sessions)
-        .set({ status: "errored", updatedAt: new Date().toISOString() })
-        .where(eq(schema.sessions.id, sessionId));
+      if (wasInterrupted) {
+        // User interrupt — interruptSession() already emitted "interrupted"
+        // and re-asserted status=active. Swallow the abort without closing
+        // the SSE stream or touching session status.
+        if (entry) entry.interrupted = false;
+      } else {
+        console.error(`Session ${sessionId} error:`, error);
+        const raw = error instanceof Error ? error.message : "Unknown error";
+        // Strip enormous stack dumps from SDK errors — keep the first line.
+        const short = raw.split("\n")[0].slice(0, 240);
+        sessionEventBus.emit(sessionId, {
+          type: "error",
+          error: short,
+          timestamp: Date.now(),
+        });
+        await db
+          .update(schema.sessions)
+          .set({ status: "errored", updatedAt: new Date().toISOString() })
+          .where(eq(schema.sessions.id, sessionId));
+      }
     }
   })();
 }
@@ -561,12 +649,11 @@ function getPermissionConfig(
     // bypassPermissions skips the SDK's cwd guardrail too — true unattended mode.
     return { permissionMode: "bypassPermissions" };
   }
-  if (trustLevel === "auto_log") {
-    // acceptEdits auto-approves file edits inside cwd / additionalDirectories.
-    return { permissionMode: "acceptEdits" };
-  }
-  // ask_me: use PreToolUse hook to force ALL tools through the ask flow,
-  // then canUseTool gets invoked and our engine decides.
+  // auto_log + ask_me both route through canUseTool so every tool (Read,
+  // Bash, Write, etc.) passes through our engine. For auto_log the engine
+  // returns allow + logs; for ask_me it returns allow/deny/ask per rules.
+  // acceptEdits alone wasn't enough because SDK's built-in classifier only
+  // auto-accepts edits — Bash and others fell into a dead prompt path.
   return {
     permissionMode: "default",
     canUseTool: buildCanUseTool(sessionId, projectId, trustLevel),
@@ -593,6 +680,15 @@ export async function startSession(
     where: eq(schema.sessions.id, sessionId),
   });
   if (!session) throw new Error(`Session ${sessionId} not found`);
+
+  // Reset any lingering errored status — starting a turn means the session
+  // is alive again.
+  if (session.status === "errored") {
+    await db
+      .update(schema.sessions)
+      .set({ status: "active", updatedAt: new Date().toISOString() })
+      .where(eq(schema.sessions.id, sessionId));
+  }
 
   const trustLevel = (session.trustLevel as TrustLevel) || "auto_log";
   const permConfig = getPermissionConfig(sessionId, session.projectId, trustLevel);
@@ -653,6 +749,8 @@ export async function startSession(
     trustLevel,
     messagesSinceExtract: 0,
     lastExtractionTimestamp: null,
+    currentTool: null,
+    hasActiveQuery: true,
   };
   activeSessions.set(sessionId, entry);
 
@@ -768,6 +866,8 @@ export async function sendMessage(
     trustLevel,
     messagesSinceExtract: active?.messagesSinceExtract ?? 0,
     lastExtractionTimestamp: active?.lastExtractionTimestamp ?? null,
+    currentTool: null,
+    hasActiveQuery: true,
   };
   activeSessions.set(sessionId, entry);
 
@@ -806,23 +906,37 @@ export async function completeSession(sessionId: string): Promise<void> {
  * query.interrupt() cancels mid-turn work; the session stays active and
  * can accept the next user message. For unrecoverable states, use pause.
  */
+function clearPendingPermissionsForSession(sessionId: string) {
+  for (const [id, pending] of pendingPermissions) {
+    if (pending.sessionId === sessionId) {
+      clearTimeout(pending.timeout);
+      try {
+        pending.resolve({ behavior: "deny", message: "Session interrupted or ended" });
+      } catch {}
+      pendingPermissions.delete(id);
+    }
+  }
+}
+
 export async function interruptSession(sessionId: string): Promise<void> {
   const active = activeSessions.get(sessionId);
   if (!active) return;
+  active.interrupted = true;
+  clearPendingPermissionsForSession(sessionId);
   try {
     await active.query.interrupt();
   } catch (err) {
-    // Fall back to abort if interrupt is unsupported or already settled
     try {
       active.abortController.abort();
     } catch {}
     console.error(`[session ${sessionId}] interrupt failed:`, err);
   }
-  sessionEventBus.emit(sessionId, {
-    type: "error",
-    error: "Interrupted by user",
-    timestamp: Date.now(),
-  });
+  // Defensively re-assert active status — some SDK paths may touch it.
+  await db
+    .update(schema.sessions)
+    .set({ status: "active", updatedAt: new Date().toISOString() })
+    .where(eq(schema.sessions.id, sessionId));
+  sessionEventBus.emit(sessionId, { type: "interrupted", timestamp: Date.now() });
 }
 
 export async function pauseSession(sessionId: string): Promise<void> {
@@ -926,6 +1040,8 @@ export async function resumeSession(sessionId: string, resumeNote?: string): Pro
     trustLevel,
     messagesSinceExtract: existingEntry?.messagesSinceExtract ?? 0,
     lastExtractionTimestamp: existingEntry?.lastExtractionTimestamp ?? null,
+    currentTool: null,
+    hasActiveQuery: true,
   };
   activeSessions.set(sessionId, entry);
 
@@ -947,6 +1063,42 @@ export function getActiveSession(sessionId: string): ActiveSession | undefined {
 
 export function getActiveSessions(): Map<string, ActiveSession> {
   return activeSessions;
+}
+
+/**
+ * Dashboard-friendly snapshot of a session's in-memory live state.
+ * Returns null when the session isn't currently active in this process
+ * (paused, completed, or not yet started).
+ */
+export type LiveSessionSummary = {
+  hasActiveQuery: boolean;
+  currentToolName: string | null;
+  currentToolInput: Record<string, unknown> | null;
+  currentToolStartedAt: number | null;
+};
+
+export function getLiveSessionSummary(sessionId: string): LiveSessionSummary | null {
+  const active = activeSessions.get(sessionId);
+  if (!active) return null;
+  return {
+    hasActiveQuery: active.hasActiveQuery,
+    currentToolName: active.currentTool?.toolName ?? null,
+    currentToolInput: active.currentTool?.input ?? null,
+    currentToolStartedAt: active.currentTool?.startedAt ?? null,
+  };
+}
+
+export function getAllLiveSessionSummaries(): Record<string, LiveSessionSummary> {
+  const out: Record<string, LiveSessionSummary> = {};
+  for (const [id, active] of activeSessions) {
+    out[id] = {
+      hasActiveQuery: active.hasActiveQuery,
+      currentToolName: active.currentTool?.toolName ?? null,
+      currentToolInput: active.currentTool?.input ?? null,
+      currentToolStartedAt: active.currentTool?.startedAt ?? null,
+    };
+  }
+  return out;
 }
 
 export async function getSessionCommands(sessionId: string): Promise<{ name: string; description: string; argumentHint: string }[]> {

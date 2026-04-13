@@ -172,7 +172,7 @@ export function NewSessionDialog({
 
   return (
     <div
-      className="fixed inset-0 backdrop-themed flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 backdrop-themed flex items-center justify-center z-50 p-4 sm:p-6"
       role="dialog"
       aria-modal="true"
       aria-labelledby="new-session-dialog-title"

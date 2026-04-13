@@ -18,7 +18,8 @@ export type StreamEvent =
   | { type: "permission_request"; requestId: string; toolName: string; input: Record<string, unknown>; title: string; timestamp: number }
   | { type: "permission_timeout"; requestId: string; timestamp: number }
   | { type: "tool_error"; toolUseId: string; toolName: string; message: string; hint?: "path_outside_cwd" | "permission_denied" | "other"; timestamp: number }
-  | { type: "message_added"; messageId: string; role: "user" | "assistant" | "system" | "tool"; timestamp: number };
+  | { type: "message_added"; messageId: string; role: "user" | "assistant" | "system" | "tool"; timestamp: number }
+  | { type: "interrupted"; timestamp: number };
 
 export type StreamEventHandler = (event: StreamEvent) => void;
 

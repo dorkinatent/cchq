@@ -83,7 +83,7 @@ export function DocOverlay({
         onClose={onClose}
       />
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-prose mx-auto px-6 py-8">
+        <div className="max-w-[880px] mx-auto px-10 py-10">
           {loading ? (
             <div className="text-xs text-[var(--text-muted)]">Loading…</div>
           ) : content ? (
@@ -203,7 +203,7 @@ export function NoteOverlay({
     <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg)]">
       <BackBar crumb={crumb} onClose={onClose} right={right ?? undefined} />
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-prose mx-auto px-6 py-8">
+        <div className="max-w-[880px] mx-auto px-10 py-10">
           {loading ? (
             <div className="text-xs text-[var(--text-muted)]">Loading…</div>
           ) : !note ? (

@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useSessions, type Session } from "@/hooks/use-sessions";
 import { useBlockedSessions, type BlockedSummary } from "@/hooks/use-blocked-sessions";
 import { useRailPrefs } from "@/hooks/use-rail-prefs";
+import { useWorkspaces, type Workspace } from "@/hooks/use-workspaces";
 
 type Project = { id: string; name: string; path: string; engine: "sdk" | "gastown" };
 
@@ -22,38 +23,58 @@ export type EnrichedSession = Session & {
   blockedPreview?: string;
 };
 
-function deriveState(session: Session, blocked: BlockedSummary): DerivedSessionState {
+function deriveState(session: Session, blocked: BlockedSummary, now: number): DerivedSessionState {
   if (blocked[session.id]) return "blocked";
   if (session.status === "errored") return "errored";
   if (session.status === "paused") return "paused";
   if (session.status === "completed") return "completed";
   // Active: treat recently-updated (<20s) as streaming, else idle.
-  const ageMs = Date.now() - new Date(session.updated_at).getTime();
+  const ageMs = now - new Date(session.updated_at).getTime();
   return ageMs < 20_000 ? "streaming" : "idle";
 }
 
-type SwitcherCtx = {
+// ──────────────────────────────────────────────────────────────────────────
+// Context split: State vs Actions.
+//
+// Why: a 2s `now` tick drives `deriveState`, which flips `sessions` identity
+// every 2s. If every consumer sits on one combined context, every consumer
+// re-renders every 2s — including callers that only need a stable callback
+// like `refetchWorkspaces` or `togglePin`.
+//
+// Actions are memoized with useCallback and live in their own provider, so
+// action-only consumers never re-render from the tick. `useSessionSwitcher()`
+// stays as the merged-shape hook for backwards compatibility.
+// ──────────────────────────────────────────────────────────────────────────
+type StateCtx = {
   projects: Project[];
   sessions: EnrichedSession[];
   blockedCount: number;
   prefs: ReturnType<typeof useRailPrefs>["prefs"];
   hydrated: boolean;
+  currentSessionId: string | null;
+  switcherOpen: boolean;
+  newSessionOpen: boolean;
+  workspaces: Workspace[];
+};
+
+type ActionsCtx = {
   setWidth: (w: number) => void;
   setFilter: ReturnType<typeof useRailPrefs>["setFilter"];
   toggleGroup: (id: string) => void;
   setCompletedOpen: (open: boolean) => void;
   togglePin: (id: string) => void;
-  currentSessionId: string | null;
   openSwitcher: () => void;
   closeSwitcher: () => void;
-  switcherOpen: boolean;
   navigateTo: (sessionId: string) => void;
-  newSessionOpen: boolean;
   openNewSession: () => void;
   closeNewSession: () => void;
+  refetchWorkspaces: () => void;
 };
 
-const Ctx = createContext<SwitcherCtx | null>(null);
+type SwitcherCtx = StateCtx & ActionsCtx;
+
+const StateCtxObj = createContext<StateCtx | null>(null);
+const ActionsCtxObj = createContext<ActionsCtx | null>(null);
 
 export function SessionSwitcherProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -62,10 +83,18 @@ export function SessionSwitcherProvider({ children }: { children: ReactNode }) {
   const blocked = useBlockedSessions();
   const { prefs, hydrated, setWidth, setFilter, toggleGroup, setCompletedOpen, togglePin, recordRecent } =
     useRailPrefs();
+  const { workspaces, refetch: refetchWorkspaces } = useWorkspaces();
 
   const [projects, setProjects] = useState<Project[]>([]);
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [newSessionOpen, setNewSessionOpen] = useState(false);
+  // Tick so `deriveState`'s 20s-recency check actually re-evaluates between
+  // session polls (otherwise a session stays "streaming" until the next poll).
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 2000);
+    return () => clearInterval(t);
+  }, []);
 
   useEffect(() => {
     fetch("/api/projects")
@@ -80,12 +109,12 @@ export function SessionSwitcherProvider({ children }: { children: ReactNode }) {
         const block = blocked[s.id];
         return {
           ...s,
-          state: deriveState(s, blocked),
+          state: deriveState(s, blocked, now),
           blockedTool: block?.toolName,
           blockedPreview: block?.preview,
         };
       }),
-    [rawSessions, blocked]
+    [rawSessions, blocked, now]
   );
 
   const blockedCount = useMemo(() => sessions.filter((s) => s.state === "blocked").length, [sessions]);
@@ -176,26 +205,17 @@ export function SessionSwitcherProvider({ children }: { children: ReactNode }) {
     };
   }, [sessions, currentSessionId, prefs.pinned, router]);
 
-  const value = useMemo<SwitcherCtx>(
+  const stateValue = useMemo<StateCtx>(
     () => ({
       projects,
       sessions,
       blockedCount,
       prefs,
       hydrated,
-      setWidth,
-      setFilter,
-      toggleGroup,
-      setCompletedOpen,
-      togglePin,
       currentSessionId,
-      openSwitcher,
-      closeSwitcher,
       switcherOpen,
-      navigateTo,
       newSessionOpen,
-      openNewSession,
-      closeNewSession,
+      workspaces,
     }),
     [
       projects,
@@ -203,27 +223,66 @@ export function SessionSwitcherProvider({ children }: { children: ReactNode }) {
       blockedCount,
       prefs,
       hydrated,
+      currentSessionId,
+      switcherOpen,
+      newSessionOpen,
+      workspaces,
+    ]
+  );
+
+  const actionsValue = useMemo<ActionsCtx>(
+    () => ({
       setWidth,
       setFilter,
       toggleGroup,
       setCompletedOpen,
       togglePin,
-      currentSessionId,
       openSwitcher,
       closeSwitcher,
-      switcherOpen,
       navigateTo,
-      newSessionOpen,
       openNewSession,
       closeNewSession,
+      refetchWorkspaces,
+    }),
+    [
+      setWidth,
+      setFilter,
+      toggleGroup,
+      setCompletedOpen,
+      togglePin,
+      openSwitcher,
+      closeSwitcher,
+      navigateTo,
+      openNewSession,
+      closeNewSession,
+      refetchWorkspaces,
     ]
   );
 
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+  return (
+    <ActionsCtxObj.Provider value={actionsValue}>
+      <StateCtxObj.Provider value={stateValue}>{children}</StateCtxObj.Provider>
+    </ActionsCtxObj.Provider>
+  );
 }
 
-export function useSessionSwitcher() {
-  const v = useContext(Ctx);
-  if (!v) throw new Error("useSessionSwitcher must be used inside SessionSwitcherProvider");
-  return v;
+/**
+ * Backwards-compatible merged hook. Subscribes to BOTH state and actions
+ * contexts, so consumers re-render whenever the state slice changes.
+ * Prefer `useSessionSwitcherActions()` if you only need callbacks.
+ */
+export function useSessionSwitcher(): SwitcherCtx {
+  const s = useContext(StateCtxObj);
+  const a = useContext(ActionsCtxObj);
+  if (!s || !a)
+    throw new Error("useSessionSwitcher must be used inside SessionSwitcherProvider");
+  return { ...s, ...a };
+}
+
+/** Actions-only hook. Does not subscribe to state changes. */
+export function useSessionSwitcherActions(): ActionsCtx {
+  const a = useContext(ActionsCtxObj);
+  if (!a)
+    throw new Error("useSessionSwitcherActions must be used inside SessionSwitcherProvider");
+  return a;
 }

@@ -5,8 +5,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { relativeTime } from "@/lib/relative-time";
-import { useSessionSwitcher, type EnrichedSession } from "./context";
+import { useSessionSwitcher, useSessionSwitcherActions, type EnrichedSession } from "./context";
 import type { RailFilter } from "@/hooks/use-rail-prefs";
+import type { Workspace } from "@/hooks/use-workspaces";
 
 const FILTERS: { id: RailFilter; label: string }[] = [
   { id: "all", label: "All" },
@@ -50,7 +51,9 @@ function StateDot({ state }: { state: EnrichedSession["state"] }) {
 }
 
 function SessionRow({ session, current, pinIndex }: { session: EnrichedSession; current: boolean; pinIndex?: number }) {
-  const { togglePin } = useSessionSwitcher();
+  // Actions-only: this row re-renders plenty from parent props; don't also
+  // subscribe it to the 2s state tick just for one stable callback.
+  const { togglePin } = useSessionSwitcherActions();
   const isBlocked = session.state === "blocked";
   const isErrored = session.state === "errored";
   const isPinned = pinIndex !== undefined;
@@ -176,6 +179,109 @@ function ProjectGroup({
   );
 }
 
+function WorkspaceRow({
+  workspace,
+  onDeleted,
+}: {
+  workspace: Workspace;
+  onDeleted: () => void;
+}) {
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const count = workspace.sessionIds.length;
+
+  async function handleDelete(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!confirming) {
+      setConfirming(true);
+      return;
+    }
+    if (busy) return;
+    setBusy(true);
+    try {
+      await fetch(`/api/workspaces/${workspace.id}`, { method: "DELETE" });
+      onDeleted();
+    } finally {
+      setBusy(false);
+      setConfirming(false);
+    }
+  }
+
+  const href = `/workspace?ids=${workspace.sessionIds.join(",")}`;
+
+  return (
+    <div className="group relative">
+      <Link
+        href={href}
+        onMouseLeave={() => setConfirming(false)}
+        className="relative block rounded-md pl-2 pr-2 py-1.5 transition-colors duration-75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0 hover:bg-[color-mix(in_oklch,var(--surface-raised)_60%,transparent)]"
+        title={workspace.name}
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <span
+            aria-hidden
+            className="inline-block rounded-sm border border-[var(--text-muted)] shrink-0"
+            style={{ width: 7, height: 7 }}
+          />
+          <span className="truncate text-[13px] leading-tight text-[var(--text-primary)]">
+            {workspace.name}
+          </span>
+          <span className="ml-auto shrink-0 text-[10px] tabular-nums text-[var(--text-muted)] group-hover:opacity-0 transition-opacity">
+            {count} session{count === 1 ? "" : "s"}
+          </span>
+        </div>
+      </Link>
+      <button
+        onClick={handleDelete}
+        onMouseLeave={() => setConfirming(false)}
+        disabled={busy}
+        className={`absolute right-2 top-1.5 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-[10px] font-medium tracking-wide uppercase px-1.5 py-0.5 rounded bg-[var(--surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0 ${
+          confirming
+            ? "text-[var(--errored-text)] opacity-100"
+            : "text-[var(--text-muted)] hover:text-[var(--errored-text)]"
+        }`}
+        title={confirming ? "Click again to confirm" : "Delete workspace"}
+      >
+        {confirming ? "Delete?" : "×"}
+      </button>
+    </div>
+  );
+}
+
+function WorkspacesSection({
+  workspaces,
+  collapsed,
+  onToggle,
+  onChanged,
+}: {
+  workspaces: Workspace[];
+  collapsed: boolean;
+  onToggle: () => void;
+  onChanged: () => void;
+}) {
+  if (workspaces.length === 0) return null;
+  return (
+    <div className="mb-3">
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center gap-1.5 px-1 py-1 text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)] hover:text-[var(--text-secondary)] rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
+      >
+        <span className="inline-block w-2 text-center">{collapsed ? "›" : "⌄"}</span>
+        <span className="truncate">Workspaces</span>
+        <span className="ml-auto text-[var(--text-muted)] tabular-nums">{workspaces.length}</span>
+      </button>
+      {!collapsed && (
+        <div className="space-y-px mt-0.5">
+          {workspaces.map((w) => (
+            <WorkspaceRow key={w.id} workspace={w} onDeleted={onChanged} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function SessionRail() {
   const pathname = usePathname();
   const {
@@ -191,6 +297,8 @@ export function SessionRail() {
     openSwitcher,
     openNewSession,
     currentSessionId,
+    workspaces,
+    refetchWorkspaces,
   } = useSessionSwitcher();
 
   const asideRef = useRef<HTMLElement>(null);
@@ -204,7 +312,9 @@ export function SessionRail() {
       case "paused":
         return sessions.filter((s) => s.state === "paused");
       case "needs-you":
-        return sessions.filter((s) => s.state === "blocked" || s.state === "errored");
+        // Only sessions with pending permission prompts — errored sessions
+        // have no actionable UI, so they don't belong here.
+        return sessions.filter((s) => s.state === "blocked");
       case "recent":
         const order = new Map(prefs.recent.map((id, i) => [id, i]));
         return [...sessions]
@@ -364,6 +474,12 @@ export function SessionRail() {
             </button>
           </div>
         )}
+        <WorkspacesSection
+          workspaces={workspaces}
+          collapsed={!!prefs.collapsedGroups["__workspaces__"]}
+          onToggle={() => toggleGroup("__workspaces__")}
+          onChanged={refetchWorkspaces}
+        />
         {projects.map((p) => {
           const arr = byProject.get(p.id) ?? [];
           if (arr.length === 0) return null;
