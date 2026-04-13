@@ -14,8 +14,11 @@ export function useSessionOverview() {
   const lastFetchedAtRef = useRef(0);
 
   const fetchOnce = useCallback(async () => {
-    if (Date.now() - lastFetchedAtRef.current < 500) return;
-    lastFetchedAtRef.current = Date.now();
+    // Skip only if we recently SUCCEEDED. An aborted fetch shouldn't count as
+    // a fetch for debounce purposes; otherwise strict-mode double-mount +
+    // visibilitychange/focus pileups can leave the UI stuck on "Loading…".
+    const now = Date.now();
+    if (now - lastFetchedAtRef.current < 500) return;
     abortRef.current?.abort();
     const ac = new AbortController();
     abortRef.current = ac;
@@ -28,6 +31,7 @@ export function useSessionOverview() {
       const body = (await res.json()) as { sessions: OverviewSession[] };
       setSessions(body.sessions);
       setError(null);
+      lastFetchedAtRef.current = Date.now();
     } catch (err) {
       if ((err as { name?: string })?.name === "AbortError") return;
       setError(err instanceof Error ? err.message : String(err));
