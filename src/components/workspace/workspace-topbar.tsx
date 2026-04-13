@@ -109,7 +109,7 @@ export function WorkspaceTopbar({
           <div className="relative" ref={saveRef}>
             <button
               onClick={() => setSaveOpen((v) => !v)}
-              className="px-2.5 py-1 text-[12px] border border-[var(--border)] rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] transition-colors"
+              className="px-2.5 py-1 text-[12px] border border-[var(--border)] rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
             >
               Save as…
             </button>
@@ -128,7 +128,7 @@ export function WorkspaceTopbar({
                       if (e.key === "Escape") setSaveOpen(false);
                     }}
                     placeholder="e.g. Monday triage"
-                    className="flex-1 bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-2 py-1 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent)]"
+                    className="flex-1 bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-2 py-1 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
                   />
                   <button
                     onClick={handleSave}
@@ -149,7 +149,7 @@ export function WorkspaceTopbar({
           <div className="relative" ref={wrapRef}>
             <button
               onClick={() => setPickerOpen((v) => !v)}
-              className="px-2.5 py-1 text-[12px] border border-[var(--border)] rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] transition-colors"
+              className="px-2.5 py-1 text-[12px] border border-[var(--border)] rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
             >
               + Add session
             </button>

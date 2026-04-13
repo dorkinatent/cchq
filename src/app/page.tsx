@@ -10,6 +10,7 @@ import {
 import { AggregateBar } from "@/components/dashboard/aggregate-bar";
 import { NeedsYouBlock } from "@/components/dashboard/needs-you-block";
 import { ProjectGroup } from "@/components/dashboard/project-group";
+import { useNow } from "@/hooks/use-now";
 import type { OverviewSession } from "@/app/api/sessions/overview/route";
 
 function groupByProject(sessions: OverviewSession[]) {
@@ -49,6 +50,7 @@ function DashboardContent() {
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const now = useNow();
 
   const visible = useMemo(() => {
     let list = sessions;
@@ -133,6 +135,7 @@ function DashboardContent() {
                 selected={selected}
                 onToggleSelect={toggleSelected}
                 selectionFull={selectionFull}
+                now={now}
               />
             ))}
           </div>

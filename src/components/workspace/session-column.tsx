@@ -42,6 +42,7 @@ export function SessionColumn({
   onFocus,
   onClose,
   flexGrow,
+  now,
 }: {
   sessionId: string;
   focused: boolean;
@@ -49,6 +50,7 @@ export function SessionColumn({
   onClose: () => void;
   /** Allow the column to stretch to fill available horizontal space. */
   flexGrow: boolean;
+  now: number;
 }) {
   const { messages, loading, loadingMore, hasMore, loadMore } =
     useMessagePagination(sessionId);
@@ -57,7 +59,6 @@ export function SessionColumn({
   const { toast } = useToast();
   const [session, setSession] = useState<SessionDetail | null>(null);
   const messageListRef = useRef<MessageListHandle>(null);
-  const [now, setNow] = useState(() => Date.now());
   const timersRef = useRef<Set<ReturnType<typeof setTimeout>>>(new Set());
 
   // Single session-detail fetch effect. Re-runs on completion/result so the
@@ -91,13 +92,6 @@ export function SessionColumn({
   const isBusy =
     streamState.phase !== "idle" && streamState.phase !== "error";
   const isActive = session?.status === "active";
-
-  // Tick once a second while thinking so the elapsed counter advances.
-  useEffect(() => {
-    if (!isBusy) return;
-    const t = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(t);
-  }, [isBusy]);
 
   const phase = phaseLabelFromStream(streamState, now);
 

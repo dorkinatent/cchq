@@ -17,6 +17,7 @@ export function ProjectGroup({
   selected,
   onToggleSelect,
   selectionFull,
+  now,
 }: {
   projectId: string;
   projectName: string;
@@ -29,6 +30,7 @@ export function ProjectGroup({
   selected: Set<string>;
   onToggleSelect: (id: string) => void;
   selectionFull: boolean;
+  now: number;
 }) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const sorted = [...sessions].sort(compareSessions);
@@ -83,6 +85,7 @@ export function ProjectGroup({
                 selected={selected.has(s.id)}
                 onToggleSelect={() => onToggleSelect(s.id)}
                 selectDisabled={selectionFull}
+                now={now}
               />
             ))}
           </div>

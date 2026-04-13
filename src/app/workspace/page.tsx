@@ -4,6 +4,7 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSessionOverview } from "@/hooks/use-session-overview";
+import { useNow } from "@/hooks/use-now";
 import { SessionColumn } from "@/components/workspace/session-column";
 import { WorkspaceTopbar } from "@/components/workspace/workspace-topbar";
 import { compareSessions } from "@/components/dashboard/phase-label";
@@ -37,6 +38,7 @@ function WorkspaceContent() {
   const { sessions } = useSessionOverview();
   const { refetchWorkspaces } = useSessionSwitcherActions();
   const [focusedId, setFocusedId] = useState<string | null>(null);
+  const now = useNow();
 
   // Keep focused column valid. Default to first on mount / after removal.
   useEffect(() => {
@@ -139,6 +141,7 @@ function WorkspaceContent() {
               onFocus={() => setFocusedId(id)}
               onClose={() => removeId(id)}
               flexGrow={flexGrow}
+              now={now}
             />
           ))}
         </div>

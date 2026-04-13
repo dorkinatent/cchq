@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { OverviewSession } from "@/app/api/sessions/overview/route";
 import { relativeTime } from "@/lib/relative-time";
 import {
@@ -37,6 +37,7 @@ export function SessionRow({
   selected,
   onToggleSelect,
   selectDisabled,
+  now,
 }: {
   session: OverviewSession;
   queuedCount: number;
@@ -46,19 +47,11 @@ export function SessionRow({
   selected: boolean;
   onToggleSelect: () => void;
   selectDisabled: boolean;
+  now: number;
 }) {
   const router = useRouter();
-  const [now, setNow] = useState(() => Date.now());
   const isBusy = session.liveState?.hasActiveQuery === true;
   const isPulsing = isBusy || session.blockedInfo != null;
-
-  // Live "Thinking Ns" counter — only tick while busy, and only if expanded
-  // or currently streaming in the row.
-  useEffect(() => {
-    if (!isBusy) return;
-    const id = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(id);
-  }, [isBusy]);
 
   const phase = phaseLabel(session, now, queuedCount);
   const cost = session.usage?.totalCostUsd ?? 0;
