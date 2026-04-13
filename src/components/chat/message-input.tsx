@@ -289,7 +289,7 @@ export function MessageInput({
           disabled={disabled}
           rows={1}
           aria-label="Message input"
-          className="flex-1 min-h-11 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg px-4 py-3 text-sm leading-[1.5] text-[var(--text-primary)] resize-none placeholder-[var(--text-muted)] disabled:opacity-50"
+          className="flex-1 min-h-11 bg-[var(--input-bg)] border border-[var(--input-border)] rounded-lg px-4 py-3 text-base md:text-sm leading-[1.5] text-[var(--text-primary)] resize-none placeholder-[var(--text-muted)] disabled:opacity-50"
         />
         {busy && onInterrupt ? (
           <button

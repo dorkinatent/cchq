@@ -1,3 +1,5 @@
+import { v4 as uuidv4 } from "uuid";
+
 export type QueuedMessage = {
   id: string;
   sessionId: string;
@@ -55,7 +57,7 @@ export class MessageQueue {
     attachments?: { path: string; name: string }[]
   ): QueuedMessage {
     const msg: QueuedMessage = {
-      id: crypto.randomUUID(),
+      id: uuidv4(),
       sessionId,
       content,
       attachments,

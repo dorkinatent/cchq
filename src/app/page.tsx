@@ -38,7 +38,7 @@ function DashboardContent() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search sessions..."
-            className="bg-[var(--input-bg)] border border-[var(--input-border)] rounded-md px-3 py-2 text-sm text-[var(--text-primary)] flex-1 md:w-52 md:flex-none placeholder-[var(--text-muted)]"
+            className="bg-[var(--input-bg)] border border-[var(--input-border)] rounded-md px-3 py-2 text-base md:text-sm text-[var(--text-primary)] flex-1 md:w-52 md:flex-none placeholder-[var(--text-muted)]"
           />
           <button
             onClick={openNewSession}
