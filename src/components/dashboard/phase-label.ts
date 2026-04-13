@@ -18,13 +18,16 @@ import { relativeTime } from "@/lib/relative-time";
  * Tool input preview uses the same fallback chain as the blocked
  * summary (command / file_path / path / url) trimmed to ~40 chars.
  */
-export function toolInputPreview(input: Record<string, unknown> | null | undefined): string {
+export function toolInputPreview(
+  input: Record<string, unknown> | null | undefined,
+  maxChars = 60
+): string {
   if (!input) return "";
   const candidates = ["command", "file_path", "path", "url", "pattern", "query"] as const;
   for (const key of candidates) {
     const v = input[key];
     if (typeof v === "string" && v.trim()) {
-      return v.trim().slice(0, 60);
+      return v.trim().slice(0, maxChars);
     }
   }
   return "";

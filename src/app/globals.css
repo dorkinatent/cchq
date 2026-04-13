@@ -237,6 +237,15 @@ kbd,
   font-family: var(--font-display);
 }
 
+/* Keyboard-focus ring. Replaces the verbatim five-utility string
+   `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]
+   focus-visible:ring-offset-0`. Uses box-shadow so it doesn't alter layout and
+   composes cleanly with borders. Add `focus-ring` to any focusable element. */
+.focus-ring:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
 /* Session rail + quick switcher motion */
 @keyframes blocked-pulse {
   0%, 100% { opacity: 1; transform: scale(1); }

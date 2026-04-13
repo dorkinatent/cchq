@@ -105,7 +105,7 @@ function DashboardContent() {
           <button
             onClick={() => setMobileMenuOpen((v) => !v)}
             aria-label="Menu"
-            className="flex items-center justify-center min-h-11 min-w-11 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded hover:bg-[var(--surface-raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
+            className="flex items-center justify-center min-h-11 min-w-11 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded hover:bg-[var(--surface-raised)] focus-ring"
           >
             <span className="text-base leading-none font-bold">···</span>
           </button>
@@ -182,7 +182,7 @@ function DashboardContent() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setSelected(new Set())}
-                className="px-2.5 py-1 text-[12px] text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded hover:bg-[var(--surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
+                className="px-2.5 py-1 text-[12px] text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded hover:bg-[var(--surface)] focus-ring"
               >
                 Clear
               </button>
@@ -192,7 +192,7 @@ function DashboardContent() {
                   setSelected(new Set());
                   router.push(`/workspace?ids=${ids}`);
                 }}
-                className="px-3.5 py-1.5 rounded-md bg-[var(--accent)] text-[var(--bg)] font-semibold text-sm hover:bg-[var(--accent-hover)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
+                className="px-3.5 py-1.5 rounded-md bg-[var(--accent)] text-[var(--bg)] font-semibold text-sm hover:bg-[var(--accent-hover)] transition-colors focus-ring"
               >
                 Open in workspace
               </button>

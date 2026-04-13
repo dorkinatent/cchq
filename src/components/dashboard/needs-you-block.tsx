@@ -46,7 +46,7 @@ export function NeedsYouBlock({ sessions }: { sessions: OverviewSession[] }) {
             </span>
             <Link
               href={`/sessions/${s.id}`}
-              className="ml-2 px-2 py-0.5 rounded bg-[var(--accent)] text-[var(--bg)] text-xs font-semibold hover:bg-[var(--accent-hover)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
+              className="ml-2 px-2 py-0.5 rounded bg-[var(--accent)] text-[var(--bg)] text-xs font-semibold hover:bg-[var(--accent-hover)] transition-colors focus-ring"
             >
               Open
             </Link>

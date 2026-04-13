@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { OverviewSession } from "@/app/api/sessions/overview/route";
 import { useToast } from "@/components/ui/toast";
+import { useOutsideClick } from "@/hooks/use-outside-click";
 
 type SessionLite = {
   id: string;
@@ -35,23 +36,8 @@ export function WorkspaceTopbar({
   const saveInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (!pickerOpen) return;
-    function onDown(e: MouseEvent) {
-      if (!wrapRef.current?.contains(e.target as Node)) setPickerOpen(false);
-    }
-    window.addEventListener("mousedown", onDown);
-    return () => window.removeEventListener("mousedown", onDown);
-  }, [pickerOpen]);
-
-  useEffect(() => {
-    if (!saveOpen) return;
-    function onDown(e: MouseEvent) {
-      if (!saveRef.current?.contains(e.target as Node)) setSaveOpen(false);
-    }
-    window.addEventListener("mousedown", onDown);
-    return () => window.removeEventListener("mousedown", onDown);
-  }, [saveOpen]);
+  useOutsideClick(wrapRef, pickerOpen, () => setPickerOpen(false));
+  useOutsideClick(saveRef, saveOpen, () => setSaveOpen(false));
 
   useEffect(() => {
     if (saveOpen) {
@@ -109,7 +95,7 @@ export function WorkspaceTopbar({
           <div className="relative" ref={saveRef}>
             <button
               onClick={() => setSaveOpen((v) => !v)}
-              className="px-2.5 py-1 text-[12px] border border-[var(--border)] rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
+              className="px-2.5 py-1 text-[12px] border border-[var(--border)] rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] transition-colors focus-ring"
             >
               Save as…
             </button>
@@ -128,7 +114,7 @@ export function WorkspaceTopbar({
                       if (e.key === "Escape") setSaveOpen(false);
                     }}
                     placeholder="e.g. Monday triage"
-                    className="flex-1 bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-2 py-1 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
+                    className="flex-1 bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-2 py-1 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus-ring"
                   />
                   <button
                     onClick={handleSave}
@@ -149,7 +135,7 @@ export function WorkspaceTopbar({
           <div className="relative" ref={wrapRef}>
             <button
               onClick={() => setPickerOpen((v) => !v)}
-              className="px-2.5 py-1 text-[12px] border border-[var(--border)] rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
+              className="px-2.5 py-1 text-[12px] border border-[var(--border)] rounded text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-raised)] transition-colors focus-ring"
             >
               + Add session
             </button>

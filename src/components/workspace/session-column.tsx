@@ -16,6 +16,7 @@ import {
 } from "@/components/chat/permission-card";
 import { ToolErrorNoticeList } from "@/components/chat/tool-error-notice";
 import { useToast } from "@/components/ui/toast";
+import { toolInputPreview } from "@/components/dashboard/phase-label";
 
 type SessionDetail = {
   id: string;
@@ -267,7 +268,7 @@ function phaseLabelFromStream(
   // Prefer the active tool name if present.
   const tool = s.activeTools.find((t) => !t.done) ?? s.activeTools[0];
   if (s.phase === "tool_use" && tool) {
-    const preview = toolInputPreview(tool.input);
+    const preview = toolInputPreview(tool.input, 32);
     return {
       text: preview
         ? `Using ${tool.toolName}: ${preview}`
@@ -286,12 +287,3 @@ function phaseLabelFromStream(
   return null;
 }
 
-function toolInputPreview(input: Record<string, unknown> | null | undefined): string {
-  if (!input) return "";
-  const keys = ["command", "file_path", "path", "url", "pattern", "query"];
-  for (const k of keys) {
-    const v = input[k];
-    if (typeof v === "string" && v.trim()) return v.trim().slice(0, 32);
-  }
-  return "";
-}

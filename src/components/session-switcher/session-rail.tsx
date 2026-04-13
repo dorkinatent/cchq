@@ -77,7 +77,7 @@ function SessionRow({ session, current, pinIndex }: { session: EnrichedSession; 
     <div className="group relative">
       <Link
         href={`/sessions/${session.id}`}
-        className={`relative block rounded-md pl-2 pr-2 py-1.5 transition-colors duration-75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0 ${tint}`}
+        className={`relative block rounded-md pl-2 pr-2 py-1.5 transition-colors duration-75 focus-ring ${tint}`}
         title={session.name}
       >
         {/* Current marker: inset left edge, no stripe */}
@@ -126,7 +126,7 @@ function SessionRow({ session, current, pinIndex }: { session: EnrichedSession; 
           e.stopPropagation();
           togglePin(session.id);
         }}
-        className="absolute right-2 top-1.5 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-[10px] font-medium tracking-wide uppercase text-[var(--text-muted)] hover:text-[var(--accent)] px-1.5 py-0.5 rounded bg-[var(--surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
+        className="absolute right-2 top-1.5 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-[10px] font-medium tracking-wide uppercase text-[var(--text-muted)] hover:text-[var(--accent)] px-1.5 py-0.5 rounded bg-[var(--surface)] focus-ring"
         title={isPinned ? `Unpin (⌥${pinIndex! + 1})` : "Pin"}
       >
         {isPinned ? "Unpin" : "Pin"}
@@ -157,7 +157,7 @@ function ProjectGroup({
     <div className="mb-3">
       <button
         onClick={onToggle}
-        className="w-full flex items-center gap-1.5 px-1 py-1 text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)] hover:text-[var(--text-secondary)] rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
+        className="w-full flex items-center gap-1.5 px-1 py-1 text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)] hover:text-[var(--text-secondary)] rounded focus-ring"
       >
         <span className="inline-block w-2 text-center">{collapsed ? "›" : "⌄"}</span>
         <span className="truncate">{projectName}</span>
@@ -215,7 +215,7 @@ function WorkspaceRow({
       <Link
         href={href}
         onMouseLeave={() => setConfirming(false)}
-        className="relative block rounded-md pl-2 pr-2 py-1.5 transition-colors duration-75 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0 hover:bg-[color-mix(in_oklch,var(--surface-raised)_60%,transparent)]"
+        className="relative block rounded-md pl-2 pr-2 py-1.5 transition-colors duration-75 focus-ring hover:bg-[color-mix(in_oklch,var(--surface-raised)_60%,transparent)]"
         title={workspace.name}
       >
         <div className="flex items-center gap-2 min-w-0">
@@ -236,7 +236,7 @@ function WorkspaceRow({
         onClick={handleDelete}
         onMouseLeave={() => setConfirming(false)}
         disabled={busy}
-        className={`absolute right-2 top-1.5 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-[10px] font-medium tracking-wide uppercase px-1.5 py-0.5 rounded bg-[var(--surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0 ${
+        className={`absolute right-2 top-1.5 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-[10px] font-medium tracking-wide uppercase px-1.5 py-0.5 rounded bg-[var(--surface)] focus-ring ${
           confirming
             ? "text-[var(--errored-text)] opacity-100"
             : "text-[var(--text-muted)] hover:text-[var(--errored-text)]"
@@ -265,7 +265,7 @@ function WorkspacesSection({
     <div className="mb-3">
       <button
         onClick={onToggle}
-        className="w-full flex items-center gap-1.5 px-1 py-1 text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)] hover:text-[var(--text-secondary)] rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
+        className="w-full flex items-center gap-1.5 px-1 py-1 text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)] hover:text-[var(--text-secondary)] rounded focus-ring"
       >
         <span className="inline-block w-2 text-center">{collapsed ? "›" : "⌄"}</span>
         <span className="truncate">Workspaces</span>
@@ -372,21 +372,21 @@ export function SessionRail() {
         <div className="flex items-center justify-between">
           <Link
             href="/"
-            className="font-display text-[22px] font-semibold tracking-[-0.02em] text-[var(--text-primary)] leading-none rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
+            className="font-display text-[22px] font-semibold tracking-[-0.02em] text-[var(--text-primary)] leading-none rounded focus-ring"
           >
             CCUI
           </Link>
           <div className="flex items-center gap-1.5">
             <button
               onClick={openSwitcher}
-              className="font-mono text-[10px] tabular-nums text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-[var(--border)] rounded px-1.5 py-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
+              className="font-mono text-[10px] tabular-nums text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-[var(--border)] rounded px-1.5 py-0.5 focus-ring"
               title="Quick switcher (⌘K)"
             >
               ⌘K
             </button>
             <button
               onClick={openNewSession}
-              className="font-mono text-[11px] leading-none text-[var(--bg)] bg-[var(--accent)] hover:bg-[var(--accent-hover)] rounded w-5 h-5 flex items-center justify-center transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
+              className="font-mono text-[11px] leading-none text-[var(--bg)] bg-[var(--accent)] hover:bg-[var(--accent-hover)] rounded w-5 h-5 flex items-center justify-center transition-colors focus-ring"
               title="New session (⌥⇧N)"
               aria-label="New session"
             >
@@ -399,7 +399,7 @@ export function SessionRail() {
           {blockedCount > 0 && (
             <button
               onClick={() => setFilter("needs-you")}
-              className="ml-auto text-[10px] font-medium tabular-nums px-1.5 py-0.5 rounded bg-[var(--paused-bg)] text-[var(--paused-text)] hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
+              className="ml-auto text-[10px] font-medium tabular-nums px-1.5 py-0.5 rounded bg-[var(--paused-bg)] text-[var(--paused-text)] hover:brightness-110 focus-ring"
             >
               <span className="rail-dot-blocked inline-block w-1.5 h-1.5 rounded-full bg-[var(--paused-text)] mr-1 align-middle" />
               {blockedCount} need you
@@ -417,7 +417,7 @@ export function SessionRail() {
             <button
               key={f.id}
               onClick={() => setFilter(f.id)}
-              className={`text-[10px] uppercase tracking-[0.1em] px-2.5 py-1.5 rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0 ${
+              className={`text-[10px] uppercase tracking-[0.1em] px-2.5 py-1.5 rounded-full transition-colors focus-ring ${
                 active
                   ? "bg-[var(--accent)] text-[var(--bg)]"
                   : "text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--surface-raised)]"
@@ -468,7 +468,7 @@ export function SessionRail() {
             Nothing matches <span className="text-[var(--text-primary)]">{prefs.filter.replace("-", " ")}</span>.
             <button
               onClick={() => setFilter("all")}
-              className="block mt-2 text-[var(--accent)] hover:text-[var(--accent-hover)] rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
+              className="block mt-2 text-[var(--accent)] hover:text-[var(--accent-hover)] rounded focus-ring"
             >
               Show all sessions
             </button>
@@ -517,7 +517,7 @@ export function SessionRail() {
           <div className="mt-2 pt-3 border-t border-[var(--border)]">
             <button
               onClick={() => setCompletedOpen(!prefs.completedOpen)}
-              className="w-full flex items-center gap-1.5 px-1 py-1 text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)] hover:text-[var(--text-secondary)] rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
+              className="w-full flex items-center gap-1.5 px-1 py-1 text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)] hover:text-[var(--text-secondary)] rounded focus-ring"
             >
               <span className="inline-block w-2 text-center">{prefs.completedOpen ? "⌄" : "›"}</span>
               Completed
@@ -538,7 +538,7 @@ export function SessionRail() {
       <div className="border-t border-[var(--border)] px-3 py-2 flex flex-col gap-1">
         <Link
           href="/knowledge"
-          className={`block px-2 py-1.5 rounded text-[12px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0 ${
+          className={`block px-2 py-1.5 rounded text-[12px] focus-ring ${
             pathname === "/knowledge"
               ? "bg-[var(--surface-raised)] text-[var(--accent)]"
               : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"

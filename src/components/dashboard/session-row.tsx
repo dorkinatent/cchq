@@ -222,7 +222,7 @@ function ExpandedRow({
         <div className="flex flex-col items-end gap-1.5 text-xs">
           <Link
             href={`/sessions/${session.id}`}
-            className="px-2.5 py-1 rounded bg-[var(--accent)] text-[var(--bg)] font-semibold hover:bg-[var(--accent-hover)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
+            className="px-2.5 py-1 rounded bg-[var(--accent)] text-[var(--bg)] font-semibold hover:bg-[var(--accent-hover)] transition-colors focus-ring"
           >
             Open
           </Link>
@@ -230,7 +230,7 @@ function ExpandedRow({
             <button
               disabled={busy !== null}
               onClick={() => post(`/api/sessions/${session.id}/interrupt`, "interrupt")}
-              className="px-2.5 py-1 rounded border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-secondary)] transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
+              className="px-2.5 py-1 rounded border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-secondary)] transition-colors disabled:opacity-50 focus-ring"
             >
               {busy === "interrupt" ? "Interrupting…" : "Interrupt"}
             </button>
@@ -245,7 +245,7 @@ function ExpandedRow({
                   body: JSON.stringify({ status: "paused" }),
                 }).then(onRefresh)
               }
-              className="px-2.5 py-1 rounded border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-secondary)] transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
+              className="px-2.5 py-1 rounded border border-[var(--border)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--text-secondary)] transition-colors disabled:opacity-50 focus-ring"
             >
               Pause
             </button>
@@ -260,13 +260,13 @@ function ExpandedRow({
                     pushHome();
                   })
                 }
-                className="px-2.5 py-1 rounded bg-[var(--errored-bg)] text-[var(--errored-text)] border border-[var(--errored-border)] hover:brightness-110 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
+                className="px-2.5 py-1 rounded bg-[var(--errored-bg)] text-[var(--errored-text)] border border-[var(--errored-border)] hover:brightness-110 transition-all focus-ring"
               >
                 {busy === "end" ? "Ending…" : "Confirm end"}
               </button>
               <button
                 onClick={() => setConfirmEnd(false)}
-                className="px-2 py-1 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
+                className="px-2 py-1 rounded text-[var(--text-muted)] hover:text-[var(--text-primary)] focus-ring"
               >
                 Cancel
               </button>
@@ -274,7 +274,7 @@ function ExpandedRow({
           ) : (
             <button
               onClick={() => setConfirmEnd(true)}
-              className="px-2.5 py-1 rounded text-[var(--text-muted)] hover:text-[var(--errored-text)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0"
+              className="px-2.5 py-1 rounded text-[var(--text-muted)] hover:text-[var(--errored-text)] transition-colors focus-ring"
             >
               End session
             </button>

@@ -49,7 +49,7 @@ export function ProjectGroup({
           onClick={() => setCollapsed((c) => !c)}
           aria-expanded={!collapsed}
           aria-controls={listId}
-          className="flex items-center gap-2 text-left cursor-pointer bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-0 rounded"
+          className="flex items-center gap-2 text-left cursor-pointer bg-transparent focus-ring rounded"
         >
           <span
             aria-hidden
