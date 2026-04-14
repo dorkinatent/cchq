@@ -54,6 +54,7 @@ type StateCtx = {
   currentSessionId: string | null;
   switcherOpen: boolean;
   newSessionOpen: boolean;
+  mobileRailOpen: boolean;
   workspaces: Workspace[];
 };
 
@@ -68,6 +69,8 @@ type ActionsCtx = {
   navigateTo: (sessionId: string) => void;
   openNewSession: () => void;
   closeNewSession: () => void;
+  openMobileRail: () => void;
+  closeMobileRail: () => void;
   refetchWorkspaces: () => void;
 };
 
@@ -88,6 +91,7 @@ export function SessionSwitcherProvider({ children }: { children: ReactNode }) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [newSessionOpen, setNewSessionOpen] = useState(false);
+  const [mobileRailOpen, setMobileRailOpen] = useState(false);
   // Tick so `deriveState`'s 20s-recency check actually re-evaluates between
   // session polls (otherwise a session stays "streaming" until the next poll).
   const [now, setNow] = useState(() => Date.now());
@@ -144,6 +148,13 @@ export function SessionSwitcherProvider({ children }: { children: ReactNode }) {
     setNewSessionOpen(true);
   }, []);
   const closeNewSession = useCallback(() => setNewSessionOpen(false), []);
+  const openMobileRail = useCallback(() => setMobileRailOpen(true), []);
+  const closeMobileRail = useCallback(() => setMobileRailOpen(false), []);
+
+  // Auto-close mobile rail on navigation.
+  useEffect(() => {
+    setMobileRailOpen(false);
+  }, [pathname]);
 
   // Global keyboard shortcuts. Registered once here so rail + overlay + any
   // page can rely on them.
@@ -215,6 +226,7 @@ export function SessionSwitcherProvider({ children }: { children: ReactNode }) {
       currentSessionId,
       switcherOpen,
       newSessionOpen,
+      mobileRailOpen,
       workspaces,
     }),
     [
@@ -226,6 +238,7 @@ export function SessionSwitcherProvider({ children }: { children: ReactNode }) {
       currentSessionId,
       switcherOpen,
       newSessionOpen,
+      mobileRailOpen,
       workspaces,
     ]
   );
@@ -242,6 +255,8 @@ export function SessionSwitcherProvider({ children }: { children: ReactNode }) {
       navigateTo,
       openNewSession,
       closeNewSession,
+      openMobileRail,
+      closeMobileRail,
       refetchWorkspaces,
     }),
     [
@@ -255,6 +270,8 @@ export function SessionSwitcherProvider({ children }: { children: ReactNode }) {
       navigateTo,
       openNewSession,
       closeNewSession,
+      openMobileRail,
+      closeMobileRail,
       refetchWorkspaces,
     ]
   );
