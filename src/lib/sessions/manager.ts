@@ -8,6 +8,7 @@ import { sessionEventBus } from "./stream-events";
 import { scanDocs } from "@/lib/docs/scanner";
 import { readFile } from "fs/promises";
 import { join } from "path";
+import type { McpServer, ModelInfo } from "@/types/command-result";
 
 const MAX_DOC_INJECTION_CHARS = 20_000;
 
@@ -1186,4 +1187,122 @@ export async function getSessionCommands(sessionId: string): Promise<{ name: str
   }
 
   return [];
+}
+
+export async function getMcpStatus(sessionId: string): Promise<McpServer[]> {
+  const active = activeSessions.get(sessionId);
+  if (!active) return [];
+  try {
+    const servers = await active.query.mcpServerStatus();
+    return servers.map((s) => ({
+      name: s.name,
+      status: s.status as McpServer["status"],
+      scope: s.scope,
+      error: s.error,
+      tools: s.tools?.map((t) => ({ name: t.name, description: t.description })),
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export async function getAvailableModels(sessionId: string): Promise<ModelInfo[]> {
+  const active = activeSessions.get(sessionId);
+  if (!active) return [];
+  try {
+    const models = await active.query.supportedModels();
+    return models.map((m) => ({
+      value: m.value,
+      displayName: m.displayName,
+      description: m.description,
+      supportsEffort: m.supportsEffort,
+      supportedEffortLevels: m.supportedEffortLevels,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export async function switchModel(sessionId: string, model: string): Promise<boolean> {
+  const active = activeSessions.get(sessionId);
+  if (!active) return false;
+  try {
+    await active.query.setModel(model);
+    await db
+      .update(schema.sessions)
+      .set({ model, updatedAt: new Date().toISOString() })
+      .where(eq(schema.sessions.id, sessionId));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function getSessionHealthStatus(sessionId: string) {
+  const active = activeSessions.get(sessionId);
+  const session = await db.query.sessions.findFirst({
+    where: eq(schema.sessions.id, sessionId),
+  });
+  if (!session) return null;
+
+  const pending = Array.from(pendingPermissions.values()).filter(
+    (p) => p.sessionId === sessionId
+  );
+
+  let contextUsage: { usedTokens: number; maxTokens: number; percentUsed: number } | undefined;
+  if (active) {
+    try {
+      const ctx = await active.query.getContextUsage();
+      if (ctx && typeof (ctx as any).used === "number" && typeof (ctx as any).max === "number") {
+        const used = (ctx as any).used;
+        const max = (ctx as any).max;
+        contextUsage = {
+          usedTokens: used,
+          maxTokens: max,
+          percentUsed: max > 0 ? Math.round((used / max) * 100) : 0,
+        };
+      }
+    } catch {
+      // Context usage not available
+    }
+  }
+
+  return {
+    sessionStatus: session.status,
+    connectionStatus: active ? "connected" : "disconnected",
+    sdkSessionId: session.sdkSessionId,
+    hasActiveQuery: active?.hasActiveQuery ?? false,
+    currentTool: active?.currentTool?.toolName ?? null,
+    pendingPermissions: pending.length,
+    model: session.model ?? "claude-sonnet-4-6",
+    effort: session.effort ?? undefined,
+    contextUsage,
+  };
+}
+
+export async function getPermissionInfo(sessionId: string) {
+  const session = await db.query.sessions.findFirst({
+    where: eq(schema.sessions.id, sessionId),
+  });
+  if (!session) return null;
+
+  const rules = await db.query.permissionRules.findMany({
+    where: eq(schema.permissionRules.projectId, session.projectId),
+  });
+
+  const trustLevel = session.trustLevel ?? "auto_log";
+  const modeMap: Record<string, string> = {
+    full_auto: "Bypass all permissions",
+    auto_log: "Auto-allow with logging",
+    ask_me: "Ask before dangerous actions",
+  };
+
+  return {
+    trustLevel,
+    permissionMode: modeMap[trustLevel] || trustLevel,
+    rules: rules.map((r) => ({
+      toolPattern: r.toolPattern,
+      decision: r.decision,
+    })),
+  };
 }
