@@ -1,5 +1,7 @@
 # Testing the Diff Viewer
 
+> Last updated: 2026-04-13. This file exists to test the Changes tab.
+
 Quick guide for testing the session diff viewer feature.
 
 ## Prerequisites
