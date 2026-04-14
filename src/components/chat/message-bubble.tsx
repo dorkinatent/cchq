@@ -1,7 +1,54 @@
+"use client";
+
+import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Message } from "@/hooks/use-session-messages";
 import { ToolUseBlock } from "./tool-use-block";
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Fallback for older browsers / insecure contexts
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    }
+  }
+
+  return (
+    <button
+      onClick={handleCopy}
+      className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity absolute top-2 right-2 p-1.5 rounded bg-[var(--surface)]/80 hover:bg-[var(--surface)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+      aria-label={copied ? "Copied" : "Copy message"}
+      title={copied ? "Copied!" : "Copy"}
+    >
+      {copied ? (
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="2.5 7.5 5.5 10.5 11.5 4.5" />
+        </svg>
+      ) : (
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="4.5" y="4.5" width="7" height="7" rx="1.5" />
+          <path d="M9.5 4.5V3a1.5 1.5 0 0 0-1.5-1.5H3A1.5 1.5 0 0 0 1.5 3v5A1.5 1.5 0 0 0 3 9.5h1.5" />
+        </svg>
+      )}
+    </button>
+  );
+}
 
 export function MessageBubble({ message }: { message: Message }) {
   const isUser = message.role === "user";
@@ -17,12 +64,13 @@ export function MessageBubble({ message }: { message: Message }) {
       </div>
       {hasContent && (
         <div
-          className={`rounded-lg px-4 py-3 text-sm leading-relaxed max-w-[min(96%,720px)] ${
+          className={`group relative rounded-lg px-4 py-3 text-sm leading-relaxed max-w-[min(96%,720px)] ${
             isUser
               ? "bg-[var(--user-msg-bg)] text-[var(--user-msg-text)]"
               : "bg-[var(--surface-raised)] border border-[var(--border)] text-[var(--text-secondary)]"
           }`}
         >
+          <CopyButton text={message.content || ""} />
           {isUser ? (
             <div>
               <div className="whitespace-pre-wrap">{message.content}</div>
