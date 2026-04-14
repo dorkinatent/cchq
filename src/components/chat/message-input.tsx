@@ -158,11 +158,28 @@ export function MessageInput({
     setShowAutocomplete(false);
   }
 
+  // Commands that are handled client-side in the CLI and need custom
+  // CCUI handlers. Others fall through to the SDK as regular prompts.
+  const CLI_ONLY_COMMANDS = new Set([
+    "mcp", "model", "cost", "doctor", "login", "logout",
+    "permissions", "status", "vim", "config",
+  ]);
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if ((!value.trim() && attachments.length === 0) || disabled) return;
     setShowAutocomplete(false);
     const trimmed = value.trim();
+
+    // Intercept slash commands that won't work through the SDK.
+    if (trimmed.startsWith("/")) {
+      const cmdName = trimmed.slice(1).split(/\s/)[0].toLowerCase();
+      if (CLI_ONLY_COMMANDS.has(cmdName)) {
+        toast(`/${cmdName} is a CLI-only command — not yet supported in the web UI`, { variant: "error" });
+        return;
+      }
+    }
+
     const atts = attachments.length > 0 ? attachments : undefined;
     if (enqueue) {
       enqueue(
