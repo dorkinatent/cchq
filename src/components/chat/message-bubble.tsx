@@ -32,7 +32,7 @@ function CopyButton({ text }: { text: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity absolute top-2 right-2 p-1.5 rounded bg-[var(--surface)]/80 hover:bg-[var(--surface)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+      className="md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 transition-opacity absolute top-2 right-2 p-1.5 rounded bg-[var(--surface)]/80 hover:bg-[var(--surface)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
       aria-label={copied ? "Copied" : "Copy message"}
       title={copied ? "Copied!" : "Copy"}
     >
