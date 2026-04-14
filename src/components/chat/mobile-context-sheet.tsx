@@ -58,7 +58,7 @@ export function MobileContextSheet({
         aria-hidden
       />
       <div
-        className="absolute top-0 right-0 bottom-0 w-[320px] max-w-[90vw] bg-[var(--surface)] border-l border-[var(--border)] shadow-2xl flex flex-col overflow-hidden"
+        className="absolute top-0 right-0 bottom-0 w-[calc(100vw-40px)] bg-[var(--surface)] border-l border-[var(--border)] shadow-2xl flex flex-col overflow-hidden"
         style={{ animation: "mobile-context-in 200ms cubic-bezier(0.2, 0.8, 0.2, 1) both" }}
       >
         {/* Close bar */}
