@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { CommandResult } from "@/types/command-result";
 
 export type Message = {
   id: string;
@@ -10,6 +11,7 @@ export type Message = {
   tool_use: unknown;
   thinking: string | null;
   created_at: string;
+  commandResult?: CommandResult;
 };
 
 export function useSessionMessages(sessionId: string) {
