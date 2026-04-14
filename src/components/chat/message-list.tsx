@@ -142,6 +142,11 @@ export const MessageList = forwardRef<
 
     if (isNewUserMessage) {
       scrollToBottom(true);
+      // On mobile, the keyboard dismisses AFTER the scroll fires, resizing
+      // the viewport and drifting the position. Schedule follow-up scrolls
+      // to catch the keyboard animation (~300ms on iOS).
+      setTimeout(() => scrollToBottom(false), 150);
+      setTimeout(() => scrollToBottom(false), 400);
       return;
     }
 
