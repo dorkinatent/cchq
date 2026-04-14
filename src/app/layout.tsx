@@ -50,7 +50,7 @@ export default function RootLayout({
         <ThemeProvider>
           <ToastProvider>
             <SessionSwitcherProvider>
-              <div className="flex flex-col h-screen overflow-hidden">
+              <div className="flex flex-col h-dvh overflow-hidden">
                 <MobileHeader />
                 <div className="flex flex-1 overflow-hidden min-h-0">
                   <SessionRail />
