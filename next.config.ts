@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  devIndicators: false,
   // Allow cross-origin dev requests from LAN/Tailscale devices (phones, other Macs).
   // Next 16 blocks _next/* dev resources by default if the request origin doesn't
   // match the server's bound hostname. In dev we bind to 0.0.0.0 and want to
