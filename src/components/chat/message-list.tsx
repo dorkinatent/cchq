@@ -186,9 +186,33 @@ export const MessageList = forwardRef<
     }
     window.addEventListener("resize", handleResize);
 
+    // iOS Safari: the keyboard dismiss (checkmark / swipe down) doesn't fire
+    // window.resize reliably. The visualViewport API does fire, and it's the
+    // canonical way to detect keyboard show/hide on mobile Safari.
+    const vv = window.visualViewport;
+    function handleViewportResize() {
+      handleResize();
+      // Extra delayed check — iOS keyboard animation takes ~300ms.
+      setTimeout(handleResize, 350);
+    }
+    vv?.addEventListener("resize", handleViewportResize);
+
+    // Also catch input blur (keyboard dismiss without submit). When the
+    // textarea loses focus, the keyboard closes and we should re-snap.
+    function handleFocusOut(e: FocusEvent) {
+      const target = e.target as HTMLElement | null;
+      if (target?.tagName === "TEXTAREA" || target?.tagName === "INPUT") {
+        setTimeout(handleResize, 100);
+        setTimeout(handleResize, 400);
+      }
+    }
+    document.addEventListener("focusout", handleFocusOut);
+
     return () => {
       document.removeEventListener("visibilitychange", handleVisibility);
       window.removeEventListener("resize", handleResize);
+      vv?.removeEventListener("resize", handleViewportResize);
+      document.removeEventListener("focusout", handleFocusOut);
     };
   }, []);
 
