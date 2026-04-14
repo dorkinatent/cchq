@@ -18,7 +18,7 @@ export type MessageListHandle = {
 function groupIntoTurns(messages: Message[]): Message[] {
   const result: Message[] = [];
   const filtered = messages.filter(
-    (m) => m.role !== "system" || (m as any).commandResult
+    (m) => m.role !== "system" || m.commandResult
   );
 
   let i = 0;

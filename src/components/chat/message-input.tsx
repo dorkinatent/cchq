@@ -12,6 +12,16 @@ export type Attachment = {
 
 type Command = { name: string; description: string; argumentHint: string };
 
+// Commands with no web or SDK handler — truly CLI-only.
+const CLI_ONLY_COMMANDS = new Set([
+  "doctor", "login", "logout", "vim",
+]);
+
+// Commands handled by inline web UI cards.
+const WEB_COMMANDS = new Set([
+  "cost", "model", "mcp", "status", "permissions", "config", "compact",
+]);
+
 export function MessageInput({
   onSend,
   disabled,
@@ -159,16 +169,6 @@ export function MessageInput({
     setValue(`/${cmd.name} `);
     setShowAutocomplete(false);
   }
-
-  // Commands with no web or SDK handler — truly CLI-only.
-  const CLI_ONLY_COMMANDS = new Set([
-    "doctor", "login", "logout", "vim",
-  ]);
-
-  // Commands handled by inline web UI cards.
-  const WEB_COMMANDS = new Set([
-    "cost", "model", "mcp", "status", "permissions", "config", "compact",
-  ]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

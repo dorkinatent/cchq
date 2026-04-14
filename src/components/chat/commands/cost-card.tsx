@@ -11,7 +11,7 @@ export function CostCard({
   const avgPerTurn = turns > 0 ? cost / turns : 0;
 
   return (
-    <div className="grid grid-cols-4 gap-4 pt-1">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-1">
       <StatCell
         label="Tokens"
         value={tokens >= 1000 ? `${(tokens / 1000).toFixed(1)}k` : tokens.toLocaleString()}

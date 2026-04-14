@@ -150,7 +150,7 @@ export default function SessionPage({
     if (streamState.completedMessage) {
       setCommandMessages((prev) =>
         prev.map((m) =>
-          (m as any).commandResult?.command === "compact" && (m as any).commandResult.status === "running"
+          m.commandResult?.command === "compact" && m.commandResult.status === "running"
             ? { ...m, commandResult: { command: "compact" as const, status: "done" as const, message: "Conversation compacted." } }
             : m
         )
@@ -266,6 +266,7 @@ export default function SessionPage({
 
         case "model": {
           const res = await fetch(`/api/sessions/${id}/models`);
+          if (!res.ok) throw new Error("Failed to fetch models");
           const { models } = await res.json();
           updateCommandMessage(msgId, {
             command: "model",
@@ -281,6 +282,7 @@ export default function SessionPage({
 
         case "mcp": {
           const res = await fetch(`/api/sessions/${id}/mcp`);
+          if (!res.ok) throw new Error("Failed to fetch MCP servers");
           const { servers } = await res.json();
           updateCommandMessage(msgId, {
             command: "mcp",
@@ -292,6 +294,7 @@ export default function SessionPage({
 
         case "status": {
           const res = await fetch(`/api/sessions/${id}/status`);
+          if (!res.ok) throw new Error("Failed to fetch status");
           const data = await res.json();
           updateCommandMessage(msgId, {
             command: "status",
@@ -303,6 +306,7 @@ export default function SessionPage({
 
         case "permissions": {
           const res = await fetch(`/api/sessions/${id}/status?kind=permissions`);
+          if (!res.ok) throw new Error("Failed to fetch permissions");
           const data = await res.json();
           updateCommandMessage(msgId, {
             command: "permissions",
@@ -321,6 +325,8 @@ export default function SessionPage({
             fetch(`/api/sessions/${id}/models`),
             fetch(`/api/sessions/${id}/status?kind=permissions`),
           ]);
+          if (!modelsRes.ok) throw new Error("Failed to fetch models");
+          if (!permRes.ok) throw new Error("Failed to fetch permissions");
           const { models } = await modelsRes.json();
           const permData = await permRes.json();
           updateCommandMessage(msgId, {

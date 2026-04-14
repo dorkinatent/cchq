@@ -67,11 +67,11 @@ export function MessageBubble({
   const hasContent = !!message.content?.trim();
 
   // Render command result cards for system messages
-  if ((message as any).commandResult && message.role === "system") {
+  if (message.commandResult && message.role === "system") {
     return (
       <div className="mb-5">
         <CommandCard
-          result={(message as any).commandResult}
+          result={message.commandResult}
           sessionId={sessionId || message.session_id}
           onSessionUpdate={onSessionUpdate}
         />
