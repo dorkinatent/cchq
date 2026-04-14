@@ -8,4 +8,6 @@ export async function register() {
   const { startMdnsBroadcast } = await import("@/lib/mdns/broadcast");
   const port = Number(process.env.PORT ?? 3000);
   startMdnsBroadcast(port);
+  const { advertise } = await import("@/lib/mdns/advertise");
+  advertise(port);
 }

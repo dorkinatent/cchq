@@ -67,6 +67,16 @@ Open http://localhost:3000.
 
 The `supabase start` command uses custom ports (54331 API, 54332 DB) configured in `supabase/config.toml` to avoid conflicts with other local Supabase projects.
 
+### Local network discovery
+
+CCUI advertises itself via mDNS so you can reach it at a `.local` address without knowing the host machine's IP. By default the hostname is `cchq.local`. To change it, set `LOCAL_NAME` in `.env.local`:
+
+```bash
+LOCAL_NAME=myname   # → http://myname.local:3000
+```
+
+Any device on the same LAN can then open `http://cchq.local:3000` (or your custom name) instead of looking up the IP.
+
 ---
 
 ## Creating an SDK Project (Single-Agent)
