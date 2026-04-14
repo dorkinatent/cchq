@@ -75,6 +75,7 @@ export function MobileContextSheet({
         {/* Render the actual context panel — it uses its own internal tabs */}
         <div className="flex-1 overflow-hidden">
           <SessionContextPanel
+            fluid
             sessionId={sessionId}
             sessionStatus={sessionStatus}
             startSha={startSha}

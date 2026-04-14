@@ -139,6 +139,7 @@ export function SessionContextPanel({
   messageCount,
   usage,
   onExpandToMain,
+  fluid,
 }: {
   sessionId: string;
   sessionStatus: string;
@@ -151,6 +152,8 @@ export function SessionContextPanel({
   messageCount: number;
   usage?: { totalTokens: number; totalCostUsd: number; numTurns: number } | null;
   onExpandToMain?: (payload: MainOverlay) => void;
+  /** When true, panel fills its container (no fixed width, no resize handle, no border-left). Used inside the mobile context sheet. */
+  fluid?: boolean;
 }) {
   const [tab, setTab] = useState<TabKey>("context");
   const [width, setWidth] = useState<number>(MIN_WIDTH);
@@ -270,11 +273,15 @@ export function SessionContextPanel({
 
   return (
     <aside
-      className="relative shrink-0 border-l border-[var(--border)] bg-[color-mix(in_oklch,var(--surface)_50%,transparent)] flex flex-col overflow-hidden"
-      style={{ width: `${width}px` }}
+      className={`relative flex flex-col overflow-hidden ${
+        fluid
+          ? "w-full flex-1 bg-transparent"
+          : "shrink-0 border-l border-[var(--border)] bg-[color-mix(in_oklch,var(--surface)_50%,transparent)]"
+      }`}
+      style={fluid ? undefined : { width: `${width}px` }}
     >
-      {/* Resize handle — absolute on the aside's left edge */}
-      <div
+      {/* Resize handle — hidden in fluid (mobile) mode */}
+      {!fluid && <div
         role="separator"
         aria-orientation="vertical"
         aria-valuenow={width}
@@ -294,7 +301,7 @@ export function SessionContextPanel({
           }`}
           aria-hidden
         />
-      </div>
+      </div>}
 
       <nav
         className="flex border-b border-[var(--border)] px-2"
