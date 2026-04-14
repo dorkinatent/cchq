@@ -45,7 +45,13 @@ export async function getGitDiff(
   const args = ["diff", "--unified=3", "--no-color"];
 
   if (startSha && endSha) {
+    // Historical: diff between two saved commits.
     args.push(`${startSha}...${endSha}`);
+  } else if (startSha) {
+    // Live: diff from session-start commit to current working tree.
+    // This captures BOTH committed changes (by Claude) and any
+    // uncommitted edits — not just unstaged changes like bare `git diff`.
+    args.push(startSha);
   }
 
   if (filePath) {

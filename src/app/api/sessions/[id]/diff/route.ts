@@ -38,9 +38,12 @@ export async function GET(
   try {
     const useSaved = mode === "saved" && session.startSha && session.endSha;
 
+    // In live mode, pass startSha (without endSha) so the diff covers
+    // everything since the session started — both committed and uncommitted.
+    // In saved mode, pass both SHAs for a historical range diff.
     const result = await getGitDiff(
       project.path,
-      useSaved ? session.startSha : null,
+      useSaved ? session.startSha : (session.startSha ?? null),
       useSaved ? session.endSha : null,
       file || null
     );
