@@ -23,6 +23,7 @@ import { ToolErrorNoticeList } from "@/components/chat/tool-error-notice";
 import { useContextPanel } from "@/hooks/use-context-panel";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { useToast } from "@/components/ui/toast";
+import type { CommandResult } from "@/types/command-result";
 
 type SessionDetail = {
   id: string;
@@ -30,6 +31,7 @@ type SessionDetail = {
   status: string;
   model: string;
   effort?: string;
+  trustLevel?: string;
   projectId: string;
   projectName?: string;
   projectPath?: string;
@@ -107,6 +109,10 @@ export default function SessionPage({
   const [session, setSession] = useState<SessionDetail | null>(null);
   const [mainOverlay, setMainOverlay] = useState<MainOverlay>(null);
   const messageListRef = useRef<MessageListHandle>(null);
+  const [commandMessages, setCommandMessages] = useState<
+    import("@/hooks/use-session-messages").Message[]
+  >([]);
+  const cmdIdRef = useRef(0);
 
   function dismissIngestBanner() {
     setIngestDismissed(true);
@@ -139,6 +145,19 @@ export default function SessionPage({
     }
   }, [streamState.completedMessage, streamState.resultReceived, id]);
 
+  // Track /compact completion via stream state
+  useEffect(() => {
+    if (streamState.completedMessage) {
+      setCommandMessages((prev) =>
+        prev.map((m) =>
+          (m as any).commandResult?.command === "compact" && (m as any).commandResult.status === "running"
+            ? { ...m, commandResult: { command: "compact" as const, status: "done" as const, message: "Conversation compacted." } }
+            : m
+        )
+      );
+    }
+  }, [streamState.completedMessage]);
+
   const phaseLabel = {
     idle: null,
     thinking: "Thinking...",
@@ -167,6 +186,169 @@ export default function SessionPage({
   // Fallback onSend (not used when enqueue is provided, but kept for type compat)
   function handleSend(content: string, _attachments?: Attachment[]) {
     queue.enqueue(content, _attachments?.map((a) => ({ path: a.path, name: a.name })));
+  }
+
+  function handleSlashCommand(command: string, args: string) {
+    const msgId = `cmd-${++cmdIdRef.current}-${Date.now()}`;
+    const now = new Date().toISOString();
+
+    // Insert the user's command as a visible user message
+    const userMsg: import("@/hooks/use-session-messages").Message = {
+      id: `${msgId}-user`,
+      session_id: id,
+      role: "user",
+      content: `/${command}${args ? " " + args : ""}`,
+      tool_use: null,
+      thinking: null,
+      created_at: now,
+    };
+
+    // Create the command result message
+    const cmdMsg: import("@/hooks/use-session-messages").Message = {
+      id: msgId,
+      session_id: id,
+      role: "system",
+      content: "",
+      tool_use: null,
+      thinking: null,
+      created_at: now,
+      commandResult: buildInitialResult(command),
+    };
+
+    setCommandMessages((prev) => [...prev, userMsg, cmdMsg]);
+
+    // /compact also sends through to the SDK
+    if (command === "compact") {
+      queue.enqueue(`/compact${args ? " " + args : ""}`);
+    }
+
+    // Fetch data and update the command message
+    fetchCommandData(command, args, msgId);
+  }
+
+  function buildInitialResult(command: string): CommandResult {
+    switch (command) {
+      case "cost":
+        return {
+          command: "cost",
+          status: "loaded",
+          data: session?.usage ?? { totalTokens: 0, totalCostUsd: 0, numTurns: 0 },
+        };
+      case "model":
+        return { command: "model", status: "loading" };
+      case "mcp":
+        return { command: "mcp", status: "loading" };
+      case "status":
+        return { command: "status", status: "loading" };
+      case "permissions":
+        return { command: "permissions", status: "loading" };
+      case "compact":
+        return { command: "compact", status: "running" };
+      case "config":
+        return { command: "config", status: "loading" };
+      default:
+        return { command: "cost", status: "loaded", data: { totalTokens: 0, totalCostUsd: 0, numTurns: 0 } };
+    }
+  }
+
+  function updateCommandMessage(msgId: string, result: CommandResult) {
+    setCommandMessages((prev) =>
+      prev.map((m) => (m.id === msgId ? { ...m, commandResult: result } : m))
+    );
+  }
+
+  async function fetchCommandData(command: string, args: string, msgId: string) {
+    try {
+      switch (command) {
+        case "cost":
+          // Already loaded from session.usage — no fetch needed
+          break;
+
+        case "model": {
+          const res = await fetch(`/api/sessions/${id}/models`);
+          const { models } = await res.json();
+          updateCommandMessage(msgId, {
+            command: "model",
+            status: "loaded",
+            data: {
+              currentModel: session?.model ?? "",
+              currentEffort: session?.effort,
+              availableModels: models,
+            },
+          });
+          break;
+        }
+
+        case "mcp": {
+          const res = await fetch(`/api/sessions/${id}/mcp`);
+          const { servers } = await res.json();
+          updateCommandMessage(msgId, {
+            command: "mcp",
+            status: "loaded",
+            data: { servers },
+          });
+          break;
+        }
+
+        case "status": {
+          const res = await fetch(`/api/sessions/${id}/status`);
+          const data = await res.json();
+          updateCommandMessage(msgId, {
+            command: "status",
+            status: "loaded",
+            data,
+          });
+          break;
+        }
+
+        case "permissions": {
+          const res = await fetch(`/api/sessions/${id}/status?kind=permissions`);
+          const data = await res.json();
+          updateCommandMessage(msgId, {
+            command: "permissions",
+            status: "loaded",
+            data,
+          });
+          break;
+        }
+
+        case "compact":
+          // Handled via SDK pass-through; card starts as "running"
+          break;
+
+        case "config": {
+          const [modelsRes, permRes] = await Promise.all([
+            fetch(`/api/sessions/${id}/models`),
+            fetch(`/api/sessions/${id}/status?kind=permissions`),
+          ]);
+          const { models } = await modelsRes.json();
+          const permData = await permRes.json();
+          updateCommandMessage(msgId, {
+            command: "config",
+            status: "loaded",
+            data: {
+              model: session?.model ?? "",
+              effort: session?.effort,
+              trustLevel: permData.trustLevel ?? "auto_log",
+              availableModels: models,
+            },
+          });
+          break;
+        }
+      }
+    } catch {
+      updateCommandMessage(msgId, {
+        command,
+        status: "error",
+        error: "Could not fetch \u2014 session may be disconnected",
+      } as CommandResult);
+    }
+  }
+
+  function handleSessionUpdateFromCommand() {
+    fetch(`/api/sessions/${id}`)
+      .then((r) => r.json())
+      .then(setSession);
   }
 
   async function handlePermissionRespond(response: PermissionResponse) {
@@ -357,11 +539,13 @@ export default function SessionPage({
               >
                 <MessageList
                   ref={messageListRef}
-                  messages={messages}
+                  messages={[...messages, ...commandMessages]}
                   streamState={streamState}
                   hasMore={hasMore}
                   loadingMore={loadingMore}
                   onLoadMore={loadMore}
+                  sessionId={id}
+                  onSessionUpdate={handleSessionUpdateFromCommand}
                 />
               </div>
               {mainOverlay && session && (
@@ -454,6 +638,7 @@ export default function SessionPage({
                 disabled={!isActive && session?.status !== "errored"}
                 busy={isActive && isBusy}
                 onInterrupt={handleInterrupt}
+                onSlashCommand={handleSlashCommand}
               />
             </>
           )}

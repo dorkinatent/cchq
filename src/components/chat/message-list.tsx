@@ -17,7 +17,9 @@ export type MessageListHandle = {
  */
 function groupIntoTurns(messages: Message[]): Message[] {
   const result: Message[] = [];
-  const filtered = messages.filter((m) => m.role !== "system");
+  const filtered = messages.filter(
+    (m) => m.role !== "system" || (m as any).commandResult
+  );
 
   let i = 0;
   while (i < filtered.length) {
@@ -82,8 +84,10 @@ export const MessageList = forwardRef<
     hasMore?: boolean;
     loadingMore?: boolean;
     onLoadMore?: () => void;
+    sessionId?: string;
+    onSessionUpdate?: () => void;
   }
->(function MessageList({ messages, streamState, hasMore, loadingMore, onLoadMore }, ref) {
+>(function MessageList({ messages, streamState, hasMore, loadingMore, onLoadMore, sessionId, onSessionUpdate }, ref) {
   const containerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const prevScrollHeightRef = useRef<number>(0);
@@ -287,7 +291,11 @@ export const MessageList = forwardRef<
       )}
       {turns.map((msg) => (
         <div key={msg.id} data-message-id={msg.id}>
-          <MessageBubble message={msg} />
+          <MessageBubble
+            message={msg}
+            sessionId={sessionId}
+            onSessionUpdate={onSessionUpdate}
+          />
         </div>
       ))}
       {streamState && streamState.phase !== "idle" && (

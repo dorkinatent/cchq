@@ -2,13 +2,12 @@
 
 import type { CommandResult } from "@/types/command-result";
 import { CostCard } from "./commands/cost-card";
-
-// These will be created in subsequent tasks — lazy-load or stub
-const StubCard = ({ command }: { command: string }) => (
-  <div className="text-[13px] text-[var(--text-muted)] pt-1">
-    /{command} handler coming soon
-  </div>
-);
+import { ModelCard } from "./commands/model-card";
+import { McpCard } from "./commands/mcp-card";
+import { StatusCard } from "./commands/status-card";
+import { PermissionsCard } from "./commands/permissions-card";
+import { CompactCard } from "./commands/compact-card";
+import { ConfigCard } from "./commands/config-card";
 
 export function CommandCard({
   result,
@@ -24,17 +23,29 @@ export function CommandCard({
       case "cost":
         return <CostCard data={result.data} />;
       case "model":
-        return <StubCard command="model" />;
+        return (
+          <ModelCard
+            result={result}
+            sessionId={sessionId}
+            onSessionUpdate={onSessionUpdate}
+          />
+        );
       case "mcp":
-        return <StubCard command="mcp" />;
+        return <McpCard result={result} />;
       case "status":
-        return <StubCard command="status" />;
+        return <StatusCard result={result} />;
       case "permissions":
-        return <StubCard command="permissions" />;
+        return <PermissionsCard result={result} />;
       case "compact":
-        return <StubCard command="compact" />;
+        return <CompactCard result={result} />;
       case "config":
-        return <StubCard command="config" />;
+        return (
+          <ConfigCard
+            result={result}
+            sessionId={sessionId}
+            onSessionUpdate={onSessionUpdate}
+          />
+        );
     }
   })();
 
@@ -49,7 +60,9 @@ export function CommandCard({
         )}
         {"status" in result && result.status === "error" && (
           <span className="text-[11px] text-[var(--text-muted)]">
-            {"error" in result && typeof result.error === "string" ? result.error : "Could not fetch — session may be disconnected"}
+            {"error" in result && typeof result.error === "string"
+              ? result.error
+              : "Could not fetch \u2014 session may be disconnected"}
           </span>
         )}
       </header>

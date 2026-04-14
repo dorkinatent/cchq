@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Message } from "@/hooks/use-session-messages";
 import { ToolUseBlock } from "./tool-use-block";
+import { CommandCard } from "./command-card";
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
@@ -50,12 +51,33 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-export function MessageBubble({ message }: { message: Message }) {
+export function MessageBubble({
+  message,
+  sessionId,
+  onSessionUpdate,
+}: {
+  message: Message;
+  sessionId?: string;
+  onSessionUpdate?: () => void;
+}) {
   const isUser = message.role === "user";
   const timestamp = message.created_at || (message as any).createdAt;
   const timeDisplay = timestamp ? new Date(timestamp).toLocaleTimeString() : "";
 
   const hasContent = !!message.content?.trim();
+
+  // Render command result cards for system messages
+  if ((message as any).commandResult && message.role === "system") {
+    return (
+      <div className="mb-5">
+        <CommandCard
+          result={(message as any).commandResult}
+          sessionId={sessionId || message.session_id}
+          onSessionUpdate={onSessionUpdate}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="mb-5">

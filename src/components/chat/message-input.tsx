@@ -19,6 +19,7 @@ export function MessageInput({
   sessionId,
   busy,
   onInterrupt,
+  onSlashCommand,
 }: {
   onSend: (content: string, attachments?: Attachment[]) => void;
   disabled?: boolean;
@@ -26,6 +27,7 @@ export function MessageInput({
   sessionId?: string;
   busy?: boolean;
   onInterrupt?: () => void;
+  onSlashCommand?: (command: string, args: string) => void;
 }) {
   const { toast } = useToast();
   const [value, setValue] = useState("");
@@ -158,11 +160,14 @@ export function MessageInput({
     setShowAutocomplete(false);
   }
 
-  // Commands that are handled client-side in the CLI and need custom
-  // CCUI handlers. Others fall through to the SDK as regular prompts.
+  // Commands with no web or SDK handler — truly CLI-only.
   const CLI_ONLY_COMMANDS = new Set([
-    "mcp", "model", "cost", "doctor", "login", "logout",
-    "permissions", "status", "vim", "config",
+    "doctor", "login", "logout", "vim",
+  ]);
+
+  // Commands handled by inline web UI cards.
+  const WEB_COMMANDS = new Set([
+    "cost", "model", "mcp", "status", "permissions", "config", "compact",
   ]);
 
   function handleSubmit(e: React.FormEvent) {
@@ -171,11 +176,21 @@ export function MessageInput({
     setShowAutocomplete(false);
     const trimmed = value.trim();
 
-    // Intercept slash commands that won't work through the SDK.
+    // Intercept slash commands.
     if (trimmed.startsWith("/")) {
-      const cmdName = trimmed.slice(1).split(/\s/)[0].toLowerCase();
+      const parts = trimmed.slice(1).split(/\s(.+)/);
+      const cmdName = parts[0].toLowerCase();
+      const cmdArgs = parts[1] || "";
+
       if (CLI_ONLY_COMMANDS.has(cmdName)) {
-        toast(`/${cmdName} is a CLI-only command — not yet supported in the web UI`, { variant: "error" });
+        toast(`/${cmdName} is a CLI-only command \u2014 not available in the web UI`, { variant: "error" });
+        return;
+      }
+
+      if (WEB_COMMANDS.has(cmdName) && onSlashCommand) {
+        onSlashCommand(cmdName, cmdArgs);
+        setValue("");
+        setAttachments([]);
         return;
       }
     }
