@@ -18,6 +18,7 @@ import { SessionSummary } from "@/components/chat/session-summary";
 import { SessionSearch } from "@/components/chat/session-search";
 import { RememberButton } from "@/components/chat/remember-button";
 import { PermissionCard, type PermissionResponse } from "@/components/chat/permission-card";
+import { MobileContextSheet } from "@/components/chat/mobile-context-sheet";
 import { ToolErrorNoticeList } from "@/components/chat/tool-error-notice";
 import { useContextPanel } from "@/hooks/use-context-panel";
 import { ThemeSwitcher } from "@/components/theme-switcher";
@@ -121,6 +122,7 @@ export default function SessionPage({
   const queue = useMessageQueue(id);
   const { toast } = useToast();
   const { open: panelOpen, toggle: togglePanel } = useContextPanel(true);
+  const [mobileContextOpen, setMobileContextOpen] = useState(false);
 
   useEffect(() => {
     fetch(`/api/sessions/${id}`)
@@ -310,6 +312,18 @@ export default function SessionPage({
 
         {/* Mobile overflow menu — mobile only */}
         <div className="md:hidden flex items-center gap-1">
+          <button
+            onClick={() => setMobileContextOpen(true)}
+            className="lg:hidden p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+            aria-label="Session info"
+            title="Context, Docs, Notes, Changes"
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <circle cx="9" cy="9" r="7.5" />
+              <line x1="9" y1="8" x2="9" y2="13" />
+              <circle cx="9" cy="5.5" r="0.5" fill="currentColor" stroke="none" />
+            </svg>
+          </button>
           <MobileOverflowMenu
             isActive={isActive}
             onPause={handlePause}
@@ -463,6 +477,25 @@ export default function SessionPage({
           </div>
         )}
       </div>
+
+      {/* Mobile context sheet — slide-in from right on small screens */}
+      {session && (
+        <MobileContextSheet
+          open={mobileContextOpen}
+          onClose={() => setMobileContextOpen(false)}
+          sessionId={id}
+          sessionStatus={session.status}
+          startSha={session.startSha}
+          endSha={session.endSha}
+          projectId={session.projectId}
+          projectPath={session.projectPath || ""}
+          model={session.model}
+          effort={session.effort}
+          messageCount={messages.length}
+          usage={session.usage}
+          onExpandToMain={setMainOverlay}
+        />
+      )}
     </div>
   );
 }

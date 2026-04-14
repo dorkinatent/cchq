@@ -285,9 +285,13 @@ kbd,
 }
 .caret-blink { animation: caret-blink 1s steps(1, end) infinite; }
 
-/* Mobile rail slide-in */
+/* Mobile slide-ins */
 @keyframes mobile-rail-in {
   from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+@keyframes mobile-context-in {
+  from { transform: translateX(100%); }
   to { transform: translateX(0); }
 }
 
