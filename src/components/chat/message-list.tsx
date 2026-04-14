@@ -197,13 +197,17 @@ export const MessageList = forwardRef<
     }
     vv?.addEventListener("resize", handleViewportResize);
 
-    // Also catch input blur (keyboard dismiss without submit). When the
-    // textarea loses focus, the keyboard closes and we should re-snap.
+    // Catch input blur (keyboard dismiss without submit). When the textarea
+    // loses focus, the keyboard closes and we ALWAYS re-snap to bottom —
+    // no isNearBottom guard. The user was just typing, so they want to see
+    // the latest content. The normal handleResize uses isNearBottom which
+    // fails here because the viewport expansion makes the old scroll offset
+    // appear "far from bottom" even though it was at the bottom before.
     function handleFocusOut(e: FocusEvent) {
       const target = e.target as HTMLElement | null;
       if (target?.tagName === "TEXTAREA" || target?.tagName === "INPUT") {
-        setTimeout(handleResize, 100);
-        setTimeout(handleResize, 400);
+        setTimeout(() => scrollToBottom(false), 100);
+        setTimeout(() => scrollToBottom(false), 400);
       }
     }
     document.addEventListener("focusout", handleFocusOut);
