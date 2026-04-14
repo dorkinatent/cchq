@@ -7,19 +7,17 @@ than that, you do so at your own risk.
 
 ## Reporting a vulnerability
 
-Please **do not** open a public GitHub issue for security-sensitive
-findings.
-
-Instead, email **<TODO: maintainer email>** with:
+Open a [GitHub issue](../../issues) with the `security` label.
+Include:
 
 - A description of the issue and impact
 - Reproduction steps
 - The commit SHA you tested against
 - Any suggested fix
 
-You'll get an acknowledgement within 7 days. Coordinated disclosure
-preferred — give the maintainer a reasonable window to ship a fix
-before publishing.
+For anything you'd rather not disclose publicly, use GitHub's
+[private vulnerability reporting](https://docs.github.com/en/code-security/security-advisories/guidance-on-reporting-and-writing-information-about-vulnerabilities/privately-reporting-a-security-vulnerability)
+on the repo's Security tab instead.
 
 ## In scope
 
