@@ -32,13 +32,25 @@ export function SlashAutocomplete({
     }
   }, [selectedIndex]);
 
-  if (!visible || commands.length === 0) return null;
+  if (!visible) return null;
 
   const filtered = filter
     ? commands.filter((c) => c.name.toLowerCase().startsWith(filter.toLowerCase()))
     : commands;
 
-  if (filtered.length === 0) return null;
+  // Show helpful hint when user typed / but commands haven't loaded yet
+  if (filtered.length === 0) {
+    return (
+      <div className="absolute bottom-full left-0 right-0 mb-1 bg-[var(--surface-raised)] border border-[var(--border)] rounded-lg shadow-lg z-50 px-3 py-3">
+        <div className="text-[12px] text-[var(--text-muted)]">
+          {commands.length === 0
+            ? "Loading commands… send a message first to activate the session."
+            : <>No command matching <span className="text-[var(--text-primary)] font-mono">/{filter}</span></>
+          }
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="absolute bottom-full left-0 right-0 mb-1 max-h-64 overflow-y-auto bg-[var(--surface-raised)] border border-[var(--border)] rounded-lg shadow-lg z-50">

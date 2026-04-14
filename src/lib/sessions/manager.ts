@@ -1150,14 +1150,40 @@ export function getAllLiveSessionSummaries(): Record<string, LiveSessionSummary>
   return out;
 }
 
-export async function getSessionCommands(sessionId: string): Promise<{ name: string; description: string; argumentHint: string }[]> {
-  const active = activeSessions.get(sessionId);
-  if (!active) return [];
+// Global command cache — slash commands are the same across all sessions,
+// so we cache from the first successful fetch and reuse everywhere.
+let cachedCommands: { name: string; description: string; argumentHint: string }[] | null = null;
 
-  try {
-    const commands = await active.query.supportedCommands();
-    return commands;
-  } catch {
-    return [];
+export async function getSessionCommands(sessionId: string): Promise<{ name: string; description: string; argumentHint: string }[]> {
+  // Try the specific session first.
+  const active = activeSessions.get(sessionId);
+  if (active) {
+    try {
+      const commands = await active.query.supportedCommands();
+      if (commands.length > 0) {
+        cachedCommands = commands;
+        return commands;
+      }
+    } catch {
+      // Fall through to cache / other sessions.
+    }
   }
+
+  // Return cache if we have one.
+  if (cachedCommands && cachedCommands.length > 0) return cachedCommands;
+
+  // Try any other active session to populate the cache.
+  for (const [, entry] of activeSessions) {
+    try {
+      const commands = await entry.query.supportedCommands();
+      if (commands.length > 0) {
+        cachedCommands = commands;
+        return commands;
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return [];
 }

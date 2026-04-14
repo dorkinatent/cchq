@@ -132,14 +132,21 @@ export function MessageInput({
     setValue(newValue);
 
     // Check for slash command trigger
-    if (newValue.startsWith("/") && commands.length > 0) {
-      const filter = newValue.slice(1).split(" ")[0]; // text after / before space
-      if (!newValue.includes(" ")) {
-        setSlashFilter(filter);
-        setShowAutocomplete(true);
-        setSelectedIndex(0);
-      } else {
-        setShowAutocomplete(false);
+    if (newValue.startsWith("/") && !newValue.includes(" ")) {
+      const filter = newValue.slice(1);
+      setSlashFilter(filter);
+      setShowAutocomplete(true);
+      setSelectedIndex(0);
+
+      // If we have no commands yet, try fetching (covers cold-start sessions
+      // where commands weren't available on mount but are now).
+      if (commands.length === 0 && sessionId) {
+        fetch(`/api/sessions/${sessionId}/commands`)
+          .then((r) => r.json())
+          .then((cmds) => {
+            if (Array.isArray(cmds) && cmds.length > 0) setCommands(cmds);
+          })
+          .catch(() => {});
       }
     } else {
       setShowAutocomplete(false);
@@ -321,7 +328,7 @@ export function MessageInput({
           onKeyDown={handleKeyDown}
           onPaste={handlePaste}
           placeholder={
-            dragOver ? "Drop image…" : busy ? "Queue a message…" : "Message…"
+            dragOver ? "Drop image…" : busy ? "Queue a message…" : "Message or /command…"
           }
           disabled={disabled}
           rows={1}
