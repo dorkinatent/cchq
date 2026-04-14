@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSessionSwitcher, useSessionSwitcherActions } from "./context";
 import { relativeTime } from "@/lib/relative-time";
+import { CarouselPositionCounter } from "@/components/chat/mobile-carousel";
 
 /**
  * Mobile-only top bar with hamburger, title, and new-session button.
@@ -40,6 +41,7 @@ export function MobileHeader() {
             {blockedCount}
           </span>
         )}
+        <CarouselPositionCounter />
       </div>
       <button
         onClick={openNewSession}

@@ -1191,9 +1191,13 @@ export async function getSessionCommands(sessionId: string): Promise<{ name: str
 
 export async function getMcpStatus(sessionId: string): Promise<McpServer[]> {
   const active = activeSessions.get(sessionId);
-  if (!active) return [];
+  if (!active) {
+    console.warn(`[getMcpStatus] No active session for ${sessionId} (active sessions: ${Array.from(activeSessions.keys()).join(", ")})`);
+    return [];
+  }
   try {
     const servers = await active.query.mcpServerStatus();
+    console.log(`[getMcpStatus] Got ${servers.length} servers for ${sessionId}`);
     return servers.map((s) => ({
       name: s.name,
       status: s.status as McpServer["status"],
@@ -1201,7 +1205,8 @@ export async function getMcpStatus(sessionId: string): Promise<McpServer[]> {
       error: s.error,
       tools: s.tools?.map((t) => ({ name: t.name, description: t.description })),
     }));
-  } catch {
+  } catch (err) {
+    console.error(`[getMcpStatus] Error for ${sessionId}:`, err);
     return [];
   }
 }

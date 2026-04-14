@@ -32,6 +32,13 @@
   --space-4xl: 4rem;     /* 64px */
 }
 
+/* Prevent horizontal overflow on mobile. Mobile browsers ignore overflow-x
+   on html/body, so we also constrain with max-width on body. The real
+   containment happens on the layout wrapper (overflow-hidden) and main
+   (overflow-x-hidden). */
+html { overflow-x: hidden; }
+body { overflow-x: hidden; max-width: 100vw; }
+
 :root {
   --leading-tight: 1.15;
   --leading-snug: 1.3;
@@ -295,6 +302,16 @@ kbd,
   to { transform: translateX(0); }
 }
 
+/* Mobile carousel swipe */
+@keyframes carousel-edge-blocked-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+.carousel-edge-blocked {
+  background: var(--paused-text) !important;
+  animation: carousel-edge-blocked-pulse 1.6s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .rail-dot-blocked,
   .rail-dot-streaming,
@@ -305,6 +322,7 @@ kbd,
     animation: none !important;
   }
   .caret-blink { opacity: 1 !important; }
+  .carousel-edge-blocked { animation: none !important; }
   [style*="mobile-rail-in"] { animation: none !important; transform: translateX(0) !important; }
 }
 
@@ -314,6 +332,20 @@ kbd,
   background: color-mix(in oklch, var(--bg) 78%, transparent);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
+}
+
+/* ─── iOS auto-zoom prevention ─────────────────────────────────────────────
+   iOS Safari zooms the viewport when focusing an input with font-size < 16px.
+   The zoom sticks and breaks the layout. Rather than setting maximum-scale=1
+   on the viewport (which kills pinch-to-zoom accessibility), we ensure all
+   form elements render at >= 16px on touch devices. On desktop (pointer:fine)
+   they stay at their natural size. */
+@media (pointer: coarse) {
+  input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]),
+  textarea,
+  select {
+    font-size: 1rem !important;
+  }
 }
 
 /* Hide scrollbar visually but keep scroll */

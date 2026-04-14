@@ -6,6 +6,7 @@ import { useSessions, type Session } from "@/hooks/use-sessions";
 import { useBlockedSessions, type BlockedSummary } from "@/hooks/use-blocked-sessions";
 import { useRailPrefs } from "@/hooks/use-rail-prefs";
 import { useWorkspaces, type Workspace } from "@/hooks/use-workspaces";
+import { carouselOrder } from "@/lib/carousel-order";
 
 type Project = { id: string; name: string; path: string; engine: "sdk" | "gastown" };
 
@@ -171,14 +172,14 @@ export function SessionSwitcherProvider({ children }: { children: ReactNode }) {
       }
 
 
-      // ⌘⇧[ / ⌘⇧]: cycle prev/next session in the visible list.
+      // ⌘⇧[ / ⌘⇧]: cycle prev/next session in carousel order.
       if (e.shiftKey && (e.key === "[" || e.key === "]" || e.code === "BracketLeft" || e.code === "BracketRight")) {
         e.preventDefault();
-        const ids = sessions.map((s) => s.id);
+        const ids = carouselOrder(sessions, prefs.recent);
         if (!ids.length) return;
         const idx = currentSessionId ? ids.indexOf(currentSessionId) : -1;
         const dir = e.key === "]" || e.code === "BracketRight" ? 1 : -1;
-        const nextIdx = idx === -1 ? 0 : (idx + dir + ids.length) % ids.length;
+        const nextIdx = idx === -1 ? 0 : Math.max(0, Math.min(ids.length - 1, idx + dir));
         router.push(`/sessions/${ids[nextIdx]}`);
         return;
       }

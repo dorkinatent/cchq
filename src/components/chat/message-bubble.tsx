@@ -86,7 +86,7 @@ export function MessageBubble({
       </div>
       {hasContent && (
         <div
-          className={`group relative rounded-lg px-4 py-3 text-sm leading-relaxed max-w-[min(96%,720px)] ${
+          className={`group relative rounded-lg px-4 py-3 text-sm leading-relaxed max-w-[min(96%,720px)] overflow-hidden ${
             isUser
               ? "bg-[var(--user-msg-bg)] text-[var(--user-msg-text)]"
               : "bg-[var(--surface-raised)] border border-[var(--border)] text-[var(--text-secondary)]"
@@ -107,7 +107,7 @@ export function MessageBubble({
               )}
             </div>
           ) : (
-            <div className="prose prose-sm max-w-none prose-p:my-2 prose-headings:my-3 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-pre:bg-[var(--bg)] prose-pre:border prose-pre:border-[var(--border)] prose-code:text-[var(--accent)] prose-code:before:content-none prose-code:after:content-none prose-a:text-[var(--accent)] prose-strong:text-[var(--text-primary)]">
+            <div className="prose prose-sm max-w-none prose-p:my-2 prose-headings:my-3 prose-ul:my-2 prose-ol:my-2 prose-li:my-0.5 prose-pre:bg-[var(--bg)] prose-pre:border prose-pre:border-[var(--border)] prose-pre:overflow-x-auto prose-code:text-[var(--accent)] prose-code:before:content-none prose-code:after:content-none prose-a:text-[var(--accent)] prose-strong:text-[var(--text-primary)]">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {message.content}
               </ReactMarkdown>

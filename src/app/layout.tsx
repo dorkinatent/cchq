@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Recursive, Bricolage_Grotesque } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -27,6 +27,12 @@ const bricolage = Bricolage_Grotesque({
   display: "swap",
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
 export const metadata: Metadata = {
   title: "CCUI — Claude Code Dashboard",
   description: "Control multiple Claude Code instances from one place",
@@ -54,7 +60,7 @@ export default function RootLayout({
                 <MobileHeader />
                 <div className="flex flex-1 overflow-hidden min-h-0">
                   <SessionRail />
-                  <main className="flex-1 overflow-auto min-w-0">{children}</main>
+                  <main className="flex-1 overflow-y-auto overflow-x-hidden min-w-0">{children}</main>
                 </div>
               </div>
               <MobileRailOverlay />

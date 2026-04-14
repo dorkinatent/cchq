@@ -48,10 +48,19 @@ export function MobileContextSheet({
     return () => { document.body.style.overflow = prev; };
   }, [open]);
 
+  // Carousel swipe: first swipe dismisses the sheet via this DOM event.
+  useEffect(() => {
+    function onCarouselClose() {
+      if (open) onClose();
+    }
+    window.addEventListener("mobile-context-sheet:close", onCarouselClose);
+    return () => window.removeEventListener("mobile-context-sheet:close", onCarouselClose);
+  }, [open, onClose]);
+
   if (!mounted || !open) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" data-mobile-context-sheet="open">
       <div
         className="absolute inset-0 backdrop-themed"
         onClick={onClose}
