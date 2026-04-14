@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DocsTab } from "@/components/docs/docs-tab";
 import { NotesTab } from "@/components/docs/notes-tab";
+import { ChangesTab } from "@/components/docs/changes-tab";
 
 type KnowledgeEntry = {
   id: string;
@@ -10,12 +11,13 @@ type KnowledgeEntry = {
   content: string;
 };
 
-type TabKey = "context" | "docs" | "notes";
+type TabKey = "context" | "docs" | "notes" | "changes";
 
 export type MainOverlay =
   | null
   | { kind: "doc"; relativePath: string }
-  | { kind: "note"; id: string };
+  | { kind: "note"; id: string }
+  | { kind: "diff"; mode: "live" | "saved" };
 
 const MIN_WIDTH = 288;
 const MAX_WIDTH = 720;
@@ -126,6 +128,10 @@ function ContextView({
 }
 
 export function SessionContextPanel({
+  sessionId,
+  sessionStatus,
+  startSha,
+  endSha,
   projectId,
   projectPath,
   model,
@@ -135,6 +141,9 @@ export function SessionContextPanel({
   onExpandToMain,
 }: {
   sessionId: string;
+  sessionStatus: string;
+  startSha?: string | null;
+  endSha?: string | null;
   projectId: string;
   projectPath: string;
   model: string;
@@ -179,11 +188,13 @@ export function SessionContextPanel({
     { key: "context", label: "Context" },
     { key: "docs", label: "Docs" },
     { key: "notes", label: "Notes" },
+    { key: "changes", label: "Changes" },
   ] as const;
   const tabRefs = useRef<Record<TabKey, HTMLButtonElement | null>>({
     context: null,
     docs: null,
     notes: null,
+    changes: null,
   });
 
   function handleTabKeyDown(e: React.KeyboardEvent<HTMLButtonElement>, currentKey: TabKey) {
@@ -353,6 +364,22 @@ export function SessionContextPanel({
           className="flex-1 overflow-hidden"
         >
           <NotesTab projectId={projectId} onExpandToMain={onExpandToMain} />
+        </div>
+      )}
+      {tab === "changes" && (
+        <div
+          role="tabpanel"
+          id="panel-changes"
+          aria-labelledby="tab-changes"
+          className="flex-1 overflow-hidden"
+        >
+          <ChangesTab
+            sessionId={sessionId}
+            sessionStatus={sessionStatus}
+            startSha={startSha}
+            endSha={endSha}
+            onExpandToMain={onExpandToMain}
+          />
         </div>
       )}
     </aside>

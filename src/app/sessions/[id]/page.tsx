@@ -35,6 +35,8 @@ type SessionDetail = {
   usage?: { totalTokens: number; totalCostUsd: number; numTurns: number } | null;
   createdAt?: string;
   updatedAt?: string;
+  startSha?: string | null;
+  endSha?: string | null;
 };
 
 function MobileOverflowMenu({
@@ -444,6 +446,9 @@ export default function SessionPage({
           <div className="hidden lg:flex">
             <SessionContextPanel
               sessionId={id}
+              sessionStatus={session.status}
+              startSha={session.startSha}
+              endSha={session.endSha}
               projectId={session.projectId}
               projectPath={session.projectPath || ""}
               model={session.model}

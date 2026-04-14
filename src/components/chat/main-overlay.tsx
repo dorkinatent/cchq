@@ -282,5 +282,9 @@ export function SessionMainOverlay({
       <DocOverlay projectId={projectId} relativePath={overlay.relativePath} onClose={onClose} />
     );
   }
-  return <NoteOverlay projectId={projectId} noteId={overlay.id} onClose={onClose} />;
+  if (overlay.kind === "note") {
+    return <NoteOverlay projectId={projectId} noteId={overlay.id} onClose={onClose} />;
+  }
+  // "diff" kind — not yet fully implemented in main overlay
+  return null;
 }
