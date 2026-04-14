@@ -7,7 +7,6 @@ import { SessionRail } from "@/components/session-switcher/session-rail";
 import { QuickSwitcher } from "@/components/session-switcher/quick-switcher";
 import { NewSessionPortal } from "@/components/session-switcher/new-session-portal";
 import { MobileHeader, MobileRailOverlay } from "@/components/session-switcher/mobile-nav";
-import { ViewportShell } from "@/components/viewport-shell";
 import { ToastProvider } from "@/components/ui/toast";
 
 // Recursive is a variable font with CASL (casual/warmth) and MONO axes — one
@@ -51,13 +50,13 @@ export default function RootLayout({
         <ThemeProvider>
           <ToastProvider>
             <SessionSwitcherProvider>
-              <ViewportShell>
+              <div className="flex flex-col h-dvh overflow-hidden">
                 <MobileHeader />
                 <div className="flex flex-1 overflow-hidden min-h-0">
                   <SessionRail />
                   <main className="flex-1 overflow-auto min-w-0">{children}</main>
                 </div>
-              </ViewportShell>
+              </div>
               <MobileRailOverlay />
               <QuickSwitcher />
               <NewSessionPortal />
