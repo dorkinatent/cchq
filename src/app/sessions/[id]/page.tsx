@@ -35,6 +35,8 @@ type SessionDetail = {
   usage?: { totalTokens: number; totalCostUsd: number; numTurns: number } | null;
   createdAt?: string;
   updatedAt?: string;
+  startSha?: string | null;
+  endSha?: string | null;
 };
 
 function MobileOverflowMenu({
@@ -352,6 +354,7 @@ export default function SessionPage({
                 <SessionMainOverlay
                   overlay={mainOverlay}
                   projectId={session.projectId}
+                  sessionId={id}
                   onClose={() => setMainOverlay(null)}
                 />
               )}
@@ -415,6 +418,8 @@ export default function SessionPage({
               usage={session.usage}
               createdAt={session.createdAt || session.updatedAt || new Date().toISOString()}
               endedAt={session.updatedAt || new Date().toISOString()}
+              startSha={session.startSha}
+              onReviewChanges={() => setMainOverlay({ kind: "diff", mode: "saved" })}
             />
           ) : (
             <>
@@ -444,6 +449,9 @@ export default function SessionPage({
           <div className="hidden lg:flex">
             <SessionContextPanel
               sessionId={id}
+              sessionStatus={session.status}
+              startSha={session.startSha}
+              endSha={session.endSha}
               projectId={session.projectId}
               projectPath={session.projectPath || ""}
               model={session.model}

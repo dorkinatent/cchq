@@ -69,6 +69,8 @@ export const sessions = pgTable("sessions", {
   trustLevel: trustLevelEnum("trust_level").notNull().default("auto_log"),
   effort: text("effort").notNull().default("high"),
   usage: jsonb("usage").$type<{ totalTokens: number; totalCostUsd: number; numTurns: number }>(),
+  startSha: text("start_sha"),
+  endSha: text("end_sha"),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" }).defaultNow().notNull(),
 });

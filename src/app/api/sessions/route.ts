@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db, schema } from "@/lib/db";
 import { eq, desc, inArray, sql } from "drizzle-orm";
 import { startSession } from "@/lib/sessions/manager";
+import { captureHeadSha } from "@/lib/git/sha";
 
 export async function GET(req: NextRequest) {
   const projectId = req.nextUrl.searchParams.get("projectId");
@@ -79,6 +80,10 @@ export async function POST(req: NextRequest) {
 
   const trimmedPrompt = typeof prompt === "string" ? prompt.trim() : "";
 
+  // Always capture the git HEAD at creation time so the diff viewer works
+  // even for sessions started without an initial prompt (cold-start).
+  const startSha = await captureHeadSha(project.path);
+
   const [session] = await db
     .insert(schema.sessions)
     .values({
@@ -88,6 +93,7 @@ export async function POST(req: NextRequest) {
       trustLevel: trustLevel || "auto_log",
       effort: effort || "high",
       status: "active",
+      startSha,
     })
     .returning();
 

@@ -50,15 +50,45 @@ function StateDot({ state }: { state: EnrichedSession["state"] }) {
   );
 }
 
+function RailDropdown({
+  items,
+  onClose,
+}: {
+  items: { label: string; danger?: boolean; onClick: () => void }[];
+  onClose: () => void;
+}) {
+  return (
+    <>
+      <div className="fixed inset-0 z-10" onClick={onClose} />
+      <div className="absolute right-0 top-7 z-20 bg-[var(--surface-raised)] border border-[var(--border)] rounded-md shadow-lg py-1 min-w-[140px]">
+        {items.map((item) => (
+          <button
+            key={item.label}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              item.onClick();
+            }}
+            className={`w-full text-left px-3 py-1.5 text-[12px] hover:bg-[var(--surface)] ${
+              item.danger ? "text-[var(--errored-text)]" : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+    </>
+  );
+}
+
 function SessionRow({ session, current, pinIndex }: { session: EnrichedSession; current: boolean; pinIndex?: number }) {
-  // Actions-only: this row re-renders plenty from parent props; don't also
-  // subscribe it to the 2s state tick just for one stable callback.
   const { togglePin } = useSessionSwitcherActions();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const isBlocked = session.state === "blocked";
   const isErrored = session.state === "errored";
   const isPinned = pinIndex !== undefined;
 
-  // Background tint for attention states (NOT a border stripe — see design brief).
   const tint =
     isBlocked
       ? "bg-[color-mix(in_oklch,var(--paused-bg)_70%,transparent)] hover:bg-[var(--paused-bg)]"
@@ -73,6 +103,16 @@ function SessionRow({ session, current, pinIndex }: { session: EnrichedSession; 
       ? `wants to use ${session.blockedTool}${session.blockedPreview ? ` · ${session.blockedPreview}` : ""}`
       : session.last_message;
 
+  async function handleDelete() {
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+    await fetch(`/api/sessions/${session.id}`, { method: "DELETE" });
+    setMenuOpen(false);
+    setConfirmDelete(false);
+  }
+
   return (
     <div className="group relative">
       <Link
@@ -80,7 +120,6 @@ function SessionRow({ session, current, pinIndex }: { session: EnrichedSession; 
         className={`relative block rounded-md pl-2 pr-2 py-1.5 transition-colors duration-75 focus-ring ${tint}`}
         title={session.name}
       >
-        {/* Current marker: inset left edge, no stripe */}
         {current && (
           <span
             aria-hidden
@@ -96,7 +135,6 @@ function SessionRow({ session, current, pinIndex }: { session: EnrichedSession; 
           >
             {session.name}
           </span>
-          {/* Trailing meta slot: pin badge (if pinned) OR timestamp. Hover reveals pin/unpin button in its place. */}
           <span className="ml-auto shrink-0 relative flex items-center">
             {isPinned ? (
               <span className="text-[9.5px] font-medium tabular-nums text-[var(--text-muted)] border border-[var(--border)] rounded px-1 py-px leading-none group-hover:opacity-0 transition-opacity">
@@ -119,18 +157,34 @@ function SessionRow({ session, current, pinIndex }: { session: EnrichedSession; 
           </div>
         )}
       </Link>
-      {/* Hover-only pin toggle, positioned where the meta was so nothing overlaps. */}
+      {/* Hover-only ··· menu */}
       <button
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          togglePin(session.id);
+          setMenuOpen(!menuOpen);
+          setConfirmDelete(false);
         }}
-        className="absolute right-2 top-1.5 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-[10px] font-medium tracking-wide uppercase text-[var(--text-muted)] hover:text-[var(--accent)] px-1.5 py-0.5 rounded bg-[var(--surface)] focus-ring"
-        title={isPinned ? `Unpin (⌥${pinIndex! + 1})` : "Pin"}
+        className="absolute right-1 top-1.5 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 text-[11px] text-[var(--text-muted)] hover:text-[var(--text-primary)] px-1.5 py-0.5 rounded bg-[var(--surface)] focus-ring"
       >
-        {isPinned ? "Unpin" : "Pin"}
+        ···
       </button>
+      {menuOpen && (
+        <RailDropdown
+          onClose={() => { setMenuOpen(false); setConfirmDelete(false); }}
+          items={[
+            {
+              label: isPinned ? `Unpin (⌥${pinIndex! + 1})` : "Pin session",
+              onClick: () => { togglePin(session.id); setMenuOpen(false); },
+            },
+            {
+              label: confirmDelete ? "Click again to delete" : "Delete session",
+              danger: true,
+              onClick: handleDelete,
+            },
+          ]}
+        />
+      )}
     </div>
   );
 }
@@ -152,17 +206,64 @@ function ProjectGroup({
   currentSessionId: string | null;
   pinnedIds: string[];
 }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  async function handleDeleteProject() {
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+    await fetch(`/api/projects/${projectId}`, { method: "DELETE" });
+    setMenuOpen(false);
+    setConfirmDelete(false);
+    // The realtime listener on the context provider will refresh projects.
+  }
+
   if (sessions.length === 0) return null;
   return (
-    <div className="mb-3">
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center gap-1.5 px-1 py-1 text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)] hover:text-[var(--text-secondary)] rounded focus-ring"
-      >
-        <span className="inline-block w-2 text-center">{collapsed ? "›" : "⌄"}</span>
-        <span className="truncate">{projectName}</span>
-        <span className="ml-auto text-[var(--text-muted)] tabular-nums">{sessions.length}</span>
-      </button>
+    <div className="mb-3 group/project relative">
+      <div className="flex items-center">
+        <button
+          onClick={onToggle}
+          className="flex-1 flex items-center gap-1.5 px-1 py-1 text-[10px] uppercase tracking-[0.12em] text-[var(--text-muted)] hover:text-[var(--text-secondary)] rounded focus-ring min-w-0"
+        >
+          <span className="inline-block w-2 text-center shrink-0">{collapsed ? "›" : "⌄"}</span>
+          <span className="truncate">{projectName}</span>
+          <span className="ml-auto text-[var(--text-muted)] tabular-nums shrink-0 group-hover/project:opacity-0 transition-opacity">{sessions.length}</span>
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setMenuOpen(!menuOpen);
+            setConfirmDelete(false);
+          }}
+          className="opacity-0 group-hover/project:opacity-100 focus-visible:opacity-100 text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)] px-1 py-0.5 rounded focus-ring shrink-0"
+        >
+          ···
+        </button>
+      </div>
+      {menuOpen && (
+        <RailDropdown
+          onClose={() => { setMenuOpen(false); setConfirmDelete(false); }}
+          items={[
+            {
+              label: "Permissions",
+              onClick: () => {
+                setMenuOpen(false);
+                window.location.href = `/projects/${projectId}/settings`;
+              },
+            },
+            {
+              label: confirmDelete
+                ? `Delete ${sessions.length} session${sessions.length !== 1 ? "s" : ""} + project?`
+                : "Delete project",
+              danger: true,
+              onClick: handleDeleteProject,
+            },
+          ]}
+        />
+      )}
       {!collapsed && (
         <div className="space-y-px mt-0.5">
           {sessions.map((s) => (

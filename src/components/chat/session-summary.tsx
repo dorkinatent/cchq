@@ -51,12 +51,16 @@ export function SessionSummary({
   usage,
   createdAt,
   endedAt,
+  startSha,
+  onReviewChanges,
 }: {
   sessionId: string;
   model: string;
   usage: Usage;
   createdAt: string;
   endedAt: string;
+  startSha?: string | null;
+  onReviewChanges?: () => void;
 }) {
   const [stats, setStats] = useState<Stats | null>(null);
   const [showFiles, setShowFiles] = useState(false);
@@ -172,6 +176,35 @@ export function SessionSummary({
           </>
         )}
       </div>
+
+      {/* Review changes row */}
+      {startSha && (
+        <div className="px-4 py-3 border-t border-[var(--border)] flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="eyebrow pt-[3px]">Changes</div>
+            <div className="text-[13px] text-[var(--text-primary)]">
+              {stats ? (
+                <>
+                  <span className="tabular-nums font-semibold">{stats.filesTouched.length}</span>
+                  <span className="text-[var(--text-secondary)]">
+                    {" "}file{stats.filesTouched.length !== 1 ? "s" : ""}
+                  </span>
+                </>
+              ) : (
+                <span className="text-[var(--text-muted)]">…</span>
+              )}
+            </div>
+          </div>
+          {onReviewChanges && (
+            <button
+              onClick={onReviewChanges}
+              className="text-[11px] text-[var(--accent)] hover:text-[var(--accent-hover)] border border-[var(--accent)]/30 rounded px-2 py-0.5"
+            >
+              Review changes ↗
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Footer: model */}
       <footer className="px-4 py-2 border-t border-[var(--border)] flex items-center justify-between">
