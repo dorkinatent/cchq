@@ -63,6 +63,14 @@ export function MobileRailOverlay() {
 
   useEffect(() => setMounted(true), []);
 
+  // Lock body scroll while open.
+  useEffect(() => {
+    if (!mobileRailOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [mobileRailOpen]);
+
   if (!mounted || !mobileRailOpen) return null;
 
   return createPortal(

@@ -40,6 +40,14 @@ export function MobileContextSheet({
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
+  // Lock body scroll while open so touch doesn't scroll the page behind.
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [open]);
+
   if (!mounted || !open) return null;
 
   return createPortal(

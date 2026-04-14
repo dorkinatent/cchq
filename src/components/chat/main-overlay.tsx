@@ -406,6 +406,15 @@ export function SessionMainOverlay({
     return () => window.removeEventListener("keydown", onKey);
   }, [overlay, onClose]);
 
+  // Lock body scroll on mobile so the background chat doesn't scroll
+  // through the expanded overlay.
+  useEffect(() => {
+    if (!overlay) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [overlay]);
+
   if (!overlay) return null;
   if (overlay.kind === "doc") {
     return (
