@@ -105,6 +105,16 @@ export const MessageList = forwardRef<
     },
   }));
 
+  function scrollToBottom(smooth = false) {
+    const container = containerRef.current;
+    if (!container) return;
+    if (smooth) {
+      container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+    } else {
+      container.scrollTop = container.scrollHeight;
+    }
+  }
+
   // Scroll behavior:
   //  - Initial load: jump straight to bottom.
   //  - User just sent a message: force-scroll to bottom (even if they had
@@ -117,7 +127,9 @@ export const MessageList = forwardRef<
     if (!container || messages.length === 0) return;
 
     if (!hasDoneInitialScrollRef.current) {
-      bottomRef.current?.scrollIntoView({ behavior: "auto", block: "nearest", inline: "nearest" });
+      // Use rAF to ensure layout is settled before scrolling (fixes mobile
+      // where flex layout may not be computed yet on first render).
+      requestAnimationFrame(() => scrollToBottom(false));
       hasDoneInitialScrollRef.current = true;
       lastMessageIdRef.current = messages[messages.length - 1].id;
       return;
@@ -129,16 +141,51 @@ export const MessageList = forwardRef<
     lastMessageIdRef.current = lastMsg.id;
 
     if (isNewUserMessage) {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+      scrollToBottom(true);
       return;
     }
 
     const isNearBottom =
       container.scrollHeight - container.scrollTop - container.clientHeight < 150;
     if (isNearBottom) {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "nearest" });
+      scrollToBottom(true);
     }
   }, [messages, streamState?.phase, streamState?.streamingText]);
+
+  // Re-scroll to bottom when the page becomes visible again (e.g. after
+  // closing a mobile overlay that locked body scroll). Without this, the
+  // chat can get stuck at a weird scroll offset.
+  useEffect(() => {
+    function handleVisibility() {
+      if (document.visibilityState === "visible" && hasDoneInitialScrollRef.current) {
+        const container = containerRef.current;
+        if (!container) return;
+        const isNearBottom =
+          container.scrollHeight - container.scrollTop - container.clientHeight < 200;
+        if (isNearBottom) {
+          requestAnimationFrame(() => scrollToBottom(false));
+        }
+      }
+    }
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    // Also re-check on resize (keyboard show/hide on mobile, overlay layout shifts).
+    function handleResize() {
+      const container = containerRef.current;
+      if (!container || !hasDoneInitialScrollRef.current) return;
+      const isNearBottom =
+        container.scrollHeight - container.scrollTop - container.clientHeight < 200;
+      if (isNearBottom) {
+        requestAnimationFrame(() => scrollToBottom(false));
+      }
+    }
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
 
   // Scroll anchoring: restore scroll position after prepending older messages
   useEffect(() => {
