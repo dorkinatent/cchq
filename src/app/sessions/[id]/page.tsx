@@ -354,6 +354,7 @@ export default function SessionPage({
                 <SessionMainOverlay
                   overlay={mainOverlay}
                   projectId={session.projectId}
+                  sessionId={id}
                   onClose={() => setMainOverlay(null)}
                 />
               )}
@@ -417,6 +418,8 @@ export default function SessionPage({
               usage={session.usage}
               createdAt={session.createdAt || session.updatedAt || new Date().toISOString()}
               endedAt={session.updatedAt || new Date().toISOString()}
+              startSha={session.startSha}
+              onReviewChanges={() => setMainOverlay({ kind: "diff", mode: "saved" })}
             />
           ) : (
             <>

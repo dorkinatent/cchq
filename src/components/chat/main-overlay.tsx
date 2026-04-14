@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { MainOverlay } from "@/components/chat/session-context-panel";
+import { DiffBlock, BinaryFilePlaceholder } from "@/components/chat/diff-block";
+import type { DiffFile } from "@/lib/git/diff-parser";
 
 type Note = {
   id: string;
@@ -255,13 +257,142 @@ export function NoteOverlay({
   );
 }
 
+type DiffResponse = {
+  mode: "live" | "saved";
+  startSha: string | null;
+  endSha: string | null;
+  files: DiffFile[];
+  summary: { filesChanged: number; insertions: number; deletions: number };
+};
+
+export function DiffOverlay({
+  sessionId,
+  mode,
+  onClose,
+}: {
+  sessionId: string;
+  mode: "live" | "saved";
+  onClose: () => void;
+}) {
+  const [data, setData] = useState<DiffResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedFile, setSelectedFile] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setSelectedFile(null);
+    const url =
+      mode === "saved"
+        ? `/api/sessions/${sessionId}/diff?mode=saved`
+        : `/api/sessions/${sessionId}/diff`;
+    fetch(url)
+      .then((r) => r.json())
+      .then((d: DiffResponse) => {
+        if (cancelled) return;
+        setData(d);
+        if (d.files && d.files.length > 0) {
+          setSelectedFile(d.files[0].path);
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId, mode]);
+
+  const crumb =
+    mode === "saved" && data?.startSha && data?.endSha ? (
+      <>
+        <span className="text-[var(--text-muted)]">Changes · </span>
+        <span className="text-[var(--text-primary)]">
+          {data.startSha.slice(0, 7)}..{data.endSha.slice(0, 7)}
+        </span>
+      </>
+    ) : (
+      <>
+        <span className="text-[var(--text-muted)]">Changes · </span>
+        <span className="text-[var(--text-primary)]">live</span>
+      </>
+    );
+
+  const currentFile = data?.files.find((f) => f.path === selectedFile) ?? null;
+
+  function statusColor(status: DiffFile["status"]) {
+    if (status === "D") return "text-[var(--errored-text)]";
+    if (status === "R") return "text-[var(--accent)]";
+    return "text-[var(--active-text)]";
+  }
+
+  return (
+    <div className="flex-1 flex flex-col overflow-hidden bg-[var(--bg)]">
+      <BackBar crumb={crumb} onClose={onClose} />
+      {loading ? (
+        <div className="flex-1 flex items-center justify-center text-xs text-[var(--text-muted)]">
+          Loading diff…
+        </div>
+      ) : !data || data.files.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center text-xs text-[var(--text-muted)]">
+          No changes
+        </div>
+      ) : (
+        <div className="flex flex-1 overflow-hidden">
+          {/* Sidebar */}
+          <div
+            className="shrink-0 overflow-y-auto border-r border-[var(--border)] py-2"
+            style={{ width: 220 }}
+          >
+            {data.files.map((f) => (
+              <button
+                key={f.path}
+                onClick={() => setSelectedFile(f.path)}
+                className={`w-full flex items-center gap-2 px-3 py-1.5 text-left text-[12px] font-mono truncate hover:bg-[var(--surface-raised)] transition-colors ${
+                  f.path === selectedFile
+                    ? "bg-[var(--surface-raised)] text-[var(--text-primary)]"
+                    : "text-[var(--text-secondary)]"
+                }`}
+              >
+                <span
+                  className={`shrink-0 text-[10px] font-semibold w-4 text-center ${statusColor(f.status)}`}
+                >
+                  {f.status}
+                </span>
+                <span className="truncate">{f.path}</span>
+              </button>
+            ))}
+          </div>
+          {/* Diff area */}
+          <div className="flex-1 overflow-y-auto">
+            {currentFile ? (
+              currentFile.binary ? (
+                <BinaryFilePlaceholder />
+              ) : (
+                <DiffBlock hunks={currentFile.hunks} />
+              )
+            ) : (
+              <div className="flex-1 flex items-center justify-center text-xs text-[var(--text-muted)] p-8">
+                Select a file
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function SessionMainOverlay({
   overlay,
   projectId,
+  sessionId,
   onClose,
 }: {
   overlay: MainOverlay;
   projectId: string;
+  sessionId: string;
   onClose: () => void;
 }) {
   useEffect(() => {
@@ -285,6 +416,8 @@ export function SessionMainOverlay({
   if (overlay.kind === "note") {
     return <NoteOverlay projectId={projectId} noteId={overlay.id} onClose={onClose} />;
   }
-  // "diff" kind — not yet fully implemented in main overlay
+  if (overlay.kind === "diff") {
+    return <DiffOverlay sessionId={sessionId} mode={overlay.mode} onClose={onClose} />;
+  }
   return null;
 }
