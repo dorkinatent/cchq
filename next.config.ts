@@ -20,6 +20,8 @@ const nextConfig: NextConfig = {
     "192.168.*.*",
     // Tailscale MagicDNS
     "*.ts.net",
+    // mDNS .local hostnames (e.g. cchq.local)
+    "*.local",
   ],
 };
 
