@@ -5,13 +5,13 @@
 
 ## Problem
 
-The knowledge base is empty in practice. Extraction only runs on session **Complete**, which most sessions never reach. There's also no way for Claude (or the user) to reference existing project documentation (README, AGENTS.md, CLAUDE.md, `docs/**/*.md`) from inside a session — all that knowledge lives outside CCUI. Finally, users want a place to take cross-session notes that aren't part of the repo.
+The knowledge base is empty in practice. Extraction only runs on session **Complete**, which most sessions never reach. There's also no way for Claude (or the user) to reference existing project documentation (README, AGENTS.md, CLAUDE.md, `docs/**/*.md`) from inside a session — all that knowledge lives outside CCHQ. Finally, users want a place to take cross-session notes that aren't part of the repo.
 
 ## Solution
 
 Three tightly coupled subsystems, built as ordered slices:
 
-1. **Docs Panel** — read-only view of repo markdown files + editable CCUI-managed notes, both surfaced in a new tab in the session sidebar.
+1. **Docs Panel** — read-only view of repo markdown files + editable CCHQ-managed notes, both surfaced in a new tab in the session sidebar.
 2. **Knowledge Layer Refactor** — manual "Remember this" button, incremental background extraction every N messages, extraction also on pause (not just complete).
 3. **Auto-Ingestion & Project Settings** — on project creation, offer to seed the knowledge base from repo markdown; new Project Settings page for doc glob patterns, auto-inject toggle, and on-demand ingestion.
 
@@ -22,7 +22,7 @@ Project (has ingestion settings + doc glob patterns)
   │
   ├── Docs (filesystem-backed)
   │   ├── Repo docs — read via fs, matched by configurable globs
-  │   └── CCUI notes — new table `project_notes` (markdown, editable)
+  │   └── CCHQ notes — new table `project_notes` (markdown, editable)
   │
   ├── Knowledge (DB — existing `knowledge` table, extended `origin` column)
   │   ├── Auto-extracted from session activity (incremental + final)
@@ -34,7 +34,7 @@ Project (has ingestion settings + doc glob patterns)
       └── Repo doc content auto-injected (new, if toggle on)
 ```
 
-**Engine is a property of a project** (from earlier spec); these new features apply primarily to SDK engine projects. Gas Town engine projects will see the Docs tab but not the injection or extraction behaviors (since those happen inside CCUI's session pipeline, not Gas Town's).
+**Engine is a property of a project** (from earlier spec); these new features apply primarily to SDK engine projects. Gas Town engine projects will see the Docs tab but not the injection or extraction behaviors (since those happen inside CCHQ's session pipeline, not Gas Town's).
 
 ## Data Model
 
@@ -135,7 +135,7 @@ Sections:
 - **Project Info** — name (editable via existing PATCH /api/projects/[id]), path (editable), engine (display-only)
 - **Doc Patterns** — list editor for `docGlobs`. Add/remove patterns. Next to the list shows "Matches N files" by calling the docs scan API.
 - **Auto-Inject Docs** — toggle bound to `autoInjectDocs`.
-- **Doc Ingestion** — button "Scan & Ingest Docs" opens a modal showing all matched doc files with checkboxes. User picks; CCUI posts selected paths to `POST /api/projects/[id]/ingest` which runs extraction on each file's content.
+- **Doc Ingestion** — button "Scan & Ingest Docs" opens a modal showing all matched doc files with checkboxes. User picks; CCHQ posts selected paths to `POST /api/projects/[id]/ingest` which runs extraction on each file's content.
 - **Danger Zone** — delete project button.
 
 ### Project creation flow
@@ -186,7 +186,7 @@ Different prompt from session extraction — doc content is structured narrative
   - Auto-injection: verify doc content appears in system prompt of next session
   - Pause triggers extraction
 - **Manual smoke**
-  - Create project with `~/Code/CCUI`
+  - Create project with `~/Code/CCHQ`
   - Verify README, AGENTS.md, CLAUDE.md, docs/superpowers/specs/* appear in Docs tab
   - Click "Scan & Ingest", verify entries appear in `/knowledge`
   - Create a note, refresh, verify it persists
@@ -202,7 +202,7 @@ No other dependencies added. `react-markdown` + `remark-gfm` already installed.
 ## Out of Scope (Future)
 
 - Full markdown editor with inline preview (textarea + preview toggle is enough for Phase 1)
-- Editing repo `.md` files from CCUI (read-only in Phase 1)
+- Editing repo `.md` files from CCHQ (read-only in Phase 1)
 - Notes search
 - Knowledge entry editing (already exists via the knowledge API)
 - Syncing notes to a file in the repo

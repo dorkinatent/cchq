@@ -12,7 +12,7 @@ Quick guide for testing the session diff viewer feature.
 
 ## Test 1: Live Changes Tab (active session)
 
-1. Open CCUI in your browser
+1. Open CCHQ in your browser
 2. Create a **new session** on a git-tracked project (⌥⇧N or the + button)
 3. Send a message that causes Claude to edit files, e.g.:
    - "Add a comment to the top of package.json"

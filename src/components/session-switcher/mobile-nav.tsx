@@ -34,7 +34,7 @@ export function MobileHeader() {
           className="text-[15px] font-semibold tracking-tight text-[var(--text-primary)]"
           style={{ fontVariationSettings: '"CASL" 0.6, "MONO" 0, "slnt" 0' }}
         >
-          CCUI
+          CCHQ
         </span>
         {blockedCount > 0 && (
           <span className="text-[10px] font-medium tabular-nums px-1.5 py-0.5 rounded bg-[var(--paused-bg)] text-[var(--paused-text)]">
@@ -94,7 +94,7 @@ export function MobileRailOverlay() {
             className="text-[15px] font-semibold tracking-tight text-[var(--text-primary)]"
             style={{ fontVariationSettings: '"CASL" 0.6, "MONO" 0, "slnt" 0' }}
           >
-            CCUI
+            CCHQ
           </span>
           <button
             onClick={closeMobileRail}

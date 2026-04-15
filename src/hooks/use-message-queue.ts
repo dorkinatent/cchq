@@ -98,13 +98,13 @@ export function useMessageQueue(sessionId: string) {
                 // The retryAfter field is checked in processQueue
                 m.retryAfter = retryAt;
                 // Write through directly
-                const raw = localStorage.getItem("ccui-message-queue");
+                const raw = localStorage.getItem("cchq-message-queue");
                 const all: QueuedMessage[] = raw ? JSON.parse(raw) : [];
                 const idx = all.findIndex((x) => x.id === msg.id);
                 if (idx !== -1) {
                   all[idx].retryAfter = retryAt;
                   all[idx].status = "queued";
-                  localStorage.setItem("ccui-message-queue", JSON.stringify(all));
+                  localStorage.setItem("cchq-message-queue", JSON.stringify(all));
                 }
               }
 
@@ -128,13 +128,13 @@ export function useMessageQueue(sessionId: string) {
             const backoff = Math.pow(3, updated.attempts - 1) * 1000;
             messageQueue.retry(msg.id);
             const retryAt = Date.now() + backoff;
-            const raw = localStorage.getItem("ccui-message-queue");
+            const raw = localStorage.getItem("cchq-message-queue");
             const all: QueuedMessage[] = raw ? JSON.parse(raw) : [];
             const idx = all.findIndex((x) => x.id === msg.id);
             if (idx !== -1) {
               all[idx].retryAfter = retryAt;
               all[idx].status = "queued";
-              localStorage.setItem("ccui-message-queue", JSON.stringify(all));
+              localStorage.setItem("cchq-message-queue", JSON.stringify(all));
             }
 
             const timer = setTimeout(() => {

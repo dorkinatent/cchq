@@ -1,4 +1,4 @@
-# CCUI Dashboard Implementation Plan
+# CCHQ Dashboard Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -84,7 +84,7 @@ tsconfig.json
 
 Run:
 ```bash
-cd /path/to/ccui
+cd /path/to/cchq
 npx create-next-app@latest . --typescript --tailwind --eslint --app --src-dir --import-alias "@/*" --use-npm --turbopack
 ```
 
@@ -1073,9 +1073,9 @@ export function Sidebar() {
   return (
     <aside className="w-52 border-r border-neutral-800 bg-neutral-950 flex flex-col p-4 shrink-0">
       <Link href="/" className="text-lg font-semibold text-white mb-1">
-        CCUI
+        CCHQ
       </Link>
-      <span className="text-xs text-neutral-500 mb-6">Claude Code Dashboard</span>
+      <span className="text-xs text-neutral-500 mb-6">Claude Code Headquarters</span>
 
       <div className="text-[11px] uppercase tracking-wide text-neutral-500 mb-2">
         Projects
@@ -1127,7 +1127,7 @@ import { Sidebar } from "@/components/sidebar";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "CCUI — Claude Code Dashboard",
+  title: "CCHQ — Claude Code Headquarters",
   description: "Control multiple Claude Code instances from one place",
 };
 
@@ -1153,7 +1153,7 @@ export default function RootLayout({
 
 Run: `npm run dev`
 
-Expected: Dark layout with sidebar on the left, "CCUI" branding, project list, knowledge base link.
+Expected: Dark layout with sidebar on the left, "CCHQ" branding, project list, knowledge base link.
 
 - [ ] **Step 4: Commit**
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# scripts/install-launchagent.sh — install the CCUI LaunchAgent so the server
+# scripts/install-launchagent.sh — install the CCHQ LaunchAgent so the server
 # starts on login and restarts on crash.
 #
-# Safe to re-run: unloads any existing app.ccui before re-loading.
+# Safe to re-run: unloads any existing app.cchq before re-loading.
 #
 # IMPORTANT: run this from a production-ready checkout (e.g. main branch after
 # merging). The installed agent will `npm run start` from the directory this
@@ -10,9 +10,9 @@
 
 set -eu
 
-LABEL="app.ccui"
+LABEL="app.cchq"
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-LOG_DIR="$HOME/Library/Logs/ccui"
+LOG_DIR="$HOME/Library/Logs/cchq"
 PLIST_SRC="$PROJECT_DIR/scripts/${LABEL}.plist.template"
 PLIST_DST="$HOME/Library/LaunchAgents/${LABEL}.plist"
 

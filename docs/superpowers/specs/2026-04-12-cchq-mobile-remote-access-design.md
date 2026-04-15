@@ -1,21 +1,21 @@
-# CCUI Mobile + Remote Access — Design
+# CCHQ Mobile + Remote Access — Design
 
 **Date:** 2026-04-12
 **Status:** Draft (pending user review)
-**Scope:** Phase 1 of making CCUI usable from a phone, both at home and remotely.
+**Scope:** Phase 1 of making CCHQ usable from a phone, both at home and remotely.
 
 ## Problem
 
-CCUI currently only works from the Mac it runs on. Two concrete problems surfaced:
+CCHQ currently only works from the Mac it runs on. Two concrete problems surfaced:
 
 1. **Mobile access is broken.** Hitting the dev server from a phone on the LAN loads the UI but the session list is empty. Root cause: the client-side `useSessions` hook talks to Supabase directly at `http://127.0.0.1:54321`, which from a phone resolves to the phone's own localhost (nothing is there) rather than the Mac's Supabase instance.
 2. **Mobile UX is not designed for phones.** Even with the data issue fixed, the layout assumes desktop widths — two-column grids, sidebar nav, keyboard-shortcut hints, tap targets sized for mouse cursors.
 
-Additionally, Charlie wants to use CCUI while away from home (e.g. tending a long-running session from a coffee shop), which requires a remote access layer and persistent server process.
+Additionally, Charlie wants to use CCHQ while away from home (e.g. tending a long-running session from a coffee shop), which requires a remote access layer and persistent server process.
 
 ## Goals
 
-- Phone-usable CCUI for the two most-used tasks: monitoring sessions and interacting with a single session (read stream, send follow-up, approve/deny permission prompts).
+- Phone-usable CCHQ for the two most-used tasks: monitoring sessions and interacting with a single session (read stream, send follow-up, approve/deny permission prompts).
 - Reachable from phone over the LAN and remotely via Tailscale.
 - Runs on Mac boot so it's there when Charlie needs it.
 - Architecture positions a future iOS app as "just another API client," with visual parity between mobile web and the eventual native app.
@@ -44,7 +44,7 @@ Four independent pieces of work:
 1. **Data layer refactor** — all browser → DB traffic routed through `/api/*` (REST + SSE).
 2. **Mobile-responsive pass** — scoped to `/` (session list) and `/sessions/[id]` (session detail).
 3. **Network + remote access** — bind to `0.0.0.0`, Tailscale hostname, mDNS broadcast.
-4. **Boot persistence** — LaunchAgent starts Supabase + CCUI on login.
+4. **Boot persistence** — LaunchAgent starts Supabase + CCHQ on login.
 
 Pieces 1 and 2 can be parallelized. 3 and 4 depend on 1 shipping.
 
@@ -95,7 +95,7 @@ Uses Tailwind responsive breakpoints. Desktop layout unchanged at `md:` and abov
 
 ```
 ┌─────────────────────────────┐
-│ ☰   CCUI          [+ New]   │  top bar: menu, title, new-session
+│ ☰   CCHQ          [+ New]   │  top bar: menu, title, new-session
 ├─────────────────────────────┤
 │ 🟢 session name             │
 │    project · 2m ago · 14msg │  full-width stacked cards
@@ -155,34 +155,34 @@ Uses Tailwind responsive breakpoints. Desktop layout unchanged at `md:` and abov
 - No additional config required in phase 1.
 
 **mDNS / Bonjour broadcast:**
-- Server broadcasts `_ccui._tcp` on port 3000 at startup using `bonjour-service` (or equivalent).
-- Lets the future iOS app auto-discover CCUI when on the same LAN — no URL typing.
+- Server broadcasts `_cchq._tcp` on port 3000 at startup using `bonjour-service` (or equivalent).
+- Lets the future iOS app auto-discover CCHQ when on the same LAN — no URL typing.
 - Also available to the web UI for a future "nearby servers" UX.
 - ~20 lines of code; trivial to add now and validates the "server announces itself" pattern early.
 
 **Firewall:** macOS firewall (if enabled) needs to allow incoming on port 3000. The LaunchAgent handles binding; Charlie may need to approve once on first run.
 
-**HTTPS (deferred):** `tailscale cert` + `tailscale serve` can put CCUI behind HTTPS on the tailnet. Worth doing later (unlocks clipboard, service workers, some PWA features). Not phase 1.
+**HTTPS (deferred):** `tailscale cert` + `tailscale serve` can put CCHQ behind HTTPS on the tailnet. Worth doing later (unlocks clipboard, service workers, some PWA features). Not phase 1.
 
 ---
 
 ### Piece 4: Boot persistence
 
-**Approach:** single LaunchAgent plist at `~/Library/LaunchAgents/app.ccui.plist`. Runs as Charlie's user (not root — needs access to Charlie's files and `supabase` CLI). `KeepAlive = true` so it restarts on crash.
+**Approach:** single LaunchAgent plist at `~/Library/LaunchAgents/app.cchq.plist`. Runs as Charlie's user (not root — needs access to Charlie's files and `supabase` CLI). `KeepAlive = true` so it restarts on crash.
 
-**Plist runs a single script**, `scripts/ccui-start.sh`, which:
+**Plist runs a single script**, `scripts/cchq-start.sh`, which:
 
 1. `cd` into the project directory.
 2. Runs `supabase start` (idempotent — no-op if already running).
 3. Waits for Supabase health check.
 4. Runs `npm run start` (production build).
 
-**Logs:** stdout and stderr redirected to `~/Library/Logs/ccui/{stdout,stderr}.log`. Tail-able via SSH over Tailscale, or a future admin page.
+**Logs:** stdout and stderr redirected to `~/Library/Logs/cchq/{stdout,stderr}.log`. Tail-able via SSH over Tailscale, or a future admin page.
 
 **Ship artifacts:**
 - `scripts/install-launchagent.sh` — idempotent installer. Writes plist from a template (substituting absolute paths), runs `launchctl load`.
 - `scripts/uninstall-launchagent.sh` — the reverse.
-- `scripts/ccui-start.sh` — the launch script above.
+- `scripts/cchq-start.sh` — the launch script above.
 
 **Dev workflow:** when developing, Charlie can `launchctl unload` the agent, or leave it running and let `npm run dev` fail to bind port 3000 as the signal to unload.
 
@@ -200,7 +200,7 @@ Uses Tailwind responsive breakpoints. Desktop layout unchanged at `md:` and abov
 - No automated visual regression this round (too much setup for two pages).
 
 **Network + boot:**
-- Manual verification checklist: reboot Mac, confirm CCUI reachable from phone within ~30s of login over Tailscale; confirm mDNS broadcast visible on LAN (`dns-sd -B _ccui._tcp` on another Mac).
+- Manual verification checklist: reboot Mac, confirm CCHQ reachable from phone within ~30s of login over Tailscale; confirm mDNS broadcast visible on LAN (`dns-sd -B _cchq._tcp` on another Mac).
 - Kill the node process; confirm LaunchAgent restarts it within seconds.
 
 **Bug regression:**
@@ -217,13 +217,13 @@ Tracked explicitly so they don't get lost:
 - **HTTPS over Tailscale** — phase 1.5 tweak.
 - **App-level auth** — only if tailnet ever gets shared, or belt-and-suspenders is wanted.
 - **Admin / logs page** — view LaunchAgent logs from phone instead of SSH.
-- **Future iOS app** — its own project. Expected capabilities: APNs push, home-screen widgets (active/blocked counts), Lock Screen Live Activities for running sessions, share extension ("send URL to CCUI as new session prompt"), Bonjour-based auto-discovery on LAN with Tailscale hostname fallback.
+- **Future iOS app** — its own project. Expected capabilities: APNs push, home-screen widgets (active/blocked counts), Lock Screen Live Activities for running sessions, share extension ("send URL to CCHQ as new session prompt"), Bonjour-based auto-discovery on LAN with Tailscale hostname fallback.
 
 ## Deliverables summary
 
 1. All browser → DB traffic routed through `/api/*` (REST + SSE).
 2. `/` and `/sessions/[id]` usable at mobile widths with sticky composer and permission banner; iOS-native visual tone.
 3. Next.js bound to `0.0.0.0`; reachable at `<mac>.<tailnet>.ts.net:3000` over Tailscale.
-4. mDNS broadcast of `_ccui._tcp` on LAN at startup.
-5. LaunchAgent starts Supabase + CCUI on login; restarts on crash.
+4. mDNS broadcast of `_cchq._tcp` on LAN at startup.
+5. LaunchAgent starts Supabase + CCHQ on login; restarts on crash.
 6. Install/uninstall scripts for the LaunchAgent.

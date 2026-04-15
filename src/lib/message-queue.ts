@@ -14,7 +14,7 @@ export type QueuedMessage = {
 };
 
 export class MessageQueue {
-  private key = "ccui-message-queue";
+  private key = "cchq-message-queue";
   private listeners = new Set<() => void>();
 
   private readAll(): QueuedMessage[] {

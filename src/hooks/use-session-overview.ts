@@ -72,7 +72,7 @@ export function useAllQueues(): Record<string, number> {
       try {
         const raw =
           typeof window !== "undefined"
-            ? localStorage.getItem("ccui-message-queue")
+            ? localStorage.getItem("cchq-message-queue")
             : null;
         if (!raw) {
           setCounts({});
@@ -94,7 +94,7 @@ export function useAllQueues(): Record<string, number> {
     const unsub = messageQueue.subscribe(read);
     // Also pick up cross-tab changes.
     const onStorage = (e: StorageEvent) => {
-      if (e.key === "ccui-message-queue") read();
+      if (e.key === "cchq-message-queue") read();
     };
     window.addEventListener("storage", onStorage);
     return () => {

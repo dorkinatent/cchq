@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# scripts/uninstall-launchagent.sh — unload and remove the CCUI LaunchAgent.
+# scripts/uninstall-launchagent.sh — unload and remove the CCHQ LaunchAgent.
 
 set -eu
 
-LABEL="app.ccui"
+LABEL="app.cchq"
 PLIST="$HOME/Library/LaunchAgents/${LABEL}.plist"
 
 if [ -f "$PLIST" ]; then

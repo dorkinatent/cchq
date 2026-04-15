@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a Docs tab (repo markdown files) and Notes tab (CCUI-managed markdown) to the session sidebar, refactor the knowledge layer to actually populate via manual + incremental + pause triggers, and add a Project Settings page with doc glob configuration, auto-inject toggle, and on-demand/on-creation ingestion.
+**Goal:** Add a Docs tab (repo markdown files) and Notes tab (CCHQ-managed markdown) to the session sidebar, refactor the knowledge layer to actually populate via manual + incremental + pause triggers, and add a Project Settings page with doc glob configuration, auto-inject toggle, and on-demand/on-creation ingestion.
 
 **Architecture:** Three slices. Slice 1 builds the read/write surfaces for docs and notes. Slice 2 wires up three new extraction triggers. Slice 3 adds the settings page, per-session auto-injection into the SDK system prompt, and one-time ingestion prompt on project creation.
 
@@ -189,7 +189,7 @@ import { tmpdir } from "os";
 import { scanDocs, resolveDocPath } from "../scanner";
 
 describe("scanDocs", () => {
-  const tmp = join(tmpdir(), `ccui-scanner-test-${Date.now()}`);
+  const tmp = join(tmpdir(), `cchq-scanner-test-${Date.now()}`);
 
   beforeEach(async () => {
     await mkdir(tmp, { recursive: true });
@@ -235,7 +235,7 @@ describe("scanDocs", () => {
 });
 
 describe("resolveDocPath", () => {
-  const tmp = join(tmpdir(), `ccui-resolve-test-${Date.now()}`);
+  const tmp = join(tmpdir(), `cchq-resolve-test-${Date.now()}`);
 
   beforeEach(async () => {
     await mkdir(tmp, { recursive: true });
@@ -2338,7 +2338,7 @@ export function IngestionPrompt({
         </h3>
         <p className="text-sm text-[var(--text-secondary)] mb-5">
           Found {fileCount} markdown file{fileCount === 1 ? "" : "s"} in this project (README,
-          docs/, etc.). CCUI can extract stable facts into this project's knowledge base so they're
+          docs/, etc.). CCHQ can extract stable facts into this project's knowledge base so they're
           auto-injected into future sessions.
         </p>
         <div className="flex justify-end gap-2">

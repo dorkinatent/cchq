@@ -1,6 +1,6 @@
 # Security policy
 
-CCUI is a single-user local dev tool. It runs on your machine, talks to
+CCHQ is a single-user local dev tool. It runs on your machine, talks to
 your local Supabase, and (optionally) exposes itself over your tailnet
 via Tailscale. There is no auth layer; if you expose it more broadly
 than that, you do so at your own risk.

@@ -6,7 +6,7 @@
 
 ## Problem
 
-The CCUI MVP has the core skeleton — dashboard, chat view, knowledge base, real-time updates, SDK integration — but the session experience only works on the happy path. No streaming feedback, raw JSON tool displays, no error recovery, unclear resume flow, no pagination, and auto-accept-everything permissions. This makes it unusable for real daily-driver work.
+The CCHQ MVP has the core skeleton — dashboard, chat view, knowledge base, real-time updates, SDK integration — but the session experience only works on the happy path. No streaming feedback, raw JSON tool displays, no error recovery, unclear resume flow, no pagination, and auto-accept-everything permissions. This makes it unusable for real daily-driver work.
 
 ## Approach
 

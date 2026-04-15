@@ -34,7 +34,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "CCUI — Claude Code Dashboard",
+  title: "CCHQ — Claude Code Headquarters",
   description: "Control multiple Claude Code instances from one place",
 };
 
@@ -48,7 +48,7 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{const t=localStorage.getItem("ccui-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}`,
+            __html: `try{const t=localStorage.getItem("cchq-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}`,
           }}
         />
       </head>

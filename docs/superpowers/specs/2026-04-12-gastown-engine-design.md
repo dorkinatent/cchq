@@ -1,15 +1,15 @@
-# CCUI × Gas Town Integration — Engine Abstraction
+# CCHQ × Gas Town Integration — Engine Abstraction
 
 **Date:** 2026-04-12
 **Status:** Approved (Phase 1 vertical slice)
 
 ## Problem
 
-CCUI today has a single session engine — it spawns Claude Code SDK sessions directly and renders them as chats. Gas Town (gastownhall/gastown) is a CLI-first multi-agent orchestration system for running swarms of AI agents. It has overlapping and complementary concepts: persistent work state, agent health monitoring, cross-session context. Rather than reimplement Gas Town's ideas inside CCUI, **CCUI becomes a pluggable cockpit** that can drive either engine per project.
+CCHQ today has a single session engine — it spawns Claude Code SDK sessions directly and renders them as chats. Gas Town (gastownhall/gastown) is a CLI-first multi-agent orchestration system for running swarms of AI agents. It has overlapping and complementary concepts: persistent work state, agent health monitoring, cross-session context. Rather than reimplement Gas Town's ideas inside CCHQ, **CCHQ becomes a pluggable cockpit** that can drive either engine per project.
 
 ## Goals
 
-- Make CCUI a UI for Gas Town when the user prefers multi-agent orchestration
+- Make CCHQ a UI for Gas Town when the user prefers multi-agent orchestration
 - Keep the existing single-agent SDK flow working for users who just want a chat-based session
 - Avoid reimplementing Gas Town's ideas; surface them through a clean engine abstraction
 - Start with a vertical slice (Phase 1) that proves the pipeline works end-to-end with the minimum set of UI surfaces
@@ -17,12 +17,12 @@ CCUI today has a single session engine — it spawns Claude Code SDK sessions di
 ## Non-Goals (Phase 1)
 
 - Convoy kanban, Formula library, Escalation inbox, Polecat peek viewer, Worktree visualizer, Mayor chat UI, Seance integration — captured as future phases but not built in Phase 1.
-- Replacing `gt dashboard` — CCUI complements it, doesn't try to do everything Gas Town's own web UI does.
+- Replacing `gt dashboard` — CCHQ complements it, doesn't try to do everything Gas Town's own web UI does.
 - Querying Dolt SQL directly — start with CLI + events.jsonl; move to direct SQL only if CLI proves too slow for specific reads.
 
 ## Architecture
 
-Three layers, same as CCUI today, with an engine abstraction inserted at the backend:
+Three layers, same as CCHQ today, with an engine abstraction inserted at the backend:
 
 ```
 ┌─────────────────────────────────────────────┐
@@ -53,7 +53,7 @@ Three layers, same as CCUI today, with an engine abstraction inserted at the bac
       └─────────────────────────┘
 ```
 
-**Engine is a property of a Project**, not a session. Chosen once at project creation; CCUI routes to engine-appropriate UI and backend code.
+**Engine is a property of a Project**, not a session. Chosen once at project creation; CCHQ routes to engine-appropriate UI and backend code.
 
 ## Integration Surface (Gas Town)
 
@@ -235,8 +235,8 @@ Projects list in the sidebar shows an engine badge (SDK or GT) next to each proj
 - **Integration test** — against a real Gas Town install:
   1. Create a test rig
   2. Start daemon
-  3. Create a CCUI project pointing at it
-  4. Assign a bead via CCUI
+  3. Create a CCHQ project pointing at it
+  4. Assign a bead via CCHQ
   5. Verify the bead appears in `gt ready`
   6. Verify the event shows up in our rig_events table
 
@@ -255,4 +255,4 @@ Projects list in the sidebar shows an engine badge (SDK or GT) next to each proj
 - **Phase 3: Mayor chat** — embedded chat UI that pipes through to `gt mayor attach` (pty bridge or SDK wiring)
 - **Phase 4: Escalation inbox + Polecat peek** — dedicated surfaces for stuck agents and live output viewing
 - **Phase 5: Formula library + Worktree visualizer**
-- **Phase 6: Seance ↔ Knowledge Base integration** — pull session events from seance into CCUI's knowledge base, and vice versa
+- **Phase 6: Seance ↔ Knowledge Base integration** — pull session events from seance into CCHQ's knowledge base, and vice versa

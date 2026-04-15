@@ -1,6 +1,6 @@
 /**
  * Shared types across all engine implementations.
- * The "engine" abstraction lets CCUI route backend operations to different
+ * The "engine" abstraction lets CCHQ route backend operations to different
  * session/agent management systems based on project.engine.
  */
 

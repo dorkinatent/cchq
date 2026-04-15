@@ -6,7 +6,7 @@ import { createEventsTailer } from "../events";
 import type { RigEvent } from "../types";
 
 describe("createEventsTailer", () => {
-  const tmp = join(tmpdir(), `ccui-events-test-${Date.now()}`);
+  const tmp = join(tmpdir(), `cchq-events-test-${Date.now()}`);
 
   afterEach(async () => {
     await rm(tmp, { recursive: true, force: true });

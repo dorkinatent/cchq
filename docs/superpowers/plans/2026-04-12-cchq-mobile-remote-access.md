@@ -1,14 +1,14 @@
-# CCUI Mobile + Remote Access Implementation Plan
+# CCHQ Mobile + Remote Access Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make CCUI usable from a phone (LAN + Tailscale) by routing all client traffic through Next.js, adding a mobile-responsive pass to the two most-used pages, broadcasting the server on mDNS, and running on Mac boot via a LaunchAgent.
+**Goal:** Make CCHQ usable from a phone (LAN + Tailscale) by routing all client traffic through Next.js, adding a mobile-responsive pass to the two most-used pages, broadcasting the server on mDNS, and running on Mac boot via a LaunchAgent.
 
-**Architecture:** Browser stops talking to Supabase directly. All reads go through `/api/*` REST routes; all realtime goes through SSE. A server-side Supabase realtime subscription watches DB changes and fans them out to SSE clients via an in-process event bus. The session list and session detail pages get an iOS-leaning responsive layout. Server binds to `0.0.0.0`, broadcasts `_ccui._tcp` via mDNS, and is launched on login by a user-level LaunchAgent. Push notifications and full mobile parity are deferred.
+**Architecture:** Browser stops talking to Supabase directly. All reads go through `/api/*` REST routes; all realtime goes through SSE. A server-side Supabase realtime subscription watches DB changes and fans them out to SSE clients via an in-process event bus. The session list and session detail pages get an iOS-leaning responsive layout. Server binds to `0.0.0.0`, broadcasts `_cchq._tcp` via mDNS, and is launched on login by a user-level LaunchAgent. Push notifications and full mobile parity are deferred.
 
 **Tech Stack:** Next.js 16 App Router, Vitest, Supabase (local via CLI), Drizzle ORM, Tailwind, `bonjour-service` (new), macOS `launchd`.
 
-**Spec:** `docs/superpowers/specs/2026-04-12-ccui-mobile-remote-access-design.md`
+**Spec:** `docs/superpowers/specs/2026-04-12-cchq-mobile-remote-access-design.md`
 
 ---
 
@@ -21,12 +21,12 @@
 - `src/lib/supabase-server.ts` — server-only Supabase client factory (uses service role key if available, otherwise anon — read-only usage in the watcher).
 - `src/app/api/sessions/[id]/messages/route.ts` — GET full message history for a session.
 - `src/app/api/sessions/stream/route.ts` — SSE feed for session-list changes.
-- `src/lib/mdns/broadcast.ts` — starts/stops mDNS `_ccui._tcp` broadcast.
+- `src/lib/mdns/broadcast.ts` — starts/stops mDNS `_cchq._tcp` broadcast.
 - `src/instrumentation.ts` — Next.js instrumentation hook; kicks off watcher + mDNS broadcast on server start.
-- `scripts/ccui-start.sh` — LaunchAgent launch script (supabase + npm run start).
+- `scripts/cchq-start.sh` — LaunchAgent launch script (supabase + npm run start).
 - `scripts/install-launchagent.sh` — writes plist, loads it.
 - `scripts/uninstall-launchagent.sh` — unloads, removes plist.
-- `scripts/app.ccui.plist.template` — plist with `{{PROJECT_DIR}}` and `{{LOG_DIR}}` placeholders.
+- `scripts/app.cchq.plist.template` — plist with `{{PROJECT_DIR}}` and `{{LOG_DIR}}` placeholders.
 - `docs/mobile-remote-access-runbook.md` — manual verification checklist.
 
 **Modified files:**
@@ -811,13 +811,13 @@ export function startMdnsBroadcast(port: number = 3000): void {
   try {
     bonjour = new Bonjour();
     service = bonjour.publish({
-      name: "CCUI",
-      type: "ccui",
+      name: "CCHQ",
+      type: "cchq",
       protocol: "tcp",
       port,
       txt: { version: "1" },
     });
-    console.log(`[mdns] broadcasting _ccui._tcp on port ${port}`);
+    console.log(`[mdns] broadcasting _cchq._tcp on port ${port}`);
   } catch (err) {
     console.error("[mdns] failed to broadcast", err);
   }
@@ -850,14 +850,14 @@ export async function register() {
 
 - [ ] **Step 3: Smoke**
 
-Run `npm run dev`. From another Mac on the LAN: `dns-sd -B _ccui._tcp`
-Expected: a line containing `CCUI`.
+Run `npm run dev`. From another Mac on the LAN: `dns-sd -B _cchq._tcp`
+Expected: a line containing `CCHQ`.
 
 - [ ] **Step 4: Commit**
 
 ```bash
 git add src/lib/mdns src/instrumentation.ts
-git commit -m "feat(mdns): broadcast _ccui._tcp on server start"
+git commit -m "feat(mdns): broadcast _cchq._tcp on server start"
 ```
 
 ---
@@ -1038,20 +1038,20 @@ git commit -m "feat(mobile): sticky composer with permission banner and safe-are
 
 ---
 
-## Task 17: `ccui-start.sh` launch script
+## Task 17: `cchq-start.sh` launch script
 
 **Files:**
-- Create: `scripts/ccui-start.sh`
+- Create: `scripts/cchq-start.sh`
 
 - [ ] **Step 1: Write script**
 
 ```bash
 #!/usr/bin/env bash
-# scripts/ccui-start.sh — launched by LaunchAgent on login.
+# scripts/cchq-start.sh — launched by LaunchAgent on login.
 set -eu
 cd "$(dirname "$0")/.."
 
-LOG_DIR="$HOME/Library/Logs/ccui"
+LOG_DIR="$HOME/Library/Logs/cchq"
 mkdir -p "$LOG_DIR"
 
 # Ensure PATH includes homebrew / nvm paths — launchd has a minimal env.
@@ -1061,7 +1061,7 @@ export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 if command -v supabase >/dev/null 2>&1; then
   supabase start >>"$LOG_DIR/supabase.log" 2>&1 || true
 else
-  echo "[ccui-start] supabase CLI not found" >&2
+  echo "[cchq-start] supabase CLI not found" >&2
 fi
 
 # Wait for Supabase REST to be up (max 30s).
@@ -1077,18 +1077,18 @@ exec npm run start
 
 - [ ] **Step 2: Mark executable**
 
-Run: `chmod +x scripts/ccui-start.sh`
+Run: `chmod +x scripts/cchq-start.sh`
 
 - [ ] **Step 3: Manual test**
 
-Build first: `npm run build` then `./scripts/ccui-start.sh`
+Build first: `npm run build` then `./scripts/cchq-start.sh`
 Expected: Supabase starts if not running; Next.js starts on :3000. Ctrl-C to exit.
 
 - [ ] **Step 4: Commit**
 
 ```bash
-git add scripts/ccui-start.sh
-git commit -m "feat(launchd): add ccui-start.sh launcher"
+git add scripts/cchq-start.sh
+git commit -m "feat(launchd): add cchq-start.sh launcher"
 ```
 
 ---
@@ -1096,7 +1096,7 @@ git commit -m "feat(launchd): add ccui-start.sh launcher"
 ## Task 18: LaunchAgent plist template + install script
 
 **Files:**
-- Create: `scripts/app.ccui.plist.template`
+- Create: `scripts/app.cchq.plist.template`
 - Create: `scripts/install-launchagent.sh`
 - Create: `scripts/uninstall-launchagent.sh`
 
@@ -1107,10 +1107,10 @@ git commit -m "feat(launchd): add ccui-start.sh launcher"
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>Label</key><string>app.ccui</string>
+  <key>Label</key><string>app.cchq</string>
   <key>ProgramArguments</key>
   <array>
-    <string>{{PROJECT_DIR}}/scripts/ccui-start.sh</string>
+    <string>{{PROJECT_DIR}}/scripts/cchq-start.sh</string>
   </array>
   <key>WorkingDirectory</key><string>{{PROJECT_DIR}}</string>
   <key>RunAtLoad</key><true/>
@@ -1135,10 +1135,10 @@ Create `scripts/install-launchagent.sh`:
 set -eu
 
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-LOG_DIR="$HOME/Library/Logs/ccui"
-PLIST_SRC="$PROJECT_DIR/scripts/app.ccui.plist.template"
-PLIST_DST="$HOME/Library/LaunchAgents/app.ccui.plist"
-LABEL="app.ccui"
+LOG_DIR="$HOME/Library/Logs/cchq"
+PLIST_SRC="$PROJECT_DIR/scripts/app.cchq.plist.template"
+PLIST_DST="$HOME/Library/LaunchAgents/app.cchq.plist"
+LABEL="app.cchq"
 
 mkdir -p "$LOG_DIR" "$(dirname "$PLIST_DST")"
 
@@ -1159,10 +1159,10 @@ Create `scripts/uninstall-launchagent.sh`:
 ```bash
 #!/usr/bin/env bash
 set -eu
-PLIST="$HOME/Library/LaunchAgents/app.ccui.plist"
+PLIST="$HOME/Library/LaunchAgents/app.cchq.plist"
 [ -f "$PLIST" ] && launchctl unload "$PLIST" 2>/dev/null || true
 rm -f "$PLIST"
-echo "Uninstalled app.ccui"
+echo "Uninstalled app.cchq"
 ```
 
 - [ ] **Step 4: Mark executable**
@@ -1172,10 +1172,10 @@ Run: `chmod +x scripts/install-launchagent.sh scripts/uninstall-launchagent.sh`
 - [ ] **Step 5: Manual install + verify**
 
 Run: `./scripts/install-launchagent.sh`
-Then: `launchctl list | grep ccui`
+Then: `launchctl list | grep cchq`
 Expected: entry visible.
 Then: `curl -I http://localhost:3000/` — expected 200 within ~60s.
-Tail logs: `tail -f ~/Library/Logs/ccui/stderr.log` — sanity-check.
+Tail logs: `tail -f ~/Library/Logs/cchq/stderr.log` — sanity-check.
 
 Uninstall for now (to not conflict with `npm run dev` during further development):
 `./scripts/uninstall-launchagent.sh`
@@ -1183,7 +1183,7 @@ Uninstall for now (to not conflict with `npm run dev` during further development
 - [ ] **Step 6: Commit**
 
 ```bash
-git add scripts/app.ccui.plist.template scripts/install-launchagent.sh scripts/uninstall-launchagent.sh
+git add scripts/app.cchq.plist.template scripts/install-launchagent.sh scripts/uninstall-launchagent.sh
 git commit -m "feat(launchd): add install/uninstall scripts and plist template"
 ```
 
@@ -1210,7 +1210,7 @@ git commit -m "feat(launchd): add install/uninstall scripts and plist template"
 - [ ] **Reboot Mac.** Within 60s of login: `curl -I http://localhost:3000/` returns 200.
 - [ ] **LAN:** from another device on the same LAN, `http://<mac-lan-ip>:3000/` loads; session list populates.
 - [ ] **Tailscale:** from phone (Wi-Fi off, cellular on), `http://<mac>.tailXXXX.ts.net:3000/` loads; session list populates.
-- [ ] **mDNS:** `dns-sd -B _ccui._tcp` on another Mac lists `CCUI`.
+- [ ] **mDNS:** `dns-sd -B _cchq._tcp` on another Mac lists `CCHQ`.
 - [ ] **SSE:** send a message from desktop; list + detail views update on phone within ~1s.
 - [ ] **Permission flow:** trigger a tool call requiring approval; banner appears on phone; Allow proceeds; Deny blocks.
 - [ ] **Crash recovery:** `kill $(lsof -ti :3000)`; LaunchAgent restarts the process; phone reconnects.
@@ -1218,9 +1218,9 @@ git commit -m "feat(launchd): add install/uninstall scripts and plist template"
 
 ## Log locations
 
-- `~/Library/Logs/ccui/stdout.log`
-- `~/Library/Logs/ccui/stderr.log`
-- `~/Library/Logs/ccui/supabase.log`
+- `~/Library/Logs/cchq/stdout.log`
+- `~/Library/Logs/cchq/stderr.log`
+- `~/Library/Logs/cchq/supabase.log`
 ```
 
 - [ ] **Step 2: Commit**

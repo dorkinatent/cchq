@@ -475,7 +475,7 @@ export function SessionRail() {
             href="/"
             className="font-display text-[22px] font-semibold tracking-[-0.02em] text-[var(--text-primary)] leading-none rounded focus-ring"
           >
-            CCUI
+            CCHQ
           </Link>
           <div className="flex items-center gap-1.5">
             <button
@@ -496,7 +496,7 @@ export function SessionRail() {
           </div>
         </div>
         <div className="flex items-center gap-2 mt-1.5">
-          <span className="eyebrow">Claude Code</span>
+          <span className="eyebrow">Claude Code HQ</span>
           {blockedCount > 0 && (
             <button
               onClick={() => setFilter("needs-you")}

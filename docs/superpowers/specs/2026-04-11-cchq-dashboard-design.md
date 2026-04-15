@@ -1,4 +1,4 @@
-# CCUI — Claude Code Dashboard
+# CCHQ — Claude Code Headquarters
 
 **Date:** 2026-04-11
 **Status:** Approved

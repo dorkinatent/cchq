@@ -6,7 +6,7 @@
 
 **Architecture:** Extend the `Message` type with an optional `commandResult` field. When a user types a CLI command, `handleSubmit` intercepts it and injects a client-side synthetic message into the message list instead of toasting. A `CommandCard` component in `MessageBubble` renders the result. Each command has a dedicated sub-component that fetches its own data from existing or new API endpoints. Interactive commands (`/model`, `/config`) mutate session state via PATCH endpoints.
 
-**Tech Stack:** React, Next.js App Router, Tailwind CSS, existing CCUI theme variables, SDK `Query` methods (`mcpServerStatus`, `supportedModels`, `setModel`, `getContextUsage`)
+**Tech Stack:** React, Next.js App Router, Tailwind CSS, existing CCHQ theme variables, SDK `Query` methods (`mcpServerStatus`, `supportedModels`, `setModel`, `getContextUsage`)
 
 ---
 
@@ -1621,7 +1621,7 @@ git commit -m "feat: expose trustLevel in SessionDetail type"
 - [ ] **Step 1: Verify build compiles**
 
 ```bash
-cd /Users/charlieanderson/Code/CCUI && npm run build
+cd /Users/charlieanderson/Code/CCHQ && npm run build
 ```
 
 Expected: No TypeScript errors, no build failures.

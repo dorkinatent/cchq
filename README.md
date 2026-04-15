@@ -1,8 +1,8 @@
-# CCUI
+# CCHQ
 
 A web dashboard for managing multiple Claude Code sessions from one place, with a persistent knowledge base that carries context between sessions.
 
-CCUI is an engine-agnostic cockpit. You can run it against:
+CCHQ is an engine-agnostic cockpit. You can run it against:
 
 - **Claude Code SDK** — single-agent chat sessions (default)
 - **Gas Town** — multi-agent orchestration (experimental)
@@ -26,7 +26,7 @@ You pick the engine per project. Both engines share the same themes, knowledge b
 - **Error recovery** — client-side message queue with auto-retry, connection status indicator, failed message retry
 - **Per-project controls** — additional directories setting and permission modes (`full_auto` / `auto_log` / `ask_me`)
 - **Four themes** — Fossil (default, warm stone), Midnight (deep indigo), Arctic (clean light), Terminal (green phosphor)
-- **Mobile / remote access** — LAN + Tailscale-ready, with a LaunchAgent for boot-start on macOS (see [docs/mobile-remote-access-runbook.md](docs/mobile-remote-access-runbook.md))
+- **Mobile / remote access** — LAN + Tailscale or Cloudflare Mesh for private remote access, with a LaunchAgent for boot-start on macOS (see [Remote access](#remote-access))
 - **Gas Town engine (experimental)** — Rig Dashboard with live agent tree, ready beads, real-time event feed
 
 ---
@@ -69,13 +69,65 @@ The `supabase start` command uses custom ports (54331 API, 54332 DB) configured 
 
 ### Local network discovery
 
-CCUI advertises itself via mDNS so you can reach it at a `.local` address without knowing the host machine's IP. By default the hostname is `cchq.local`. To change it, set `LOCAL_NAME` in `.env.local`:
+CCHQ advertises itself via mDNS so you can reach it at a `.local` address without knowing the host machine's IP. By default the hostname is `cchq.local`. To change it, set `LOCAL_NAME` in `.env.local`:
 
 ```bash
 LOCAL_NAME=myname   # → http://myname.local:3000
 ```
 
 Any device on the same LAN can then open `http://cchq.local:3000` (or your custom name) instead of looking up the IP.
+
+### Remote access
+
+For access outside your LAN (phone on cellular, laptop at a coffee shop, etc.), CCHQ supports two private networking options. Both keep CCHQ off the public internet — only enrolled devices can reach it.
+
+#### Option A: Tailscale (recommended for personal use)
+
+Tailscale creates a WireGuard mesh between your devices. Setup is minimal and latency is low (peer-to-peer on LAN, relayed otherwise).
+
+```bash
+# Set a friendly Tailscale hostname
+./scripts/setup-hostname.sh          # → cchq.<tailnet>.ts.net
+
+# Front CCHQ with HTTPS on port 443
+./scripts/setup-tailscale-serve.sh   # → https://cchq.<tailnet>.ts.net/
+```
+
+Install Tailscale on your phone/laptop, join the same tailnet, done. Full walkthrough in [docs/mobile-remote-access-runbook.md](docs/mobile-remote-access-runbook.md).
+
+#### Option B: Cloudflare Mesh (for teams or Zero Trust)
+
+[Cloudflare Mesh](https://workers.cloudflare.com/product/mesh) routes traffic through Cloudflare's edge network using a named tunnel. It's a better fit when you need:
+
+- **Team access** — Zero Trust policies with IDP-backed enrollment (restrict who can reach CCHQ)
+- **Corporate networks** — the WARP client works on networks that block WireGuard
+- **Agent access** — AI agents running on Cloudflare Workers can reach CCHQ's API via VPC bindings
+
+```bash
+# One-time: install cloudflared and log in
+brew install cloudflare/cloudflare/cloudflared
+cloudflared tunnel login
+
+# Create the tunnel and start it
+./scripts/setup-cloudflare-tunnel.sh   # creates "cchq" tunnel → localhost:3000
+
+# Stop it
+./scripts/stop-cloudflare-tunnel.sh
+```
+
+After the tunnel is running, enroll devices by installing the [WARP client](https://one.one.one.one/) and joining your Zero Trust org. See the script output for dashboard steps (private network routes, device enrollment).
+
+> **Tailscale vs Cloudflare Mesh at a glance**
+>
+> | | Tailscale | Cloudflare Mesh |
+> |---|---|---|
+> | Best for | Personal / solo | Teams / Zero Trust policies |
+> | Setup | Install app + `tailscale up` | Dashboard config + WARP client |
+> | Latency | Direct P2P (lowest on LAN) | Via nearest Cloudflare PoP |
+> | Auth | Tailscale account | IDP / email enrollment |
+> | Free tier | 3 users, 100 devices | Yes (limited scale) |
+>
+> You can run both simultaneously — they don't conflict.
 
 ---
 
@@ -97,7 +149,7 @@ The session streams thinking, tool calls, and text live. When you complete the s
 
 ## Creating a Gas Town Project (Multi-Agent Swarm)
 
-Gas Town is a separate CLI tool. You set it up once, then CCUI becomes its UI.
+Gas Town is a separate CLI tool. You set it up once, then CCHQ becomes its UI.
 
 ### One-time Gas Town setup
 
@@ -142,7 +194,7 @@ gt daemon status
 gt doctor
 ```
 
-### Hook up CCUI
+### Hook up CCHQ
 
 1. Click **+ New Session**
 2. Engine: **Gas Town**
@@ -161,7 +213,7 @@ gt doctor
 
 ## Gotchas
 
-**`gt` not found when starting a Gas Town session.** CCUI shells out to `gt` via the Node.js process. If you installed `gt` in one shell and started `npm run dev` in another, the PATH may not include it. Restart the dev server from a shell where `which gt` works.
+**`gt` not found when starting a Gas Town session.** CCHQ shells out to `gt` via the Node.js process. If you installed `gt` in one shell and started `npm run dev` in another, the PATH may not include it. Restart the dev server from a shell where `which gt` works.
 
 **Crew not set up.** If you try to sling a bead and it fails, make sure you ran `gt crew add <your-name>` — Gas Town needs to know who owns slung work.
 

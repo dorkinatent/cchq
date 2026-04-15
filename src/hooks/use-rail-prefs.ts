@@ -22,7 +22,7 @@ const DEFAULTS: Prefs = {
   recent: [],
 };
 
-const STORAGE_KEY = "ccui-rail-prefs-v1";
+const STORAGE_KEY = "cchq-rail-prefs-v1";
 const MAX_PINS = 9;
 const MAX_RECENT = 12;
 

@@ -17,10 +17,10 @@ export const THEME_COLORS: Record<Theme, string> = {
 
 export function getStoredTheme(): Theme {
   if (typeof window === "undefined") return "fossil";
-  return (localStorage.getItem("ccui-theme") as Theme) || "fossil";
+  return (localStorage.getItem("cchq-theme") as Theme) || "fossil";
 }
 
 export function setStoredTheme(theme: Theme) {
-  localStorage.setItem("ccui-theme", theme);
+  localStorage.setItem("cchq-theme", theme);
   document.documentElement.setAttribute("data-theme", theme);
 }

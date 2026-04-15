@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a git diff viewer to CCUI so users can see what files Claude changed during a session — live while it's running, and historically after it completes.
+**Goal:** Add a git diff viewer to CCHQ so users can see what files Claude changed during a session — live while it's running, and historically after it completes.
 
 **Architecture:** Capture git HEAD SHA at session start/end, shell out to `git diff` on demand via a new API endpoint, parse unified diff output into structured JSON, render with a shared `DiffBlock` component in two surfaces (Changes tab in the right panel + Review overlay from the session summary).
 

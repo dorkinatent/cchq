@@ -21,7 +21,7 @@ export type MainOverlay =
 
 const MIN_WIDTH = 288;
 const MAX_WIDTH = 720;
-const STORAGE_KEY = "ccui:context-panel-width";
+const STORAGE_KEY = "cchq:context-panel-width";
 
 function formatTokens(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;

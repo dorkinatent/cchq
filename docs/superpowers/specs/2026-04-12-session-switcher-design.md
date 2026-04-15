@@ -12,7 +12,7 @@ Power users run 4–6+ concurrent Claude Code sessions across multiple projects.
 
 ## Users
 
-Developers who leave CCUI open all day across multiple monitors, frequently context-switching between long-running sessions. They type faster than they mouse. They expect the app to tell them which sessions need attention without having to ask.
+Developers who leave CCHQ open all day across multiple monitors, frequently context-switching between long-running sessions. They type faster than they mouse. They expect the app to tell them which sessions need attention without having to ask.
 
 ## Solution Overview
 
@@ -29,7 +29,7 @@ Both surfaces float blocked / errored sessions to the top and surface a "needs y
 
 ### Layout
 - Width bump 208px → **240px** default, user-resizable (persist to localStorage; Supabase later).
-- Extends the existing `sidebar.tsx` — keep the CCUI header, theme switcher, Knowledge Base link. Sessions section becomes the dominant real-estate.
+- Extends the existing `sidebar.tsx` — keep the CCHQ header, theme switcher, Knowledge Base link. Sessions section becomes the dominant real-estate.
 - Collapsible per-project groups. Collapsed state remembered per project.
 
 ### Filter chips (above the list)
@@ -113,9 +113,9 @@ Match highlights: accent color underline, not bold bg — keep it quiet.
 
 ## Persistence
 
-- Pins: localStorage v1 (`ccui-pinned-sessions`). Supabase `user_preferences` table later for cross-device sync.
-- Rail width: localStorage (`ccui-rail-width`).
-- Filter chip: localStorage (`ccui-rail-filter`).
+- Pins: localStorage v1 (`cchq-pinned-sessions`). Supabase `user_preferences` table later for cross-device sync.
+- Rail width: localStorage (`cchq-rail-width`).
+- Filter chip: localStorage (`cchq-rail-filter`).
 - Collapsed project groups: localStorage keyed by project id.
 
 ## Empty states

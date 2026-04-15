@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# scripts/ccui-start.sh — launched by the CCUI LaunchAgent on login.
+# scripts/cchq-start.sh — launched by the CCHQ LaunchAgent on login.
 #
 # Ensures local Supabase is up, then starts the production Next.js server.
-# Intended to be the single ProgramArgument for app.ccui.plist.
+# Intended to be the single ProgramArgument for app.cchq.plist.
 #
-# Logs write to ~/Library/Logs/ccui/{stdout,stderr,supabase}.log via the plist's
+# Logs write to ~/Library/Logs/cchq/{stdout,stderr,supabase}.log via the plist's
 # StandardOutPath/StandardErrorPath; this script additionally tees supabase
 # output to its own log for easier triage.
 
@@ -13,7 +13,7 @@ set -eu
 # cd into the project root (this script lives in scripts/).
 cd "$(dirname "$0")/.."
 
-LOG_DIR="$HOME/Library/Logs/ccui"
+LOG_DIR="$HOME/Library/Logs/cchq"
 mkdir -p "$LOG_DIR"
 
 # launchd provides a minimal environment. Extend PATH so `supabase`, `node`,
@@ -25,7 +25,7 @@ export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:$PATH"
 if command -v supabase >/dev/null 2>&1; then
   supabase start >>"$LOG_DIR/supabase.log" 2>&1 || true
 else
-  echo "[ccui-start] supabase CLI not found on PATH" >&2
+  echo "[cchq-start] supabase CLI not found on PATH" >&2
 fi
 
 # Wait up to 30s for Supabase REST to respond before handing control to Next.

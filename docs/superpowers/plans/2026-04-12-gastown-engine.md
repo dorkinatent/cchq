@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a Gas Town engine to CCUI as an alternative to the existing Claude Code SDK engine, with a Rig Dashboard showing agents, ready beads, and a live event stream.
+**Goal:** Add a Gas Town engine to CCHQ as an alternative to the existing Claude Code SDK engine, with a Rig Dashboard showing agents, ready beads, and a live event stream.
 
-**Architecture:** Engine abstraction at the backend. Gas Town engine shells out to the `gt` CLI for operations and tails `.events.jsonl` for real-time events. Each CCUI project picks one engine at creation; UI routes fork based on `project.engine`. No changes to existing SDK flow.
+**Architecture:** Engine abstraction at the backend. Gas Town engine shells out to the `gt` CLI for operations and tails `.events.jsonl` for real-time events. Each CCHQ project picks one engine at creation; UI routes fork based on `project.engine`. No changes to existing SDK flow.
 
 **Tech Stack:** Next.js 15, React, Tailwind, Supabase/Drizzle (existing), `child_process` (CLI shell-out), `fs.watch` (events tailing), existing theme system + SSE event bus.
 
@@ -154,7 +154,7 @@ Create `src/lib/engines/types.ts`:
 ```typescript
 /**
  * Shared types across all engine implementations.
- * The "engine" abstraction lets CCUI route backend operations to different
+ * The "engine" abstraction lets CCHQ route backend operations to different
  * session/agent management systems based on project.engine.
  */
 
@@ -598,7 +598,7 @@ import { createEventsTailer } from "../events";
 import type { RigEvent } from "../types";
 
 describe("createEventsTailer", () => {
-  const tmp = join(tmpdir(), `ccui-events-test-${Date.now()}`);
+  const tmp = join(tmpdir(), `cchq-events-test-${Date.now()}`);
 
   afterEach(async () => {
     await rm(tmp, { recursive: true, force: true });
@@ -2213,7 +2213,7 @@ gt rig add <some-test-project-path>
 gt daemon start
 ```
 
-- [ ] **Step 2: Run CCUI dev server**
+- [ ] **Step 2: Run CCHQ dev server**
 
 Run: `npm run dev`
 
@@ -2236,10 +2236,10 @@ Expected: Redirects to `/projects/<id>/rig` — the rig dashboard renders.
 3. Ready Beads panel shows the empty state message
 4. Event Stream panel shows "Waiting for events…"
 
-- [ ] **Step 5: Create a bead via CCUI**
+- [ ] **Step 5: Create a bead via CCHQ**
 
 1. Click "+ New Bead"
-2. Title: "CCUI smoke test bead"
+2. Title: "CCHQ smoke test bead"
 3. Submit
 
 Expected: A new bead appears in the Ready Beads list within ~10 seconds. Run `gt ready` in a terminal — it should also be listed there.

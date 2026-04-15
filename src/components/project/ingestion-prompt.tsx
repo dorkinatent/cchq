@@ -58,7 +58,7 @@ export function IngestionPrompt({
           Import project docs as knowledge?
         </div>
         <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-          Found {fileCount} markdown file{fileCount === 1 ? "" : "s"} (README, docs/, etc.). CCUI can
+          Found {fileCount} markdown file{fileCount === 1 ? "" : "s"} (README, docs/, etc.). CCHQ can
           extract stable facts into this project&apos;s knowledge base so they&apos;re auto-injected
           into future sessions.
         </p>

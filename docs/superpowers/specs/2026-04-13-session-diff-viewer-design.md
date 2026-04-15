@@ -2,19 +2,19 @@
 
 **Date:** 2026-04-13
 **Branch:** `feature/session-diff-viewer`
-**Feature:** Git diff viewer for CCUI sessions — see what Claude changed, live and after the fact.
+**Feature:** Git diff viewer for CCHQ sessions — see what Claude changed, live and after the fact.
 
 ---
 
 ## Problem
 
-When a session completes, you see a summary (duration, tokens, cost, files touched, tool calls) but not *what actually changed* in the code. To review the diff, you leave CCUI and run `git diff` in a terminal. That's a context switch that breaks the review-then-ship flow.
+When a session completes, you see a summary (duration, tokens, cost, files touched, tool calls) but not *what actually changed* in the code. To review the diff, you leave CCHQ and run `git diff` in a terminal. That's a context switch that breaks the review-then-ship flow.
 
-Conductor (the closest competitor) has a dedicated diff viewer + merge flow as its core UX. CCUI's knowledge system and session continuity are its moat, but the absence of a diff viewer is the biggest functional gap.
+Conductor (the closest competitor) has a dedicated diff viewer + merge flow as its core UX. CCHQ's knowledge system and session continuity are its moat, but the absence of a diff viewer is the biggest functional gap.
 
 ## Users
 
-Developers who leave CCUI open all day, running 4–6+ sessions. After a session ends (or while one is running), they want to glance at what's changed without switching to a terminal or VS Code.
+Developers who leave CCHQ open all day, running 4–6+ sessions. After a session ends (or while one is running), they want to glance at what's changed without switching to a terminal or VS Code.
 
 ## Solution overview
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# scripts/stop-tailscale-serve.sh — tear down the Tailscale HTTPS proxy for CCUI.
+# scripts/stop-tailscale-serve.sh — tear down the Tailscale HTTPS proxy for CCHQ.
 
 set -eu
 

@@ -5,7 +5,7 @@ import { tmpdir } from "os";
 import { scanDocs, resolveDocPath } from "../scanner";
 
 describe("scanDocs", () => {
-  const tmp = join(tmpdir(), `ccui-scanner-test-${Date.now()}`);
+  const tmp = join(tmpdir(), `cchq-scanner-test-${Date.now()}`);
 
   beforeEach(async () => {
     await mkdir(tmp, { recursive: true });
@@ -51,7 +51,7 @@ describe("scanDocs", () => {
 });
 
 describe("resolveDocPath", () => {
-  const tmp = join(tmpdir(), `ccui-resolve-test-${Date.now()}`);
+  const tmp = join(tmpdir(), `cchq-resolve-test-${Date.now()}`);
 
   beforeEach(async () => {
     await mkdir(tmp, { recursive: true });

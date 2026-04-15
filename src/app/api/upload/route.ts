@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "No file provided" }, { status: 400 });
   }
 
-  const uploadDir = join(tmpdir(), "ccui-uploads");
+  const uploadDir = join(tmpdir(), "cchq-uploads");
   await mkdir(uploadDir, { recursive: true });
 
   const ext = file.name.split(".").pop() || "png";

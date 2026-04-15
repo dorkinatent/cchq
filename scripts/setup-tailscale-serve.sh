@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# scripts/setup-tailscale-serve.sh — put CCUI behind Tailscale's reverse proxy
+# scripts/setup-tailscale-serve.sh — put CCHQ behind Tailscale's reverse proxy
 # at https://<mac>.<tailnet>.ts.net (port 443, TLS terminated by Tailscale).
 #
 # Requires: Tailscale installed and authenticated on this Mac, and the Mac's
@@ -29,7 +29,7 @@ HOSTNAME_TS="$(tailscale status --json 2>/dev/null | grep -o '"DNSName":"[^"]*' 
 
 echo
 cat <<EOF
-Tailscale serve is up. CCUI should now be reachable at:
+Tailscale serve is up. CCHQ should now be reachable at:
 
   https://${HOSTNAME_TS:-<mac>.<tailnet>.ts.net}/
 

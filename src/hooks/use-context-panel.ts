@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-const KEY = "ccui-context-panel-open";
+const KEY = "cchq-context-panel-open";
 
 export function useContextPanel(defaultOpen = true) {
   const [open, setOpen] = useState(defaultOpen);

@@ -1,6 +1,6 @@
-# Contributing to CCUI
+# Contributing to CCHQ
 
-Thanks for taking a look. CCUI is a small project; PRs and issues are welcome.
+Thanks for taking a look. CCHQ is a small project; PRs and issues are welcome.
 
 ## Dev setup
 
@@ -14,7 +14,7 @@ Prerequisites:
 One-time:
 
 ```bash
-git clone <fork-url> ccui && cd ccui
+git clone <fork-url> cchq && cd cchq
 npm install
 supabase start                               # starts Postgres + Studio in Docker
 cp .env.local.example .env.local             # then paste keys from `supabase status`
@@ -66,7 +66,7 @@ Useful info:
 - What you ran and what happened
 - What you expected
 - Browser, OS, Node version
-- Any relevant lines from `~/Library/Logs/ccui/stderr.log` (if running
+- Any relevant lines from `~/Library/Logs/cchq/stderr.log` (if running
   the LaunchAgent) or your dev terminal
 
 ## Security

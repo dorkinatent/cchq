@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
-# scripts/setup-hostname.sh — set the Tailscale node name so CCUI is reachable
+# scripts/setup-hostname.sh — set the Tailscale node name so CCHQ is reachable
 # at `<name>.<tailnet>.ts.net` from any device on your tailnet (including
 # cellular). Does NOT touch the Mac's LocalHostName/HostName.
 #
 # Usage:
 #   ./scripts/setup-hostname.sh [name]
 #
-# If `name` is omitted, defaults to "ccui".
+# If `name` is omitted, defaults to "cchq".
 #
 # Safe to re-run — overwrites the existing Tailscale hostname.
 
 set -eu
 
-NAME="${1:-ccui}"
+NAME="${1:-cchq}"
 
 if [[ "$NAME" =~ [^a-z0-9-] ]]; then
   echo "Hostname must be lowercase alphanumeric + dashes only (got: $NAME)" >&2
