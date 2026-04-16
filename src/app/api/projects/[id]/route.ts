@@ -31,7 +31,14 @@ export async function PATCH(
     additionalDirectories?: string[];
   } = {};
   if (typeof body.name === "string") patch.name = body.name;
-  if (typeof body.path === "string") patch.path = body.path;
+  if (typeof body.path === "string") {
+    const { validateProjectPath } = await import("@/lib/validate-path");
+    const pathError = await validateProjectPath(body.path);
+    if (pathError) {
+      return NextResponse.json({ error: pathError }, { status: 400 });
+    }
+    patch.path = body.path;
+  }
   if (Array.isArray(body.docGlobs)) {
     patch.docGlobs = body.docGlobs.filter((g: unknown) => typeof g === "string");
   }
