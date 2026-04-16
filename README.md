@@ -2,13 +2,6 @@
 
 A web dashboard for managing multiple Claude Code sessions from one place, with a persistent knowledge base that carries context between sessions.
 
-CCHQ is an engine-agnostic cockpit. You can run it against:
-
-- **Claude Code SDK** — single-agent chat sessions (default)
-- **Gas Town** — multi-agent orchestration (experimental)
-
-You pick the engine per project. Both engines share the same themes, knowledge base, and UX.
-
 ---
 
 ## Features
@@ -27,7 +20,6 @@ You pick the engine per project. Both engines share the same themes, knowledge b
 - **Per-project controls** — additional directories setting and permission modes (`full_auto` / `auto_log` / `ask_me`)
 - **Four themes** — Fossil (default, warm stone), Midnight (deep indigo), Arctic (clean light), Terminal (green phosphor)
 - **Mobile / remote access** — LAN + Tailscale or Cloudflare Mesh for private remote access, with a LaunchAgent for boot-start on macOS (see [Remote access](#remote-access))
-- **Gas Town engine (experimental)** — Rig Dashboard with live agent tree, ready beads, real-time event feed
 
 ---
 
@@ -36,8 +28,7 @@ You pick the engine per project. Both engines share the same themes, knowledge b
 - Node.js 18+
 - Docker (for local Supabase)
 - [Supabase CLI](https://supabase.com/docs/guides/cli) (`brew install supabase/tap/supabase`)
-- A Claude Code installation (`npm install -g @anthropic-ai/claude-code`) — for the SDK engine
-- Optional: [Gas Town](https://github.com/gastownhall/gastown) — for the Gas Town engine
+- A Claude Code installation (`npm install -g @anthropic-ai/claude-code`)
 
 ---
 
@@ -147,75 +138,7 @@ The session streams thinking, tool calls, and text live. When you complete the s
 
 ---
 
-## Creating a Gas Town Project (Multi-Agent Swarm)
-
-Gas Town is a separate CLI tool. You set it up once, then CCHQ becomes its UI.
-
-### One-time Gas Town setup
-
-```bash
-# Install gt (see https://github.com/gastownhall/gastown for latest install steps)
-brew install gastownhall/tap/gastown
-
-# Create your town (HQ) — one time
-gt install ~/gt
-
-# Bring up services
-gt up
-
-# Add yourself as a crew member
-gt crew add <your-name>
-```
-
-### Per-project setup
-
-Say you want to use Gas Town with `~/XCode/AutoCoach`:
-
-```bash
-# Go into the project
-cd ~/XCode/AutoCoach
-
-# Make sure it's a git repo
-git status   # should not error; if it does, `git init && git add -A && git commit -m "initial"`
-
-# Initialize it as a rig
-gt init
-
-# Go back to town and verify
-cd ~/gt
-gt rig list
-# Expected: "autocoach" (or similar) appears in the list
-
-# Make sure daemon is running
-gt daemon status
-# If stopped: gt daemon start
-
-# Health check
-gt doctor
-```
-
-### Hook up CCHQ
-
-1. Click **+ New Session**
-2. Engine: **Gas Town**
-3. **Town Path**: `~/gt`
-4. **Rig Name**: whatever `gt rig list` showed (e.g. `autocoach`)
-5. Click **Create** → dropped into the Rig Dashboard
-
-### Rig Dashboard layout
-
-- **Top bar** — Rig name + town path, daemon status dot, Start/Stop daemon button
-- **Left panel** — Agent tree grouped by role (Mayor, polecats). Status symbols: ● working, ○ idle, ⚠ stalled, 🔥 GUPP, 💀 zombie.
-- **Center panel** — Ready beads list. Each bead has its ID, priority, title, tags, and a Sling button. "+ New Bead" at the top.
-- **Right panel** — Live event stream (tailing `~/gt/.events.jsonl`) with Gas Town's event symbols.
-
----
-
 ## Gotchas
-
-**`gt` not found when starting a Gas Town session.** CCHQ shells out to `gt` via the Node.js process. If you installed `gt` in one shell and started `npm run dev` in another, the PATH may not include it. Restart the dev server from a shell where `which gt` works.
-
-**Crew not set up.** If you try to sling a bead and it fails, make sure you ran `gt crew add <your-name>` — Gas Town needs to know who owns slung work.
 
 **Port conflicts with Supabase.** If `npx supabase start` fails with "port already allocated," another local Supabase project is using the defaults. The `supabase/config.toml` already shifts ours to 54331/54332, but if you see conflicts, adjust further and restart.
 
@@ -232,17 +155,10 @@ Frontend (Next.js 16 App Router)
     ↕
 Backend (Next.js API routes)
     ↓
-┌─────────────┬──────────────────┐
-│  SDK Engine │  Gas Town Engine │
-│  (sessions/ │  (rigs/ → gt CLI │
-│   messages/ │   + .events.jsonl│
-│   knowledge)│   tailer)        │
-└─────────────┴──────────────────┘
-    ↓                    ↓
-  Supabase          Gas Town (~/gt)
+Sessions / Messages / Knowledge
+    ↓
+  Supabase (Postgres)
 ```
-
-**Engine is a property of a project.** Routes branch by `project.engine`. The two engines share nothing at the runtime level except the dashboard shell.
 
 ---
 
@@ -256,7 +172,6 @@ Backend (Next.js API routes)
 | Database | Supabase (local → hosted), Postgres |
 | ORM | Drizzle ORM |
 | SDK | `@anthropic-ai/claude-agent-sdk` |
-| Gas Town integration | `child_process` shell-out + `fs.watch` on `.events.jsonl` |
 | Testing | Vitest |
 
 ---

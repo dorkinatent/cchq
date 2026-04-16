@@ -30,9 +30,6 @@ export function NewSessionDialog({
   const [newProjectName, setNewProjectName] = useState("");
   const [showNewProject, setShowNewProject] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [engine, setEngine] = useState<"sdk" | "gastown">("sdk");
-  const [townPath, setTownPath] = useState("~/gt");
-  const [rigName, setRigName] = useState("");
   // Folder browser state
   const [showBrowser, setShowBrowser] = useState(false);
   const [browseResult, setBrowseResult] = useState<BrowseResult | null>(null);
@@ -101,39 +98,6 @@ export function NewSessionDialog({
       });
       const project = await res.json();
       finalProjectId = project.id;
-    }
-
-    if (engine === "gastown") {
-      const rigRes = await fetch(`/api/rigs/${finalProjectId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ townPath, rigName }),
-      });
-      const rigData = await rigRes.json();
-      setSubmitting(false);
-      if (!rigRes.ok) {
-        alert(`Failed to configure rig: ${rigData.error || "unknown"}`);
-        return;
-      }
-
-      let ingestQS = "";
-      if (showNewProject && finalProjectId) {
-        try {
-          const docsRes = await fetch(`/api/projects/${finalProjectId}/docs`);
-          if (docsRes.ok) {
-            const files = await docsRes.json();
-            if (Array.isArray(files) && files.length > 0) {
-              ingestQS = `?ingest=1&count=${files.length}`;
-            }
-          }
-        } catch {
-          // silent fail — don't block project creation
-        }
-      }
-
-      onClose();
-      router.push(`/projects/${finalProjectId}/rig${ingestQS}`);
-      return;
     }
 
     const res = await fetch("/api/sessions", {
@@ -337,118 +301,75 @@ export function NewSessionDialog({
         )}
 
         <div className="mb-4">
-          <label htmlFor="nsd-engine" className="block text-xs text-[var(--text-secondary)] mb-1">Engine</label>
+          <label htmlFor="nsd-session-name" className="block text-xs text-[var(--text-secondary)] mb-1">Session Name</label>
+          <input
+            id="nsd-session-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)]"
+            placeholder="Auth refactor"
+            required
+          />
+        </div>
+
+        <div className="mb-4">
+          <label htmlFor="nsd-model" className="block text-xs text-[var(--text-secondary)] mb-1">Model</label>
           <select
-            id="nsd-engine"
-            value={engine}
-            onChange={(e) => setEngine(e.target.value as "sdk" | "gastown")}
+            id="nsd-model"
+            value={model}
+            onChange={(e) => setModel(e.target.value)}
             className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)]"
           >
-            <option value="sdk">Claude Code SDK — single-agent chat</option>
-            <option value="gastown">Gas Town — multi-agent orchestration</option>
+            <option value="claude-sonnet-4-6">Sonnet 4.6</option>
+            <option value="claude-opus-4-6">Opus 4.6</option>
+            <option value="claude-haiku-4-5-20251001">Haiku 4.5</option>
           </select>
         </div>
 
-        {engine === "gastown" && (
-          <>
-            <div className="mb-4">
-              <label htmlFor="nsd-town-path" className="block text-xs text-[var(--text-secondary)] mb-1">Town Path</label>
-              <input
-                id="nsd-town-path"
-                value={townPath}
-                onChange={(e) => setTownPath(e.target.value)}
-                placeholder="~/gt"
-                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)] font-mono"
-              />
-            </div>
-            <div className="mb-4">
-              <label htmlFor="nsd-rig-name" className="block text-xs text-[var(--text-secondary)] mb-1">Rig Name</label>
-              <input
-                id="nsd-rig-name"
-                value={rigName}
-                onChange={(e) => setRigName(e.target.value)}
-                placeholder="rig-slug"
-                required={engine === "gastown"}
-                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)] font-mono"
-              />
-            </div>
-          </>
-        )}
+        <div className="mb-4">
+          <label htmlFor="nsd-effort" className="block text-xs text-[var(--text-secondary)] mb-1">Effort</label>
+          <select
+            id="nsd-effort"
+            value={effort}
+            onChange={(e) => setEffort(e.target.value)}
+            className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)]"
+          >
+            <option value="low">Low — quick answers, minimal exploration</option>
+            <option value="medium">Medium — balanced</option>
+            <option value="high">High — thorough, multi-step work</option>
+            <option value="max">Max — exhaustive, no shortcuts</option>
+          </select>
+        </div>
 
-        {engine === "sdk" && (
-          <>
-            <div className="mb-4">
-              <label htmlFor="nsd-session-name" className="block text-xs text-[var(--text-secondary)] mb-1">Session Name</label>
-              <input
-                id="nsd-session-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)]"
-                placeholder="Auth refactor"
-                required
-              />
-            </div>
+        <div className="mb-4">
+          <label htmlFor="nsd-trust-level" className="block text-xs text-[var(--text-secondary)] mb-1">Permission mode</label>
+          <select
+            id="nsd-trust-level"
+            value={trustLevel}
+            onChange={(e) => setTrustLevel(e.target.value)}
+            className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)]"
+          >
+            <option value="full_auto">Full auto — never ask, never log</option>
+            <option value="auto_log">Auto + log — never ask, log each action in chat</option>
+            <option value="ask_me">Ask first — prompt before every tool action</option>
+          </select>
+          <p className="text-[10px] text-[var(--text-muted)] mt-1">
+            Project permission rules override this for specific tools.
+          </p>
+        </div>
 
-            <div className="mb-4">
-              <label htmlFor="nsd-model" className="block text-xs text-[var(--text-secondary)] mb-1">Model</label>
-              <select
-                id="nsd-model"
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)]"
-              >
-                <option value="claude-sonnet-4-6">Sonnet 4.6</option>
-                <option value="claude-opus-4-6">Opus 4.6</option>
-                <option value="claude-haiku-4-5-20251001">Haiku 4.5</option>
-              </select>
-            </div>
-
-            <div className="mb-4">
-              <label htmlFor="nsd-effort" className="block text-xs text-[var(--text-secondary)] mb-1">Effort</label>
-              <select
-                id="nsd-effort"
-                value={effort}
-                onChange={(e) => setEffort(e.target.value)}
-                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)]"
-              >
-                <option value="low">Low — quick answers, minimal exploration</option>
-                <option value="medium">Medium — balanced</option>
-                <option value="high">High — thorough, multi-step work</option>
-                <option value="max">Max — exhaustive, no shortcuts</option>
-              </select>
-            </div>
-
-            <div className="mb-4">
-              <label htmlFor="nsd-trust-level" className="block text-xs text-[var(--text-secondary)] mb-1">Permission mode</label>
-              <select
-                id="nsd-trust-level"
-                value={trustLevel}
-                onChange={(e) => setTrustLevel(e.target.value)}
-                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)]"
-              >
-                <option value="full_auto">Full auto — never ask, never log</option>
-                <option value="auto_log">Auto + log — never ask, log each action in chat</option>
-                <option value="ask_me">Ask first — prompt before every tool action</option>
-              </select>
-              <p className="text-[10px] text-[var(--text-muted)] mt-1">
-                Project permission rules override this for specific tools.
-              </p>
-            </div>
-
-            <div className="mb-6">
-              <label htmlFor="nsd-initial-prompt" className="block text-xs text-[var(--text-secondary)] mb-1">
-                Initial prompt <span className="text-[var(--text-muted)] font-normal">· optional</span>
-              </label>
-              <textarea
-                id="nsd-initial-prompt"
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)] h-24 resize-none"
-                placeholder="What should Claude work on? Leave blank to start an empty session."
-              />
-            </div>
-          </>
-        )}
+        <div className="mb-6">
+          <label htmlFor="nsd-initial-prompt" className="block text-xs text-[var(--text-secondary)] mb-1">
+            Initial prompt <span className="text-[var(--text-muted)] font-normal">· optional</span>
+          </label>
+          <textarea
+            id="nsd-initial-prompt"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            className="w-full bg-[var(--input-bg)] border border-[var(--input-border)] rounded px-3 py-2 text-sm text-[var(--text-primary)] h-24 resize-none"
+            placeholder="What should Claude work on? Leave blank to start an empty session."
+          />
+        </div>
 
         <div className="flex gap-3 justify-end">
           <button

@@ -34,8 +34,6 @@ export const permissionDecisionEnum = pgEnum("permission_decision", [
   "ask",
 ]);
 
-export const engineEnum = pgEnum("engine", ["sdk", "gastown"]);
-
 export const knowledgeOriginEnum = pgEnum("knowledge_origin", [
   "session_extract",
   "manual",
@@ -46,7 +44,6 @@ export const projects = pgTable("projects", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
   path: text("path").notNull().unique(),
-  engine: engineEnum("engine").notNull().default("sdk"),
   docGlobs: jsonb("doc_globs").$type<string[]>().notNull().default(sql`
   '["README.md", "CHANGELOG.md", "AGENTS.md", "CLAUDE.md", "docs/**/*.md", ".github/**/*.md", "doc/**/*.md"]'::jsonb
 `),

@@ -8,7 +8,7 @@ import { useRailPrefs } from "@/hooks/use-rail-prefs";
 import { useWorkspaces, type Workspace } from "@/hooks/use-workspaces";
 import { carouselOrder } from "@/lib/carousel-order";
 
-type Project = { id: string; name: string; path: string; engine: "sdk" | "gastown" };
+type Project = { id: string; name: string; path: string };
 
 export type DerivedSessionState =
   | "blocked"
