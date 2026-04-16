@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readdir, stat } from "fs/promises";
+import { readdir } from "fs/promises";
 import { join, resolve } from "path";
 import { homedir } from "os";
 
@@ -7,8 +7,9 @@ export async function GET(req: NextRequest) {
   const path = req.nextUrl.searchParams.get("path") || homedir();
   const realPath = resolve(path);
   const realHome = resolve(homedir());
+  const homeWithSep = realHome.endsWith("/") ? realHome : realHome + "/";
 
-  if (!realPath.startsWith(realHome)) {
+  if (realPath !== realHome && !realPath.startsWith(homeWithSep)) {
     return NextResponse.json({ error: "Access denied" }, { status: 403 });
   }
 
@@ -22,13 +23,13 @@ export async function GET(req: NextRequest) {
       }))
       .sort((a, b) => a.name.localeCompare(b.name));
 
-    await stat(realPath);
-
+    const parentPath = resolve(realPath, "..");
     return NextResponse.json({
       current: realPath,
-      parent: resolve(realPath, "..").startsWith(realHome)
-        ? resolve(realPath, "..")
-        : realHome,
+      parent:
+        parentPath === realHome || parentPath.startsWith(homeWithSep)
+          ? parentPath
+          : realHome,
       directories: dirs,
       isGitRepo: entries.some((e) => e.name === ".git" && e.isDirectory()),
     });

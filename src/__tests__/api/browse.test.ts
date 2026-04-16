@@ -57,4 +57,10 @@ describe("GET /api/browse", () => {
     const res = await GET(makeRequest());
     expect(res.status).toBe(200);
   });
+
+  it("clamps parent to home directory when at home", async () => {
+    const res = await GET(makeRequest("/Users/testuser"));
+    const body = await res.json();
+    expect(body.parent).toBe("/Users/testuser");
+  });
 });
