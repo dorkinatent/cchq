@@ -61,7 +61,7 @@ The `standalone` output mode bundles only the Node modules the app imports, keep
 - All environment variables have sensible defaults:
   - Default Supabase keys suitable for local-only use (same as `supabase start` generates). Users deploying beyond localhost should generate their own keys and set them via `.env`.
   - `DATABASE_URL` pre-configured to the compose Postgres service.
-  - Port 3000 for the web UI.
+  - Port 3000 for the web UI (configurable via `CCHQ_PORT` env var).
 - **Volumes:** Postgres data persisted to a named Docker volume (`cchq-pgdata`).
 
 ### 1.4 First-Run Experience
@@ -74,6 +74,14 @@ docker compose up
 ```
 
 No `.env` file required. No manual DB setup. No key generation. Customization via optional `.env` file or environment variable overrides.
+
+**Custom port example:**
+```bash
+CCHQ_PORT=8080 docker compose up
+# → Open http://localhost:8080
+```
+
+The compose file uses `${CCHQ_PORT:-3000}` for the host port mapping, so the default is 3000 but any port works.
 
 ### 1.5 Networking Add-Ons
 
