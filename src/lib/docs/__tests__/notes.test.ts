@@ -1,16 +1,27 @@
 import { describe, it, expect, beforeEach, afterAll } from "vitest";
-import { db, schema } from "@/lib/db";
-import { eq } from "drizzle-orm";
-import { listNotes, createNote, updateNote, deleteNote, getNote } from "../notes";
+import net from "net";
 
-const hasDb = !!process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("placeholder");
-
-const TEST_PROJECT_ID = "11111111-1111-1111-1111-111111111111";
-const TEST_PROJECT_PATH = "/tmp/notes-test-project";
+const hasDb = await new Promise<boolean>((resolve) => {
+  const sock = net.createConnection({ host: "127.0.0.1", port: 54332 });
+  sock.on("connect", () => { sock.destroy(); resolve(true); });
+  sock.on("error", () => resolve(false));
+  sock.setTimeout(1000, () => { sock.destroy(); resolve(false); });
+});
 
 describe.skipIf(!hasDb)("notes CRUD", () => {
+  let db: any;
+  let schema: any;
+  let eq: any;
+  let listNotes: any, createNote: any, updateNote: any, deleteNote: any, getNote: any;
+
+  const TEST_PROJECT_ID = "11111111-1111-1111-1111-111111111111";
+  const TEST_PROJECT_PATH = "/tmp/notes-test-project";
+
   beforeEach(async () => {
-    // Clean state: remove any notes + project with the test id
+    ({ db, schema } = await import("@/lib/db"));
+    ({ eq } = await import("drizzle-orm"));
+    ({ listNotes, createNote, updateNote, deleteNote, getNote } = await import("../notes"));
+
     await db.delete(schema.projectNotes).where(eq(schema.projectNotes.projectId, TEST_PROJECT_ID));
     await db.delete(schema.projects).where(eq(schema.projects.id, TEST_PROJECT_ID));
     await db.insert(schema.projects).values({
