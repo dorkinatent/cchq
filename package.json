@@ -15,6 +15,7 @@
   "scripts": {
     "dev": "next dev -H 0.0.0.0",
     "build": "next build",
+    "prestart": "node --env-file-if-exists=.env.local scripts/check-port.mjs",
     "start": "node --env-file-if-exists=.env.local .next/standalone/server.js",
     "lint": "eslint",
     "test": "vitest run"
