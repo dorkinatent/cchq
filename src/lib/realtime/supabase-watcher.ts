@@ -15,6 +15,11 @@ export function ensureSupabaseWatcher(): void {
   if (started) return;
   started = true;
 
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || (!process.env.SUPABASE_SERVICE_ROLE_KEY && !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)) {
+    console.warn("[watcher] Supabase env vars not set; realtime session-list updates disabled. Refresh to see new sessions/messages.");
+    return;
+  }
+
   const supabase = getSupabaseServer();
 
   supabase

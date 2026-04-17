@@ -1,0 +1,65 @@
+# CCHQ — zero-config local setup
+# Usage: docker compose up
+# Custom port: CCHQ_PORT=8080 docker compose up
+#
+# v0.1.0 note: this compose file runs Postgres + CCHQ only. Supabase
+# services (Realtime, PostgREST, Auth) are NOT included. That means
+# the session-list dashboard won't live-update — you'll see new
+# sessions/messages after navigating or refreshing. If you want live
+# updates, run the dev workflow instead (supabase start + npm run dev).
+# Full self-hosted Supabase stack is planned for v0.2.0.
+
+services:
+  db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    ports:
+      - "${DB_PORT:-54332}:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    volumes:
+      - cchq-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  cchq:
+    build:
+      context: .
+      args:
+        APP_VERSION: "0.1.0"
+    image: ghcr.io/dorkinatent/cchq:latest
+    restart: unless-stopped
+    ports:
+      - "${CCHQ_PORT:-3000}:3000"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/postgres
+      # Supabase env vars intentionally left empty in v0.1.0 — the
+      # realtime watcher no-ops when these are missing.
+      NEXT_PUBLIC_SUPABASE_URL: ""
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ""
+      SUPABASE_SERVICE_ROLE_KEY: ""
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_USER: postgres
+    depends_on:
+      db:
+        condition: service_healthy
+    # To enable one-click in-app updates, uncomment the volume below:
+    # volumes:
+    #   - /var/run/docker.sock:/var/run/docker.sock:ro
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    profiles: ["tunnel"]
+    restart: unless-stopped
+    command: tunnel run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+
+volumes:
+  cchq-pgdata:
