@@ -1,12 +1,23 @@
 {
-  "name": "cchq-app",
+  "name": "cchq",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
+  "description": "Web dashboard for managing multiple Claude Code sessions",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dorkinatent/cchq.git"
+  },
+  "homepage": "https://github.com/dorkinatent/cchq",
+  "bugs": {
+    "url": "https://github.com/dorkinatent/cchq/issues"
+  },
   "scripts": {
     "dev": "next dev -H 0.0.0.0",
     "build": "next build",
     "start": "next start -H 0.0.0.0",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest run"
   },
   "engines": {
     "node": ">=18.18.0"
