@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback, useImperativeHandle, forwardRef } from "react";
+import { useEffect, useRef, useState, useCallback, useImperativeHandle, forwardRef } from "react";
 import type { Message } from "@/hooks/use-session-messages";
 import type { StreamState } from "@/hooks/use-session-stream";
 import { MessageBubble } from "./message-bubble";
@@ -276,10 +276,30 @@ export const MessageList = forwardRef<
 
   const turns = groupIntoTurns(messages);
 
+  // Track whether the streaming indicator is visible in the scroll viewport.
+  // When it's off-screen, show a sticky "working" bar so the user knows
+  // Claude is still active.
+  const indicatorRef = useRef<HTMLDivElement>(null);
+  const [indicatorVisible, setIndicatorVisible] = useState(true);
+  const isWorking = streamState && streamState.phase !== "idle";
+
+  useEffect(() => {
+    const el = indicatorRef.current;
+    const container = containerRef.current;
+    if (!el || !container || !isWorking) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setIndicatorVisible(entry.isIntersecting),
+      { root: container, threshold: 0.1 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [isWorking]);
+
   return (
     <div
       ref={containerRef}
-      className="flex-1 overflow-y-auto overflow-x-hidden p-5 [overflow-anchor:none]"
+      className="relative flex-1 overflow-y-auto overflow-x-hidden p-5 [overflow-anchor:none]"
     >
       {hasMore && (
         <div ref={sentinelRef} className="h-px" />
@@ -298,10 +318,23 @@ export const MessageList = forwardRef<
           />
         </div>
       ))}
-      {streamState && streamState.phase !== "idle" && (
-        <StreamingIndicator state={streamState} />
-      )}
+      <div ref={indicatorRef}>
+        {isWorking && <StreamingIndicator state={streamState} />}
+      </div>
       <div ref={bottomRef} />
+      {isWorking && !indicatorVisible && (
+        <button
+          onClick={() => bottomRef.current?.scrollIntoView({ behavior: "smooth" })}
+          className="sticky bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 bg-[var(--surface-raised)] border border-[var(--border)] rounded-full px-4 py-2 shadow-md text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
+        >
+          <span className="flex gap-1" aria-hidden>
+            <span className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full thinking-dot" style={{ animationDelay: "0ms" }} />
+            <span className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full thinking-dot" style={{ animationDelay: "200ms" }} />
+            <span className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full thinking-dot" style={{ animationDelay: "400ms" }} />
+          </span>
+          Claude is working — tap to scroll down
+        </button>
+      )}
     </div>
   );
 });
