@@ -18,7 +18,8 @@ export async function POST() {
   }
 
   try {
-    const pullRes = await fetch(
+    const { fetch: undiciFetch } = await import("undici");
+    const pullRes = await undiciFetch(
       "http://localhost/images/create?fromImage=ghcr.io/dorkinatent/cchq&tag=latest",
       {
         method: "POST",
