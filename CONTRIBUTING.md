@@ -34,6 +34,31 @@ The Supabase API runs on `127.0.0.1:54331`, Postgres on `54332`. If those
 ports collide on your machine, edit `supabase/config.toml` and update
 `.env.local` accordingly.
 
+## Testing
+
+Run the test suite before submitting a PR:
+
+```bash
+npm test              # runs vitest
+npx vitest --watch    # watch mode during development
+```
+
+## Docker
+
+To test the Docker build locally:
+
+```bash
+docker compose build      # build the image
+docker compose up         # start the full stack
+docker compose down -v    # tear down (including DB volume)
+```
+
+## Labels
+
+- **`good first issue`** — smaller tasks suitable for new contributors
+- **`help wanted`** — larger tasks where we'd appreciate community help
+- **`bug`** / **`enhancement`** — auto-applied by issue templates
+
 ## Conventions
 
 - **TypeScript only.** No new `.js` files.

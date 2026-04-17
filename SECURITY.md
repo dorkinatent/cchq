@@ -27,6 +27,12 @@ on the repo's Security tab instead.
 - Anything that lets a remote (non-tailnet) attacker reach the app
   through misconfiguration of the documented setup
 - Secret leakage in builds, logs, or HTTP responses
+- Security implications of the Docker socket mount used by the
+  optional one-click update feature (`/var/run/docker.sock`). The
+  socket is mounted read-only and the update endpoint only pulls
+  images — it does not execute containers or access host resources.
+  Users who prefer not to mount the socket can update manually via
+  `docker compose pull && docker compose up -d`.
 
 ## Out of scope
 
