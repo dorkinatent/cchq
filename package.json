@@ -15,7 +15,7 @@
   "scripts": {
     "dev": "next dev -H 0.0.0.0",
     "build": "next build",
-    "start": "next start -H 0.0.0.0",
+    "start": "node --env-file-if-exists=.env.local node_modules/.bin/next start -H 0.0.0.0",
     "lint": "eslint",
     "test": "vitest run"
   },
