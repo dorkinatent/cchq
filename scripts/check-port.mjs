@@ -1,5 +1,19 @@
-// Check if the target port is already in use before starting production server.
+// Pre-flight checks before starting production server.
 import { createConnection } from "net";
+import { accessSync } from "fs";
+
+// Check build exists
+try {
+  accessSync(".next/standalone/server.js");
+} catch {
+  console.error("");
+  console.error("⚠️  No production build found.");
+  console.error("");
+  console.error("   Run the build first:");
+  console.error("     npm run build");
+  console.error("");
+  process.exit(1);
+}
 
 const port = Number(process.env.PORT || 3000);
 
