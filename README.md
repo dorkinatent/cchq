@@ -1,6 +1,35 @@
 # CCHQ
 
-A web dashboard for managing multiple Claude Code sessions from one place, with a persistent knowledge base that carries context between sessions.
+> Web dashboard for managing multiple Claude Code sessions from one place, with a persistent knowledge base that carries context between sessions.
+
+[![CI](https://github.com/dorkinatent/cchq/actions/workflows/ci.yml/badge.svg)](https://github.com/dorkinatent/cchq/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![GitHub release](https://img.shields.io/github/v/release/dorkinatent/cchq)](https://github.com/dorkinatent/cchq/releases)
+
+<!-- Screenshot or GIF here once available -->
+
+## Quick Start (Docker)
+
+```bash
+git clone https://github.com/dorkinatent/cchq.git
+cd cchq
+docker compose up
+# → Open http://localhost:3000
+```
+
+**Custom port:** `CCHQ_PORT=8080 docker compose up`
+
+## Quick Start (Development)
+
+```bash
+npm install
+supabase start
+cp .env.local.example .env.local    # paste keys from `supabase status`
+npx drizzle-kit push
+npm run dev
+```
+
+The `supabase start` command uses custom ports (54331 API, 54332 DB) configured in `supabase/config.toml` to avoid conflicts with other local Supabase projects.
 
 ---
 
@@ -19,94 +48,45 @@ A web dashboard for managing multiple Claude Code sessions from one place, with 
 - **Error recovery** — client-side message queue with auto-retry, connection status indicator, failed message retry
 - **Per-project controls** — additional directories setting and permission modes (`full_auto` / `auto_log` / `ask_me`)
 - **Four themes** — Fossil (default, warm stone), Midnight (deep indigo), Arctic (clean light), Terminal (green phosphor)
-- **Mobile / remote access** — LAN + Tailscale or Cloudflare Mesh for private remote access, with a LaunchAgent for boot-start on macOS (see [Remote access](#remote-access))
+- **Mobile / remote access** — LAN + Tailscale or Cloudflare Mesh for private remote access
+- **In-app version check** — notifies when a new release is available, one-click Docker update
 
 ---
 
-## Prerequisites
+## Configuration
 
-- Node.js 18+
-- Docker (for local Supabase)
-- [Supabase CLI](https://supabase.com/docs/guides/cli) (`brew install supabase/tap/supabase`)
-- A Claude Code installation (`npm install -g @anthropic-ai/claude-code`)
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CCHQ_PORT` | `3000` | Host port for the CCHQ web UI |
+| `DB_PORT` | `54332` | Host port for Postgres |
+| `CLOUDFLARE_TUNNEL_TOKEN` | — | Enable Cloudflare tunnel: `docker compose --profile tunnel up` |
 
 ---
 
-## Quick Start
-
-```bash
-# 1. Install dependencies
-npm install
-
-# 2. Start local Supabase
-supabase start
-
-# 3. Configure env vars
-cp .env.local.example .env.local
-# Then fill in NEXT_PUBLIC_SUPABASE_ANON_KEY and SUPABASE_SERVICE_ROLE_KEY
-# from the output of `supabase status`.
-
-# 4. Push the database schema
-DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:54332/postgres" \
-  npx drizzle-kit push
-
-# 5. Run the dev server
-npm run dev
-```
-
-Open http://localhost:3000.
-
-The `supabase start` command uses custom ports (54331 API, 54332 DB) configured in `supabase/config.toml` to avoid conflicts with other local Supabase projects.
-
-### Local network discovery
-
-CCHQ advertises itself via mDNS so you can reach it at a `.local` address without knowing the host machine's IP. By default the hostname is `cchq.local`. To change it, set `LOCAL_NAME` in `.env.local`:
-
-```bash
-LOCAL_NAME=myname   # → http://myname.local:3000
-```
-
-Any device on the same LAN can then open `http://cchq.local:3000` (or your custom name) instead of looking up the IP.
-
-### Remote access
+## Remote Access
 
 For access outside your LAN (phone on cellular, laptop at a coffee shop, etc.), CCHQ supports two private networking options. Both keep CCHQ off the public internet — only enrolled devices can reach it.
 
-#### Option A: Tailscale (recommended for personal use)
+### Option A: Tailscale (recommended for personal use)
 
 Tailscale creates a WireGuard mesh between your devices. Setup is minimal and latency is low (peer-to-peer on LAN, relayed otherwise).
 
 ```bash
-# Set a friendly Tailscale hostname
 ./scripts/setup-hostname.sh          # → cchq.<tailnet>.ts.net
-
-# Front CCHQ with HTTPS on port 443
 ./scripts/setup-tailscale-serve.sh   # → https://cchq.<tailnet>.ts.net/
 ```
 
 Install Tailscale on your phone/laptop, join the same tailnet, done. Full walkthrough in [docs/mobile-remote-access-runbook.md](docs/mobile-remote-access-runbook.md).
 
-#### Option B: Cloudflare Mesh (for teams or Zero Trust)
-
-[Cloudflare Mesh](https://workers.cloudflare.com/product/mesh) routes traffic through Cloudflare's edge network using a named tunnel. It's a better fit when you need:
-
-- **Team access** — Zero Trust policies with IDP-backed enrollment (restrict who can reach CCHQ)
-- **Corporate networks** — the WARP client works on networks that block WireGuard
-- **Agent access** — AI agents running on Cloudflare Workers can reach CCHQ's API via VPC bindings
+### Option B: Cloudflare Mesh (for teams or Zero Trust)
 
 ```bash
-# One-time: install cloudflared and log in
 brew install cloudflare/cloudflare/cloudflared
 cloudflared tunnel login
-
-# Create the tunnel and start it
 ./scripts/setup-cloudflare-tunnel.sh   # creates "cchq" tunnel → localhost:3000
-
-# Stop it
-./scripts/stop-cloudflare-tunnel.sh
 ```
 
-After the tunnel is running, enroll devices by installing the [WARP client](https://one.one.one.one/) and joining your Zero Trust org. See the script output for dashboard steps (private network routes, device enrollment).
+After the tunnel is running, enroll devices by installing the [WARP client](https://one.one.one.one/) and joining your Zero Trust org.
 
 > **Tailscale vs Cloudflare Mesh at a glance**
 >
@@ -115,36 +95,40 @@ After the tunnel is running, enroll devices by installing the [WARP client](http
 > | Best for | Personal / solo | Teams / Zero Trust policies |
 > | Setup | Install app + `tailscale up` | Dashboard config + WARP client |
 > | Latency | Direct P2P (lowest on LAN) | Via nearest Cloudflare PoP |
-> | Auth | Tailscale account | IDP / email enrollment |
 > | Free tier | 3 users, 100 devices | Yes (limited scale) |
->
-> You can run both simultaneously — they don't conflict.
 
 ---
 
-## Creating an SDK Project (Single-Agent)
+## LAN Discovery / mDNS
+
+CCHQ advertises itself via mDNS so you can reach it at `http://cchq.local:3000` without knowing the host IP. To change the hostname:
+
+```bash
+LOCAL_NAME=myname   # in .env.local → http://myname.local:3000
+```
+
+> **Docker note:** mDNS broadcast runs inside the Node.js process; Docker users need a host-side mDNS proxy or should use Tailscale/Cloudflare instead.
+
+---
+
+## Creating a Session
 
 1. Click **+ New Session**
-2. Engine: **Claude Code SDK**
-3. Fill in:
-   - **Project** — pick an existing one, or click "Add new project folder" and browse to your repo
-   - **Session Name** — e.g. "Auth refactor"
-   - **Model** — Sonnet / Opus / Haiku
-   - **Effort** — Low / Medium / High / Max (passed to the SDK)
-   - **Initial Prompt** — what you want Claude to work on
-4. Click **Start Session** → you're dropped into the chat view
+2. Pick an existing project or browse to a new repo folder
+3. Fill in session name, model, effort level, and optional initial prompt
+4. Click **Start Session** — you're dropped into the live chat view
 
-The session streams thinking, tool calls, and text live. When you complete the session, Claude summarizes key facts into the project's knowledge base. Next session on the same project auto-injects those facts as context.
+Sessions stream thinking, tool calls, and text in real time. Completed sessions extract key facts into the project's knowledge base for future sessions.
 
 ---
 
 ## Gotchas
 
-**Port conflicts with Supabase.** If `npx supabase start` fails with "port already allocated," another local Supabase project is using the defaults. The `supabase/config.toml` already shifts ours to 54331/54332, but if you see conflicts, adjust further and restart.
+**Port conflicts with Supabase.** If `npx supabase start` fails with "port already allocated," another local Supabase project is using the defaults. Adjust `supabase/config.toml` and restart.
 
-**Token stats show null on new sessions.** The usage data populates after the first SDK result event fires. Send a message; stats will update.
+**Token stats show null on new sessions.** Usage data populates after the first SDK result event. Send a message; stats will update.
 
-**Turbopack cache errors after schema changes.** If the dev server complains about imports not existing, run `rm -rf .next && npm run dev`.
+**Turbopack cache errors after schema changes.** Run `rm -rf .next && npm run dev`.
 
 ---
 
@@ -167,7 +151,6 @@ Sessions / Messages / Knowledge
 | Layer | Technology |
 |-------|-----------|
 | Frontend | Next.js 16 App Router, React 19, Tailwind CSS v4 |
-| Design | impeccable.style design system |
 | Backend | Next.js API Routes, Server-Sent Events for streaming |
 | Database | Supabase (local → hosted), Postgres |
 | ORM | Drizzle ORM |
@@ -179,26 +162,23 @@ Sessions / Messages / Knowledge
 ## Development
 
 ```bash
-# Dev server
-npm run dev
-
-# Build
-npm run build
-
-# Run tests
-npx vitest run
-
-# Database migrations
-DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:54332/postgres" \
-  npx drizzle-kit push
-
-# Regenerate migrations after schema changes
-npx drizzle-kit generate
+npm run dev           # dev server
+npm run build         # production build
+npm test              # run tests
+npx vitest --watch    # watch mode
 ```
 
-Design specs live in `docs/superpowers/specs/` and implementation plans in `docs/superpowers/plans/`.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for full setup and conventions.
 
 ---
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Security
+
+See [SECURITY.md](SECURITY.md).
 
 ## License
 
