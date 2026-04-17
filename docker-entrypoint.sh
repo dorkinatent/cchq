@@ -5,17 +5,21 @@ echo "╔═══════════════════════�
 echo "║           CCHQ Starting              ║"
 echo "╚══════════════════════════════════════╝"
 
-echo "⏳ Waiting for database..."
-MAX_RETRIES=30
+DB_HOST="${DB_HOST:-db}"
+DB_PORT="${DB_PORT:-5432}"
+DB_USER="${DB_USER:-postgres}"
+
+echo "⏳ Waiting for database at ${DB_HOST}:${DB_PORT}..."
+MAX_RETRIES=60
 RETRY=0
-until pg_isready -h "${DB_HOST:-db}" -p "${DB_PORT:-5432}" -U "${DB_USER:-postgres}" -q 2>/dev/null; do
+until pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" 2>&1; do
   RETRY=$((RETRY + 1))
   if [ "$RETRY" -ge "$MAX_RETRIES" ]; then
     echo "❌ Database not ready after ${MAX_RETRIES} attempts. Exiting."
     exit 1
   fi
-  echo "  Attempt $RETRY/$MAX_RETRIES..."
-  sleep 1
+  echo "  Attempt $RETRY/$MAX_RETRIES — retrying in 2s..."
+  sleep 2
 done
 echo "✅ Database is ready."
 
