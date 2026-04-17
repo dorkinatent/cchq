@@ -20,6 +20,9 @@ export function startMdnsBroadcast(port: number = 3000): void {
       port,
       txt: { version: "1" },
     });
+    service.on?.("error", (err: Error) => {
+      console.warn(`[mdns] broadcast error (non-fatal): ${err.message}`);
+    });
     console.log(`[mdns] broadcasting _cchq._tcp on port ${port}`);
   } catch (err) {
     console.error("[mdns] failed to broadcast", err);
