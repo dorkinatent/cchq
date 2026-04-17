@@ -595,19 +595,38 @@ function processMessages(
         // the SSE stream or touching session status.
         if (entry) entry.interrupted = false;
       } else {
-        console.error(`Session ${sessionId} error:`, error);
         const raw = error instanceof Error ? error.message : "Unknown error";
-        // Strip enormous stack dumps from SDK errors — keep the first line.
-        const short = raw.split("\n")[0].slice(0, 240);
-        sessionEventBus.emit(sessionId, {
-          type: "error",
-          error: short,
-          timestamp: Date.now(),
-        });
-        await db
-          .update(schema.sessions)
-          .set({ status: "errored", updatedAt: new Date().toISOString() })
-          .where(eq(schema.sessions.id, sessionId));
+
+        // SDK conversation was destroyed (e.g. after interrupt). Clear the
+        // stale SDK session ID so the next user message starts a fresh
+        // conversation rather than trying to resume a dead one.
+        if (raw.includes("No conversation found")) {
+          console.warn(`[session ${sessionId}] SDK conversation gone — will start fresh on next message`);
+          const entry2 = activeSessions.get(sessionId);
+          if (entry2) entry2.sdkSessionId = "";
+          await db
+            .update(schema.sessions)
+            .set({ sdkSessionId: null, status: "active", updatedAt: new Date().toISOString() })
+            .where(eq(schema.sessions.id, sessionId));
+          sessionEventBus.emit(sessionId, {
+            type: "error",
+            error: "Session was interrupted — send another message to continue.",
+            timestamp: Date.now(),
+          });
+        } else {
+          console.error(`Session ${sessionId} error:`, error);
+          // Strip enormous stack dumps from SDK errors — keep the first line.
+          const short = raw.split("\n")[0].slice(0, 240);
+          sessionEventBus.emit(sessionId, {
+            type: "error",
+            error: short,
+            timestamp: Date.now(),
+          });
+          await db
+            .update(schema.sessions)
+            .set({ status: "errored", updatedAt: new Date().toISOString() })
+            .where(eq(schema.sessions.id, sessionId));
+        }
       }
     }
   })();
