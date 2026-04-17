@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>app.cchq</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>{{PROJECT_DIR}}/scripts/cchq-start.sh</string>
+  </array>
+  <key>WorkingDirectory</key><string>{{PROJECT_DIR}}</string>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>StandardOutPath</key><string>{{LOG_DIR}}/stdout.log</string>
+  <key>StandardErrorPath</key><string>{{LOG_DIR}}/stderr.log</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>NODE_ENV</key><string>production</string>
+    <key>PORT</key><string>3000</string>
+    <!-- launchd provides a minimal PATH; this covers Homebrew (arm64 + Intel) and system bins.
+         cchq-start.sh additionally prepends these at runtime for defense in depth. -->
+    <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
+</dict>
+</plist>
