@@ -3,10 +3,12 @@ import { db, schema } from "@/lib/db";
 import { eq } from "drizzle-orm";
 import { listNotes, createNote, updateNote, deleteNote, getNote } from "../notes";
 
+const hasDb = !!process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("placeholder");
+
 const TEST_PROJECT_ID = "11111111-1111-1111-1111-111111111111";
 const TEST_PROJECT_PATH = "/tmp/notes-test-project";
 
-describe("notes CRUD", () => {
+describe.skipIf(!hasDb)("notes CRUD", () => {
   beforeEach(async () => {
     // Clean state: remove any notes + project with the test id
     await db.delete(schema.projectNotes).where(eq(schema.projectNotes.projectId, TEST_PROJECT_ID));
