@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  outputFileTracingRoot: import.meta.dirname,
   devIndicators: false,
   allowedDevOrigins: [
     "localhost",
