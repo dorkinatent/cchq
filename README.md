@@ -21,13 +21,20 @@ docker compose up
 
 ## Quick Start (Development)
 
+The dev workflow runs the full Supabase stack locally, which enables **live session-list updates** via Supabase Realtime (the Docker quick start above skips this — see [Configuration](#configuration)).
+
 ```bash
+git clone https://github.com/dorkinatent/cchq.git
+cd cchq
 npm install
 supabase start
 cp .env.local.example .env.local    # paste keys from `supabase status`
 npx drizzle-kit push
 npm run dev
+# → Open http://localhost:3000
 ```
+
+Requires [Node.js 18+](https://nodejs.org/), [Docker](https://www.docker.com/), [Supabase CLI](https://supabase.com/docs/guides/cli), and [Claude Code](https://claude.com/claude-code).
 
 The `supabase start` command uses custom ports (54331 API, 54332 DB) configured in `supabase/config.toml` to avoid conflicts with other local Supabase projects.
 
