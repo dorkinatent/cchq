@@ -8,6 +8,7 @@ import { QuickSwitcher } from "@/components/session-switcher/quick-switcher";
 import { NewSessionPortal } from "@/components/session-switcher/new-session-portal";
 import { MobileHeader, MobileRailOverlay } from "@/components/session-switcher/mobile-nav";
 import { ToastProvider } from "@/components/ui/toast";
+import { UpdateBanner } from "@/components/update-banner";
 
 // Recursive is a variable font with CASL (casual/warmth) and MONO axes — one
 // family covers UI text and terminal contexts without loading a second family.
@@ -53,6 +54,7 @@ export default function RootLayout({
         />
       </head>
       <body className="bg-[var(--bg)] text-[var(--text-primary)] antialiased">
+        <UpdateBanner />
         <ThemeProvider>
           <ToastProvider>
             <SessionSwitcherProvider>
