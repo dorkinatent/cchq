@@ -30,8 +30,14 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
+# Install Claude Code CLI for running sessions inside the container
+RUN npm install -g @anthropic-ai/claude-code
+
 RUN addgroup --system --gid 1001 nodejs \
  && adduser --system --uid 1001 nextjs
+
+# Create projects mount point owned by nextjs
+RUN mkdir -p /projects && chown nextjs:nodejs /projects
 
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static

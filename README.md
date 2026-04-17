@@ -10,18 +10,22 @@
 
 ## Quick Start (Docker)
 
+Docker runs the CCHQ dashboard and database. To connect Claude Code to your local projects, mount your code directory and pass your API key:
+
 ```bash
 git clone https://github.com/dorkinatent/cchq.git
 cd cchq
-docker compose up
+PROJECTS_DIR=~/Code docker compose up
 # → Open http://localhost:3000
 ```
 
 **Custom port:** `CCHQ_PORT=8080 docker compose up`
 
+> **Note:** Claude Code sessions run inside the container against your mounted project files. If you need live session-list updates or prefer running Claude Code directly on your host, use the development workflow below.
+
 ## Quick Start (Development)
 
-The dev workflow runs the full Supabase stack locally, which enables **live session-list updates** via Supabase Realtime (the Docker quick start above skips this — see [Configuration](#configuration)).
+The dev workflow runs everything natively with full Supabase (including Realtime for live session-list updates).
 
 ```bash
 git clone https://github.com/dorkinatent/cchq.git
@@ -66,6 +70,7 @@ The `supabase start` command uses custom ports (54331 API, 54332 DB) configured 
 |----------|---------|-------------|
 | `CCHQ_PORT` | `3000` | Host port for the CCHQ web UI |
 | `DB_PORT` | `54332` | Host port for Postgres |
+| `PROJECTS_DIR` | `~/Code` | Host directory mounted into container at `/projects` for project browsing |
 | `CLOUDFLARE_TUNNEL_TOKEN` | — | Enable Cloudflare tunnel: `docker compose --profile tunnel up` |
 
 ---

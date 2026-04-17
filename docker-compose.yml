@@ -38,6 +38,7 @@ services:
       - "${CCHQ_PORT:-3000}:3000"
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/postgres
+      PROJECTS_DIR: /projects
       # Supabase env vars intentionally left empty in v0.1.0 — the
       # realtime watcher no-ops when these are missing.
       NEXT_PUBLIC_SUPABASE_URL: ""
@@ -49,9 +50,13 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    # To enable one-click in-app updates, uncomment the volume below:
-    # volumes:
-    #   - /var/run/docker.sock:/var/run/docker.sock:ro
+    volumes:
+      # Mount host projects directory into the container
+      - ${PROJECTS_DIR:-~/Code}:/projects
+      # Mount Claude Code config for auth (API key, settings)
+      - ${HOME}/.claude:/home/nextjs/.claude:ro
+      # To enable one-click in-app updates, uncomment:
+      # - /var/run/docker.sock:/var/run/docker.sock:ro
 
   cloudflared:
     image: cloudflare/cloudflared:latest

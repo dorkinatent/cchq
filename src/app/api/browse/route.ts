@@ -3,13 +3,21 @@ import { readdir } from "fs/promises";
 import { join, resolve } from "path";
 import { homedir } from "os";
 
-export async function GET(req: NextRequest) {
-  const path = req.nextUrl.searchParams.get("path") || homedir();
-  const realPath = resolve(path);
-  const realHome = resolve(homedir());
-  const homeWithSep = realHome.endsWith("/") ? realHome : realHome + "/";
+/**
+ * Root directory for browsing. In Docker, PROJECTS_DIR is set to /projects
+ * (the mount point for the host's code directory). In dev, falls back to $HOME.
+ */
+function browseRoot(): string {
+  return resolve(process.env.PROJECTS_DIR || homedir());
+}
 
-  if (realPath !== realHome && !realPath.startsWith(homeWithSep)) {
+export async function GET(req: NextRequest) {
+  const root = browseRoot();
+  const path = req.nextUrl.searchParams.get("path") || root;
+  const realPath = resolve(path);
+  const rootWithSep = root.endsWith("/") ? root : root + "/";
+
+  if (realPath !== root && !realPath.startsWith(rootWithSep)) {
     return NextResponse.json({ error: "Access denied" }, { status: 403 });
   }
 
@@ -27,9 +35,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({
       current: realPath,
       parent:
-        parentPath === realHome || parentPath.startsWith(homeWithSep)
+        parentPath === root || parentPath.startsWith(rootWithSep)
           ? parentPath
-          : realHome,
+          : root,
       directories: dirs,
       isGitRepo: entries.some((e) => e.name === ".git" && e.isDirectory()),
     });
