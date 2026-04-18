@@ -32,12 +32,13 @@
   --space-4xl: 4rem;     /* 64px */
 }
 
-/* Prevent horizontal overflow on mobile. Mobile browsers ignore overflow-x
-   on html/body, so we also constrain with max-width on body. The real
-   containment happens on the layout wrapper (overflow-hidden) and main
-   (overflow-x-hidden). */
-html { overflow-x: hidden; }
-body { overflow-x: hidden; max-width: 100vw; }
+/* Prevent horizontal overflow on mobile. 100vw includes scrollbar width and
+   behaves unpredictably on mobile — use 100% instead. The real containment
+   happens on the layout wrapper (overflow-hidden) and main (overflow-x-hidden).
+   We also set overflow-wrap on html so long unbroken strings (URLs, file paths,
+   inline code) wrap instead of pushing the body wider than the viewport. */
+html { overflow-x: hidden; overflow-wrap: break-word; word-break: break-word; }
+body { overflow-x: hidden; max-width: 100%; }
 
 :root {
   --leading-tight: 1.15;
