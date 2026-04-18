@@ -109,34 +109,80 @@ function ActivityLine({ tool, isChild }: { tool: ActiveTool; isChild?: boolean }
   );
 }
 
+function buildToolSummary(tools: ActiveTool[]): string {
+  const counts: Record<string, number> = {};
+  for (const t of tools) {
+    const name = t.toolName || "Unknown";
+    counts[name] = (counts[name] || 0) + 1;
+  }
+  const parts: string[] = [];
+  for (const [name, count] of Object.entries(counts)) {
+    const n = name.toLowerCase();
+    if (n === "read") parts.push(`Read ${count} file${count > 1 ? "s" : ""}`);
+    else if (n === "edit") parts.push(`Edited ${count} file${count > 1 ? "s" : ""}`);
+    else if (n === "write") parts.push(`Wrote ${count} file${count > 1 ? "s" : ""}`);
+    else if (n === "bash") parts.push(`Ran ${count} command${count > 1 ? "s" : ""}`);
+    else if (n === "grep") parts.push(`Searched ${count} time${count > 1 ? "s" : ""}`);
+    else if (n === "glob") parts.push(`Globbed ${count} time${count > 1 ? "s" : ""}`);
+    else if (n === "agent") parts.push(`Agent ×${count}`);
+    else parts.push(`${name} ×${count}`);
+  }
+  return parts.join(", ");
+}
+
 export function StreamingIndicator({ state }: { state: StreamState }) {
   if (state.phase === "idle") return null;
 
   const hasTools = state.activeTools.length > 0;
+  const doneCount = state.activeTools.filter((t) => t.done).length;
+  const totalCount = state.activeTools.length;
+  const allDone = hasTools && doneCount === totalCount;
+
+  // Thinking dots shared between phases
+  const thinkingDots = (
+    <span className="flex gap-1" aria-hidden>
+      <span className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full thinking-dot" style={{ animationDelay: "0ms" }} />
+      <span className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full thinking-dot" style={{ animationDelay: "200ms" }} />
+      <span className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full thinking-dot" style={{ animationDelay: "400ms" }} />
+    </span>
+  );
 
   return (
     <div className="mb-5">
       <div className="text-[11px] text-[var(--text-muted)] mb-1">Claude</div>
       <div className="bg-[var(--surface-raised)] border border-[var(--border)] rounded-lg overflow-hidden max-w-[min(96%,720px)]">
 
-        {/* Activity tree */}
+        {/* Collapsible activity tree — collapsed by default so streaming
+            tool calls don't flood the chat. Users can expand to watch live. */}
         {hasTools && (
-          <div className="px-4 py-2.5 space-y-0.5">
-            {state.activeTools.map((tool) => (
-              <ActivityLine key={tool.toolUseId} tool={tool} />
-            ))}
-          </div>
+          <details className="group">
+            <summary className="flex items-center gap-2 px-3 py-2 text-left hover:bg-[var(--surface)] transition-colors cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+              <span className="text-[var(--text-muted)] text-xs shrink-0 transition-transform group-open:rotate-90">
+                ▶
+              </span>
+              {!allDone && (
+                <span className="inline-block w-3 h-3 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin shrink-0" />
+              )}
+              <span className="text-xs text-[var(--text-secondary)]">
+                {totalCount} tool call{totalCount > 1 ? "s" : ""}
+                {doneCount > 0 ? ` (${doneCount} done)` : ""}
+                {" — "}
+                {buildToolSummary(state.activeTools)}
+              </span>
+            </summary>
+            <div className="border-t border-[var(--border)] px-4 py-2.5 space-y-0.5">
+              {state.activeTools.map((tool) => (
+                <ActivityLine key={tool.toolUseId} tool={tool} />
+              ))}
+            </div>
+          </details>
         )}
 
         {/* Status / streaming text */}
         {state.phase === "thinking" && (
           <div className={`px-4 py-2.5 ${hasTools ? "border-t border-[var(--border)]" : ""}`}>
             <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
-              <span className="flex gap-1" aria-hidden>
-                <span className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full thinking-dot" style={{ animationDelay: "0ms" }} />
-                <span className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full thinking-dot" style={{ animationDelay: "200ms" }} />
-                <span className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full thinking-dot" style={{ animationDelay: "400ms" }} />
-              </span>
+              {thinkingDots}
               <span><RotatingVerb verbs={THINKING_VERBS} />...</span>
               {state.thinkingStartedAt && (
                 <span className="text-[var(--text-muted)]">
@@ -150,11 +196,7 @@ export function StreamingIndicator({ state }: { state: StreamState }) {
         {state.phase === "tool_use" && (
           <div className="px-4 py-2.5 border-t border-[var(--border)]">
             <div className="flex items-center gap-2 text-xs text-[var(--text-secondary)]">
-              <span className="flex gap-1" aria-hidden>
-                <span className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full thinking-dot" style={{ animationDelay: "0ms" }} />
-                <span className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full thinking-dot" style={{ animationDelay: "200ms" }} />
-                <span className="w-1.5 h-1.5 bg-[var(--accent)] rounded-full thinking-dot" style={{ animationDelay: "400ms" }} />
-              </span>
+              {thinkingDots}
               <span><RotatingVerb verbs={PROCESSING_VERBS} />...</span>
             </div>
           </div>
