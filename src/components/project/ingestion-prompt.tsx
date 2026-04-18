@@ -29,18 +29,27 @@ export function IngestionPrompt({
     setBusy(true);
     try {
       const docsRes = await fetch(`/api/projects/${projectId}/docs`);
-      const files: { relativePath: string }[] = docsRes.ok ? await docsRes.json() : [];
+      if (!docsRes.ok) throw new Error("Failed to load project docs");
+      const files: { relativePath: string }[] = await docsRes.json();
       const paths = files.map((f) => f.relativePath);
       await markPrompted();
       // Dismiss immediately — the import runs in the background.
       onClose();
       toast(`Importing ${paths.length} doc${paths.length === 1 ? "" : "s"} in the background…`);
       if (paths.length > 0) {
-        fetch(`/api/projects/${projectId}/ingest`, {
+        void fetch(`/api/projects/${projectId}/ingest`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ paths }),
-        }).catch(() => {/* fire-and-forget */});
+        })
+          .then((res) => {
+            if (!res.ok) {
+              toast("Background import failed. Please retry from Settings.", { variant: "error" });
+            }
+          })
+          .catch(() => {
+            toast("Background import failed. Please retry from Settings.", { variant: "error" });
+          });
       }
     } catch {
       // If even the docs fetch fails, still dismiss so the banner doesn't stick.
