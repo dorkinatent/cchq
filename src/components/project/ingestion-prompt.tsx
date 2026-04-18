@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useToast } from "@/components/ui/toast";
 
 export function IngestionPrompt({
   projectId,
@@ -14,8 +15,7 @@ export function IngestionPrompt({
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
-  const [progress, setProgress] = useState({ current: 0, total: 0, file: "" });
-  const [knowledgeCount, setKnowledgeCount] = useState(0);
+  const { toast } = useToast();
 
   async function markPrompted() {
     await fetch(`/api/projects/${projectId}`, {
@@ -27,33 +27,26 @@ export function IngestionPrompt({
 
   async function importAll() {
     setBusy(true);
-    const docsRes = await fetch(`/api/projects/${projectId}/docs`);
-    const files: { relativePath: string }[] = docsRes.ok ? await docsRes.json() : [];
-    const paths = files.map((f) => f.relativePath);
-    setProgress({ current: 0, total: paths.length, file: "" });
-
-    let totalEntries = 0;
-    for (let i = 0; i < paths.length; i++) {
-      setProgress({ current: i + 1, total: paths.length, file: paths[i] });
-      try {
-        const res = await fetch(`/api/projects/${projectId}/ingest`, {
+    try {
+      const docsRes = await fetch(`/api/projects/${projectId}/docs`);
+      const files: { relativePath: string }[] = docsRes.ok ? await docsRes.json() : [];
+      const paths = files.map((f) => f.relativePath);
+      await markPrompted();
+      // Dismiss immediately — the import runs in the background.
+      onClose();
+      toast(`Importing ${paths.length} doc${paths.length === 1 ? "" : "s"} in the background…`);
+      if (paths.length > 0) {
+        fetch(`/api/projects/${projectId}/ingest`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ paths: [paths[i]] }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          totalEntries += data.entriesCreated ?? 0;
-          setKnowledgeCount(totalEntries);
-        }
-      } catch {
-        // continue with next file
+          body: JSON.stringify({ paths }),
+        }).catch(() => {/* fire-and-forget */});
       }
+    } catch {
+      // If even the docs fetch fails, still dismiss so the banner doesn't stick.
+      await markPrompted().catch(() => {});
+      onClose();
     }
-
-    await markPrompted();
-    setBusy(false);
-    onClose();
   }
 
   async function reviewFirst() {
@@ -99,23 +92,9 @@ export function IngestionPrompt({
           disabled={busy}
           className="bg-[var(--accent)] text-[var(--bg)] rounded hover:bg-[var(--accent-hover)] disabled:opacity-50 text-xs px-3 py-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--surface-raised)]"
         >
-          {busy ? `${progress.current}/${progress.total}` : "Import all"}
+          {busy ? "Importing…" : "Import all"}
         </button>
       </div>
-      {busy && (
-        <div className="w-full mt-2">
-          <div className="flex items-center justify-between text-[10px] text-[var(--text-muted)] mb-1">
-            <span className="truncate max-w-[60%]">{progress.file}</span>
-            <span>{knowledgeCount} fact{knowledgeCount === 1 ? "" : "s"} extracted</span>
-          </div>
-          <div className="h-1 bg-[var(--surface)] rounded-full overflow-hidden">
-            <div
-              className="h-full bg-[var(--accent)] rounded-full transition-all duration-300"
-              style={{ width: progress.total > 0 ? `${(progress.current / progress.total) * 100}%` : "0%" }}
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 }
