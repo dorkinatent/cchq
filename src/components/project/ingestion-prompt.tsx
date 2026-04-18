@@ -52,9 +52,10 @@ export function IngestionPrompt({
           });
       }
     } catch {
-      // If even the docs fetch fails, still dismiss so the banner doesn't stick.
-      await markPrompted().catch(() => {});
-      onClose();
+      // Don't mark as prompted — let the user retry on transient failures.
+      toast("Could not load docs to import. Please retry.", { variant: "error" });
+      setBusy(false);
+      return;
     }
   }
 
